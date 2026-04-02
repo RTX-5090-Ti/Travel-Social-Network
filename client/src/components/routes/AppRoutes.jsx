@@ -35,6 +35,15 @@ export default function AppRoutes() {
         }
       />
 
+      <Route
+        path="/profile/:userId"
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        }
+      />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

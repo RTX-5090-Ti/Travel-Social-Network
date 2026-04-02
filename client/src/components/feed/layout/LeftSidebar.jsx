@@ -48,6 +48,17 @@ export default function LeftSidebar({
     }
   }
 
+  function handleViewProfile() {
+    if (!displayUser?.id) return;
+
+    navigate(`/profile/${displayUser.id}`, {
+      state: {
+        profileUser: displayUser,
+        profileTrips: displayUser.previewTrips || [],
+      },
+    });
+  }
+
   return (
     <aside className="hidden border-r border-zinc-200/80 bg-white/80 px-6 py-7 backdrop-blur lg:block lg:self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:rounded-l-[34px] feed-side-scroll">
       <div>
@@ -262,6 +273,7 @@ export default function LeftSidebar({
                   </motion.div>
 
                   <motion.button
+                    onClick={handleViewProfile}
                     type="button"
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}

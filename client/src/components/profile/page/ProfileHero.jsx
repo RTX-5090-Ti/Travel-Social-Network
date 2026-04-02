@@ -26,11 +26,13 @@ export default function ProfileHero({
   user,
   avatar,
   initials,
-  // latestTrip,
   stats,
   onBackToFeed,
   coverUrl,
   formatLargeNumber,
+  isVisitorProfile = false,
+  isFollowing = false,
+  onToggleFollow,
 }) {
   const fileInputRef = useRef(null);
   const { setUser } = useAuth();
@@ -51,6 +53,8 @@ export default function ProfileHero({
   });
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
+
+  const displayUser = user || null;
 
   useEffect(() => {
     return () => {
@@ -77,6 +81,7 @@ export default function ProfileHero({
   }
 
   function handleOpenAvatarPicker() {
+    if (isVisitorProfile) return;
     fileInputRef.current?.click();
   }
 
@@ -234,10 +239,24 @@ export default function ProfileHero({
               </div>
 
               <div className="flex items-center gap-3">
-                <button className="inline-flex items-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.28)] transition hover:-translate-y-0.5 cursor-pointer">
-                  <PenSquare className="w-4 h-4" />
-                  Edit profile
-                </button>
+                {isVisitorProfile ? (
+                  <button
+                    type="button"
+                    onClick={onToggleFollow}
+                    className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold shadow-[0_12px_24px_rgba(102,126,234,0.22)] transition hover:-translate-y-0.5 cursor-pointer ${
+                      isFollowing
+                        ? "border border-white/80 bg-white/90 text-zinc-700"
+                        : "bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-white"
+                    }`}
+                  >
+                    {isFollowing ? "Following" : "Follow"}
+                  </button>
+                ) : (
+                  <button className="inline-flex items-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.28)] transition hover:-translate-y-0.5 cursor-pointer">
+                    <PenSquare className="w-4 h-4" />
+                    Edit profile
+                  </button>
+                )}
               </div>
             </div>
 
@@ -255,7 +274,7 @@ export default function ProfileHero({
                     >
                       <img
                         src={displayAvatar}
-                        alt={user?.name || "Traveler"}
+                        alt={displayUser?.name || "Traveler"}
                         className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
                       />
 
@@ -305,7 +324,7 @@ export default function ProfileHero({
 
                 <div className="min-w-0">
                   <h1 className="text-[30px] font-semibold tracking-tight text-zinc-900 sm:text-[36px]">
-                    {user?.name || "Traveler"}
+                    {displayUser?.name || "Traveler"}
                   </h1>
 
                   <p className="mt-2 max-w-[640px] text-[15px] leading-7 text-zinc-600">
@@ -316,7 +335,7 @@ export default function ProfileHero({
                   <div className="mt-4 flex flex-wrap gap-2.5 text-[13px] text-zinc-500">
                     <ProfileMetaPill
                       icon={<Mail className="w-4 h-4" />}
-                      text={user?.email || "No email"}
+                      text={displayUser?.email || "No email"}
                     />
                     <ProfileMetaPill
                       icon={<MapPin className="w-4 h-4" />}
@@ -375,7 +394,7 @@ export default function ProfileHero({
         {isAvatarPreviewOpen && displayAvatar ? (
           <AvatarPreviewModal
             src={displayAvatar}
-            alt={user?.name || "Traveler"}
+            alt={displayUser?.name || "Traveler"}
             onClose={handleCloseAvatarPreview}
           />
         ) : null}

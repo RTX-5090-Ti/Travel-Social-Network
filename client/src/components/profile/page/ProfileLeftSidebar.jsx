@@ -6,19 +6,20 @@ import { profile, requests, navItems } from "../../feed/page/feed.constants";
 import { CheckIcon } from "../../feed/page/feed.icons";
 import ProfileDivider from "./ProfileDivider";
 
-export default function ProfileLeftSidebar() {
+export default function ProfileLeftSidebar({ user: profileUser = null }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
+  const displayUser = profileUser || user;
 
   const sidebarProfile = {
-    name: user?.name || profile.name,
-    location: user?.email || profile.location,
+    name: displayUser?.name || profile.name,
+    location: displayUser?.email || profile.location,
     avatar:
-      user?.avatarUrl ||
-      user?.avatar ||
-      user?.profile?.avatarUrl ||
-      user?.profile?.avatar ||
+      displayUser?.avatarUrl ||
+      displayUser?.avatar ||
+      displayUser?.profile?.avatarUrl ||
+      displayUser?.profile?.avatar ||
       profile.avatar,
     stats: profile.stats,
   };
@@ -92,7 +93,12 @@ export default function ProfileLeftSidebar() {
         <div className="mt-8 rounded-[28px] bg-[linear-gradient(180deg,#eef4ff_0%,#ffffff_100%)] p-5 shadow-[0_16px_40px_rgba(76,109,255,0.08)] ring-1 ring-zinc-200/70">
           <div className="relative mx-auto h-[110px] w-[110px]">
             <img
-              src={sidebarProfile.avatar}
+              src={
+                displayUser?.avatarUrl ||
+                displayUser?.avatar ||
+                displayUser?.profile?.avatarUrl ||
+                displayUser?.profile?.avatar
+              }
               alt={sidebarProfile.name}
               className="h-full w-full rounded-[30px] object-cover shadow-[0_16px_30px_rgba(80,97,164,0.18)]"
             />

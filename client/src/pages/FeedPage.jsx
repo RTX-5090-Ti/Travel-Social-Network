@@ -45,8 +45,15 @@ export default function FeedPage() {
   function handlePreviewUser(user) {
     if (!user) return;
 
+    const ownerId = user?._id || user?.id || "";
+
+    const ownerTrips = feedItems.filter((item) => {
+      const itemOwnerId = item?.ownerId?._id || item?.ownerId?.id || "";
+      return itemOwnerId && itemOwnerId === ownerId;
+    });
+
     setPreviewUser({
-      id: user?._id || user?.id || "",
+      id: ownerId,
       name: user?.name || "Traveler",
       email: user?.email || "",
       avatar:
@@ -55,6 +62,7 @@ export default function FeedPage() {
         user?.profile?.avatarUrl ||
         user?.profile?.avatar ||
         "",
+      previewTrips: ownerTrips,
     });
   }
 

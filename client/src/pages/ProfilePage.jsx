@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Grid3X3, ImageIcon, Sparkles, Camera, PenSquare } from "lucide-react";
 
 import { useAuth } from "../auth/useAuth";
@@ -85,7 +85,16 @@ const PROFILE_COVER_URL =
 
 export default function ProfilePage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { userId } = useParams();
   const { user } = useAuth();
+
+  const isVisitorProfile = Boolean(userId) && userId !== user?.id;
+
+  const routedProfileUser = location.state?.profileUser || null;
+  const routedProfileTrips = Array.isArray(location.state?.profileTrips)
+    ? location.state.profileTrips
+    : [];
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -95,6 +104,9 @@ export default function ProfilePage() {
   const [mediaLightboxIndex, setMediaLightboxIndex] = useState(null);
   const [selectedHighlightTrip, setSelectedHighlightTrip] = useState(null);
   const [openComposer, setOpenComposer] = useState(false);
+
+  const displayUser = isVisitorProfile ? routedProfileUser : user;
+  const profileTrips = isVisitorProfile ? routedProfileTrips : ownTrips;
 
   const activeTabIndex = PROFILE_TABS.findIndex((tab) => tab.key === activeTab);
 
@@ -160,23 +172,28 @@ export default function ProfilePage() {
   );
 
   useEffect(() => {
-    loadOwnTrips();
-  }, [loadOwnTrips]);
+    if (isVisitorProfile) {
+      setLoading(false);
+      return;
+    }
 
-  const avatar = getUserAvatar(user);
-  const initials = getInitials(user?.name || "Traveler");
+    loadOwnTrips();
+  }, [isVisitorProfile, loadOwnTrips]);
+
+  const avatar = getUserAvatar(displayUser);
+  const initials = getInitials(displayUser?.name || "Traveler");
 
   const stats = useMemo(() => {
-    const totalJourneys = ownTrips.length;
-    const totalHearts = ownTrips.reduce(
+    const totalJourneys = profileTrips.length;
+    const totalHearts = profileTrips.reduce(
       (sum, trip) => sum + (trip?.counts?.reactions || 0),
       0,
     );
-    const totalComments = ownTrips.reduce(
+    const totalComments = profileTrips.reduce(
       (sum, trip) => sum + (trip?.counts?.comments || 0),
       0,
     );
-    const totalMedia = ownTrips.reduce((sum, trip) => {
+    const totalMedia = profileTrips.reduce((sum, trip) => {
       if (Array.isArray(trip?.profileMedia)) {
         return sum + trip.profileMedia.length;
       }
@@ -189,10 +206,10 @@ export default function ProfilePage() {
       totalComments,
       totalMedia,
     };
-  }, [ownTrips]);
+  }, [profileTrips]);
 
   const highlightTrips = useMemo(() => {
-    return [...ownTrips]
+    return [...profileTrips]
       .sort((a, b) => {
         const reactionsDiff =
           (b?.counts?.reactions || 0) - (a?.counts?.reactions || 0);
@@ -217,9 +234,12 @@ export default function ProfilePage() {
         );
       })
       .slice(0, 2);
-  }, [ownTrips]);
+  }, [profileTrips]);
 
-  const mediaItems = useMemo(() => collectProfileMedia(ownTrips), [ownTrips]);
+  const mediaItems = useMemo(
+    () => collectProfileMedia(profileTrips),
+    [profileTrips],
+  );
   const recentCaptures = useMemo(() => mediaItems.slice(0, 4), [mediaItems]);
 
   const isMediaLightboxOpen =
@@ -300,18 +320,21 @@ export default function ProfilePage() {
 
       <div className="relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden rounded-[34px] border border-white/60 bg-[#fafafb] shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
         <div className="grid min-h-[900px] grid-cols-1 lg:h-full lg:min-h-0 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
-          <ProfileLeftSidebar />
+          <ProfileLeftSidebar user={displayUser} />
 
           <main className="profile-main-scroll min-w-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,250,251,0.96))] px-5 py-6 sm:px-7 sm:py-8 lg:h-full lg:overflow-y-auto lg:overflow-x-hidden lg:border-r lg:px-9 xl:px-10 border-zinc-200/80">
             <div className="mx-auto w-full max-w-[920px]">
               <ProfileHero
-                user={user}
+                user={displayUser}
                 avatar={avatar}
                 initials={initials}
                 stats={stats}
                 onBackToFeed={() => navigate("/")}
                 coverUrl={PROFILE_COVER_URL}
                 formatLargeNumber={formatLargeNumber}
+                isVisitorProfile={isVisitorProfile}
+                isFollowing={false}
+                onToggleFollow={() => {}}
               />
 
               <section className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -344,6 +367,11 @@ export default function ProfilePage() {
                         );
                       })}
                     </div>
+                  ) : isVisitorProfile ? (
+                    <ProfileEmptyJourneyPanel
+                      onShareJourney={handleOpenShareJourney}
+                      isVisitorProfile
+                    />
                   ) : (
                     <ProfileEmptyLuxuryCard
                       onShareJourney={handleOpenShareJourney}
@@ -360,79 +388,81 @@ export default function ProfilePage() {
                 </div>
               </section>
 
-              <div className="mt-6 overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.74),rgba(244,247,255,0.90),rgba(243,238,255,0.88))] shadow-[0_18px_42px_rgba(15,23,42,0.06)] ring-1 ring-zinc-200/60 backdrop-blur">
-                <div className="relative px-4 py-4 overflow-hidden sm:px-5 sm:py-5">
-                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.10),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.10),transparent_30%)]" />
-                  <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.95),transparent)]" />
+              {!isVisitorProfile ? (
+                <div className="mt-6 overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.74),rgba(244,247,255,0.90),rgba(243,238,255,0.88))] shadow-[0_18px_42px_rgba(15,23,42,0.06)] ring-1 ring-zinc-200/60 backdrop-blur">
+                  <div className="relative px-4 py-4 overflow-hidden sm:px-5 sm:py-5">
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.10),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.10),transparent_30%)]" />
+                    <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.95),transparent)]" />
 
-                  <div className="relative flex flex-col gap-3 lg:flex-row lg:items-center">
-                    <button
-                      type="button"
-                      onClick={handleOpenShareJourney}
-                      className="group relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden rounded-[24px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(246,248,255,0.98),rgba(243,238,255,0.96))] p-3 shadow-[0_16px_34px_rgba(15,23,42,0.06)] ring-1 ring-zinc-200/60 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_42px_rgba(15,23,42,0.10)] cursor-pointer"
-                    >
-                      <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.08),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.08),transparent_30%)] opacity-80" />
-                      <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.95),transparent)]" />
-                      <span className="pointer-events-none absolute inset-y-0 left-[-120%] w-[55%] skew-x-[-20deg] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.52),transparent)] transition-all duration-700 group-hover:left-[130%]" />
+                    <div className="relative flex flex-col gap-3 lg:flex-row lg:items-center">
+                      <button
+                        type="button"
+                        onClick={handleOpenShareJourney}
+                        className="group relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden rounded-[24px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(246,248,255,0.98),rgba(243,238,255,0.96))] p-3 shadow-[0_16px_34px_rgba(15,23,42,0.06)] ring-1 ring-zinc-200/60 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_42px_rgba(15,23,42,0.10)] cursor-pointer"
+                      >
+                        <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.08),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.08),transparent_30%)] opacity-80" />
+                        <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.95),transparent)]" />
+                        <span className="pointer-events-none absolute inset-y-0 left-[-120%] w-[55%] skew-x-[-20deg] bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.52),transparent)] transition-all duration-700 group-hover:left-[130%]" />
 
-                      <span className="relative z-10 shrink-0">
-                        {avatar ? (
-                          <img
-                            src={avatar}
-                            alt={user?.name || "Traveler"}
-                            className="h-12 w-12 rounded-full object-cover ring-2 ring-white/85 shadow-[0_10px_22px_rgba(15,23,42,0.10)]"
-                          />
-                        ) : (
-                          <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-[18px] font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.24)]">
-                            {initials}
+                        <span className="relative z-10 shrink-0">
+                          {avatar ? (
+                            <img
+                              src={avatar}
+                              alt={user?.name || "Traveler"}
+                              className="h-12 w-12 rounded-full object-cover ring-2 ring-white/85 shadow-[0_10px_22px_rgba(15,23,42,0.10)]"
+                            />
+                          ) : (
+                            <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-[18px] font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.24)]">
+                              {initials}
+                            </span>
+                          )}
+                        </span>
+
+                        <span className="relative z-10 flex-1 min-w-0">
+                          <span className="flex h-[48px] items-center rounded-full border border-white/70 bg-[linear-gradient(180deg,rgba(241,243,248,0.98),rgba(235,238,244,1))] px-5 text-left text-[15px] font-medium text-zinc-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition duration-300 group-hover:bg-[linear-gradient(180deg,rgba(237,240,247,1),rgba(232,236,243,1))]">
+                            Share your next journey...
                           </span>
-                        )}
-                      </span>
+                        </span>
 
-                      <span className="relative z-10 flex-1 min-w-0">
-                        <span className="flex h-[48px] items-center rounded-full border border-white/70 bg-[linear-gradient(180deg,rgba(241,243,248,0.98),rgba(235,238,244,1))] px-5 text-left text-[15px] font-medium text-zinc-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition duration-300 group-hover:bg-[linear-gradient(180deg,rgba(237,240,247,1),rgba(232,236,243,1))]">
-                          Share your next journey...
+                        <span className="relative z-10 flex items-center gap-2 pl-1 shrink-0">
+                          <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rose-100 bg-[linear-gradient(180deg,#fff1f2,#ffe4e6)] text-rose-500 shadow-[0_8px_18px_rgba(244,63,94,0.12)] transition duration-300 group-hover:scale-105 group-hover:shadow-[0_10px_22px_rgba(244,63,94,0.16)]">
+                            <Camera className="w-4 h-4" />
+                          </span>
+                          <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-emerald-100 bg-[linear-gradient(180deg,#ecfdf5,#d1fae5)] text-emerald-500 shadow-[0_8px_18px_rgba(16,185,129,0.12)] transition duration-300 group-hover:scale-105 group-hover:shadow-[0_10px_22px_rgba(16,185,129,0.16)]">
+                            <ImageIcon className="w-4 h-4" />
+                          </span>
+                          <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-100 bg-[linear-gradient(180deg,#fffbeb,#fef3c7)] text-amber-500 shadow-[0_8px_18px_rgba(245,158,11,0.12)] transition duration-300 group-hover:scale-105 group-hover:shadow-[0_10px_22px_rgba(245,158,11,0.16)]">
+                            <Sparkles className="w-4 h-4" />
+                          </span>
                         </span>
-                      </span>
+                      </button>
 
-                      <span className="relative z-10 flex items-center gap-2 pl-1 shrink-0">
-                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rose-100 bg-[linear-gradient(180deg,#fff1f2,#ffe4e6)] text-rose-500 shadow-[0_8px_18px_rgba(244,63,94,0.12)] transition duration-300 group-hover:scale-105 group-hover:shadow-[0_10px_22px_rgba(244,63,94,0.16)]">
-                          <Camera className="w-4 h-4" />
+                      <button
+                        type="button"
+                        onClick={handleOpenCreatePost}
+                        className="group relative inline-flex h-[60px] shrink-0 items-center justify-center gap-3 overflow-hidden rounded-[18px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.96),rgba(243,237,255,0.94))] px-7 text-[15px] font-semibold text-[#5b63f6] shadow-[0_12px_28px_rgba(91,99,246,0.12)] ring-1 ring-zinc-200/60 transition duration-300 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_18px_38px_rgba(91,99,246,0.18)] cursor-pointer"
+                      >
+                        <span className="absolute inset-y-0 left-[-100%] w-full bg-[linear-gradient(135deg,rgba(102,126,234,0.10),rgba(118,75,162,0.14),rgba(78,205,196,0.10),rgba(69,183,209,0.10))] transition-all duration-500 group-hover:left-0" />
+                        <span className="absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.10),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.10),transparent_38%)]" />
+                        <span className="relative z-10 inline-flex items-center gap-3">
+                          <PenSquare className="w-4 h-4" />
+                          Create Post
                         </span>
-                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-emerald-100 bg-[linear-gradient(180deg,#ecfdf5,#d1fae5)] text-emerald-500 shadow-[0_8px_18px_rgba(16,185,129,0.12)] transition duration-300 group-hover:scale-105 group-hover:shadow-[0_10px_22px_rgba(16,185,129,0.16)]">
-                          <ImageIcon className="w-4 h-4" />
-                        </span>
-                        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-100 bg-[linear-gradient(180deg,#fffbeb,#fef3c7)] text-amber-500 shadow-[0_8px_18px_rgba(245,158,11,0.12)] transition duration-300 group-hover:scale-105 group-hover:shadow-[0_10px_22px_rgba(245,158,11,0.16)]">
-                          <Sparkles className="w-4 h-4" />
-                        </span>
-                      </span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={handleOpenCreatePost}
-                      className="group relative inline-flex h-[60px] shrink-0 items-center justify-center gap-3 overflow-hidden rounded-[18px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.96),rgba(243,237,255,0.94))] px-7 text-[15px] font-semibold text-[#5b63f6] shadow-[0_12px_28px_rgba(91,99,246,0.12)] ring-1 ring-zinc-200/60 transition duration-300 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_18px_38px_rgba(91,99,246,0.18)] cursor-pointer"
-                    >
-                      <span className="absolute inset-y-0 left-[-100%] w-full bg-[linear-gradient(135deg,rgba(102,126,234,0.10),rgba(118,75,162,0.14),rgba(78,205,196,0.10),rgba(69,183,209,0.10))] transition-all duration-500 group-hover:left-0" />
-                      <span className="absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.10),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.10),transparent_38%)]" />
-                      <span className="relative z-10 inline-flex items-center gap-3">
-                        <PenSquare className="w-4 h-4" />
-                        Create Post
-                      </span>
-                    </button>
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : null}
 
               <section className="mt-8">
                 <div className="flex items-center justify-between gap-5">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-                        Personal space
+                        {isVisitorProfile ? "Traveler space" : "Personal space"}
                       </p>
                       <h3 className="mt-2 text-[26px] font-semibold tracking-tight text-zinc-900">
-                        My content
+                        {isVisitorProfile ? "Journey collection" : "My content"}
                       </h3>
                     </div>
                   </div>
@@ -492,9 +522,9 @@ export default function ProfilePage() {
                           <ProfileFeedSkeleton />
                         </div>
                       ) : activeTab === "posts" ? (
-                        ownTrips.length ? (
+                        profileTrips.length ? (
                           <div className="space-y-7">
-                            {ownTrips.map((trip, index) => (
+                            {profileTrips.map((trip, index) => (
                               <JourneyFeedCard
                                 key={
                                   trip?._id ||
@@ -507,6 +537,7 @@ export default function ProfilePage() {
                         ) : (
                           <ProfileEmptyJourneyPanel
                             onShareJourney={handleOpenShareJourney}
+                            isVisitorProfile={isVisitorProfile}
                           />
                         )
                       ) : (
