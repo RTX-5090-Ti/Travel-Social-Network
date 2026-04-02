@@ -14,6 +14,7 @@ export default function FeedPage() {
   const [feedItems, setFeedItems] = useState([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [feedError, setFeedError] = useState("");
+  const [previewUser, setPreviewUser] = useState(null);
 
   const loadFeed = useCallback(async () => {
     try {
@@ -39,6 +40,22 @@ export default function FeedPage() {
   async function handlePosted() {
     setOpenComposer(false);
     await loadFeed();
+  }
+
+  function handlePreviewUser(user) {
+    if (!user) return;
+
+    setPreviewUser({
+      id: user?._id || user?.id || "",
+      name: user?.name || "Traveler",
+      email: user?.email || "",
+      avatar:
+        user?.avatarUrl ||
+        user?.avatar ||
+        user?.profile?.avatarUrl ||
+        user?.profile?.avatar ||
+        "",
+    });
   }
 
   return (
@@ -82,13 +99,17 @@ export default function FeedPage() {
 
       <div className="relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden rounded-[34px] border border-white/60 bg-[#fafafb] shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
         <div className="grid min-h-[900px] grid-cols-1 lg:h-full lg:min-h-0 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
-          <LeftSidebar />
+          <LeftSidebar
+            previewUser={previewUser}
+            onClearPreview={() => setPreviewUser(null)}
+          />
           <MainFeed
             onOpenComposer={() => setOpenComposer(true)}
             feedItems={feedItems}
             feedLoading={feedLoading}
             feedError={feedError}
             onReloadFeed={loadFeed}
+            onPreviewUser={handlePreviewUser}
           />
           <RightSidebar />
         </div>

@@ -11,6 +11,7 @@ export default function MainFeed({
   feedLoading,
   feedError,
   onReloadFeed,
+  onPreviewUser,
 }) {
   return (
     <main className="feed-main-scroll min-w-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,250,251,0.96))] px-5 py-6 sm:px-7 sm:py-8 lg:h-full lg:overflow-y-auto lg:overflow-x-hidden lg:border-r border-zinc-200/80 lg:px-9 xl:px-10">
@@ -73,6 +74,7 @@ export default function MainFeed({
                     trip._id || `feed-trip-${trip.createdAt || "x"}-${index}`
                   }
                   trip={trip}
+                  onPreviewUser={onPreviewUser}
                 />
               ))
             ) : (

@@ -35,6 +35,7 @@ export default function JourneyFeedCard({
   forceOpen = false,
   overlayOnly = false,
   onForceOpenClose,
+  onPreviewUser,
 }) {
   const ownerName = trip.ownerId?.name || "Traveler";
   const initials = getInitials(ownerName);
@@ -360,9 +361,13 @@ export default function JourneyFeedCard({
                 </div>
 
                 <div className="min-w-0">
-                  <p className="truncate text-[16px] font-semibold text-zinc-900">
+                  <button
+                    type="button"
+                    onClick={() => onPreviewUser?.(trip.ownerId)}
+                    className="block max-w-full cursor-pointer truncate text-left text-[16px] font-semibold text-zinc-900 transition hover:text-[#5b6ee1] cursor-pointer"
+                  >
                     {ownerName}
-                  </p>
+                  </button>
                   <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[13px] text-zinc-400">
                     <span>{formatFeedTime(trip.createdAt)}</span>
                     <span className="w-1 h-1 rounded-full bg-zinc-300" />
