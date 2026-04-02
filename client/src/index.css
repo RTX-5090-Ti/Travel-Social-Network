@@ -1,0 +1,147 @@
+@import url("https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  min-height: 100%;
+  font-family: "Be Vietnam Pro", system-ui, sans-serif;
+}
+
+@media (min-width: 1024px) {
+  body {
+    overflow-y: auto;
+  }
+
+  .feed-main-scroll {
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .feed-main-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .feed-main-scroll::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 9999px;
+  }
+
+  .feed-main-scroll::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: transparent;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  .feed-main-scroll:hover {
+    scrollbar-color: rgba(129, 140, 248, 0.9) transparent;
+  }
+
+  .feed-main-scroll:hover::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .feed-main-scroll:hover::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      rgba(129, 140, 248, 0.95),
+      rgba(139, 92, 246, 0.92),
+      rgba(96, 165, 250, 0.9)
+    );
+    border: 2px solid rgba(255, 255, 255, 0.72);
+  }
+
+  .feed-main-scroll:hover::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      rgba(99, 102, 241, 1),
+      rgba(124, 58, 237, 0.98),
+      rgba(59, 130, 246, 0.95)
+    );
+  }
+
+  .feed-side-scroll {
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .feed-side-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .feed-side-scroll::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .feed-side-scroll::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: transparent;
+  }
+
+  .feed-side-scroll:hover {
+    scrollbar-color: rgba(148, 163, 184, 0.9) transparent;
+  }
+
+  .feed-side-scroll:hover::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.9);
+  }
+
+  .feed-side-scroll:hover::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.95);
+  }
+
+  .profile-main-scroll {
+    scrollbar-gutter: stable;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: transparent transparent;
+  }
+
+  .profile-main-scroll::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .profile-main-scroll::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 9999px;
+  }
+
+  .profile-main-scroll::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    background: transparent;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+
+  .profile-main-scroll:hover {
+    scrollbar-color: rgba(129, 140, 248, 0.9) transparent;
+  }
+
+  .profile-main-scroll:hover::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.08);
+  }
+
+  .profile-main-scroll:hover::-webkit-scrollbar-thumb {
+    background: linear-gradient(
+      180deg,
+      rgba(129, 140, 248, 0.95),
+      rgba(139, 92, 246, 0.92),
+      rgba(96, 165, 250, 0.9)
+    );
+    border: 2px solid rgba(255, 255, 255, 0.72);
+  }
+
+  .profile-main-scroll:hover::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(
+      180deg,
+      rgba(99, 102, 241, 1),
+      rgba(124, 58, 237, 0.98),
+      rgba(59, 130, 246, 0.95)
+    );
+  }
+}
