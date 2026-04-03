@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 import {
   Camera,
+  Check,
   ChevronLeft,
   Compass,
   Heart,
@@ -11,6 +12,7 @@ import {
   MessageCircle,
   PenSquare,
   Sparkles,
+  UserCheck,
 } from "lucide-react";
 
 import { authApi } from "../../../api/auth.api";
@@ -31,7 +33,9 @@ export default function ProfileHero({
   coverUrl,
   formatLargeNumber,
   isVisitorProfile = false,
-  isFollowing = false,
+  isFollowing = null,
+  isFollowSubmitting = false,
+  isFollowHydrating = false,
   onToggleFollow,
 }) {
   const fileInputRef = useRef(null);
@@ -55,6 +59,10 @@ export default function ProfileHero({
   const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
 
   const displayUser = user || null;
+
+  const resolvedIsFollowing = isFollowing === true;
+  const isFollowBusy = isFollowSubmitting || isFollowHydrating;
+  const isFollowSkeleton = isFollowHydrating && !isFollowSubmitting;
 
   useEffect(() => {
     return () => {
@@ -243,13 +251,54 @@ export default function ProfileHero({
                   <button
                     type="button"
                     onClick={onToggleFollow}
-                    className={`inline-flex items-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold shadow-[0_12px_24px_rgba(102,126,234,0.22)] transition hover:-translate-y-0.5 cursor-pointer ${
-                      isFollowing
-                        ? "border border-white/80 bg-white/90 text-zinc-700"
-                        : "bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-white"
+                    disabled={isFollowBusy}
+                    className={`inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-semibold transition duration-300 ${
+                      isFollowBusy
+                        ? "cursor-not-allowed opacity-70"
+                        : "cursor-pointer"
+                    } ${
+                      resolvedIsFollowing
+                        ? "border border-white/85 bg-[linear-gradient(135deg,rgba(255,255,255,0.94),rgba(245,247,255,0.96),rgba(242,237,255,0.94))] text-zinc-700 shadow-[0_14px_30px_rgba(91,99,246,0.14)] ring-1 ring-[rgba(167,139,250,0.16)] hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(91,99,246,0.20)]"
+                        : "group relative overflow-hidden bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-white shadow-[0_12px_28px_rgba(102,126,234,0.34)] hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_18px_38px_rgba(102,126,234,0.42)]"
                     }`}
                   >
-                    {isFollowing ? "Following" : "Follow"}
+                    {!resolvedIsFollowing &&
+                    !isFollowSkeleton &&
+                    !isFollowSubmitting ? (
+                      <span className="pointer-events-none absolute inset-y-0 left-[-100%] w-full bg-[linear-gradient(135deg,#ff6b6b,#4ecdc4,#45b7d1,#6c5ce7)] bg-[length:300%_100%] transition-all duration-300 group-hover:left-0" />
+                    ) : null}
+
+                    {isFollowSkeleton ? (
+                      <span className="relative z-10 inline-flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 rounded-full bg-[#c4b5fd]/80" />
+                        <span className="h-3.5 w-[68px] rounded-full bg-[linear-gradient(90deg,rgba(221,214,254,0.95),rgba(196,181,253,0.55),rgba(221,214,254,0.95))] animate-pulse" />
+                      </span>
+                    ) : resolvedIsFollowing ? (
+                      <span className="relative z-10 inline-flex items-center gap-2">
+                        {isFollowSubmitting ? (
+                          <>
+                            <span className="inline-flex h-4 w-4 animate-spin rounded-full border-[2px] border-zinc-300 border-t-[#7c3aed] border-r-[#5b63f6]" />
+                            Updating...
+                          </>
+                        ) : (
+                          <>
+                            <Check className="w-4 h-4" />
+                            Following
+                          </>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="relative z-10 inline-flex items-center gap-2">
+                        {isFollowSubmitting ? (
+                          <>
+                            <span className="inline-flex h-4 w-4 animate-spin rounded-full border-[2px] border-white/35 border-t-white border-r-white" />
+                            Updating...
+                          </>
+                        ) : (
+                          "Follow"
+                        )}
+                      </span>
+                    )}
                   </button>
                 ) : (
                   <button className="inline-flex items-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.28)] transition hover:-translate-y-0.5 cursor-pointer">

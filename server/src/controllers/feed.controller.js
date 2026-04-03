@@ -22,7 +22,7 @@ function buildFeedQuery(filter) {
     .select(
       "ownerId title caption privacy coverUrl counts createdAt feedPreview",
     )
-    .populate("ownerId", "name avatarUrl")
+    .populate("ownerId", "name email avatarUrl")
     .sort({ createdAt: -1 });
 }
 

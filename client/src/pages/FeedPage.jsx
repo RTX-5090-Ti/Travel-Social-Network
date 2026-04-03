@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+
 import FloatingShape from "../components/auth/login/FloatingShape";
 import ShareJourneyModal from "../components/feed/ShareJourneyModal";
 import { feedApi } from "../api/feed.api";
+import { userApi } from "../api/user.api";
 
 import { shapeStyles } from "../components/feed/page/feed.constants";
 
@@ -9,12 +11,41 @@ import LeftSidebar from "../components/feed/layout/LeftSidebar";
 import MainFeed from "../components/feed/layout/MainFeed";
 import RightSidebar from "../components/feed/layout/RightSidebar";
 
+function formatLargeNumber(value = 0) {
+  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
+  return `${value}`;
+}
+
+function buildPreviewStats(summary) {
+  return [
+    {
+      label: "Posts",
+      value: formatLargeNumber(summary?.postsCount || 0),
+    },
+    {
+      label: "Followers",
+      value: formatLargeNumber(summary?.followersCount || 0),
+    },
+    {
+      label: "Following",
+      value: formatLargeNumber(summary?.followingCount || 0),
+    },
+  ];
+}
+
 export default function FeedPage() {
   const [openComposer, setOpenComposer] = useState(false);
   const [feedItems, setFeedItems] = useState([]);
   const [feedLoading, setFeedLoading] = useState(true);
   const [feedError, setFeedError] = useState("");
   const [previewUser, setPreviewUser] = useState(null);
+
+  const [previewStats, setPreviewStats] = useState(null);
+  const [previewStatsLoading, setPreviewStatsLoading] = useState(false);
+
+  const previewStatsCacheRef = useRef(new Map());
+  const previewRequestIdRef = useRef(0);
 
   const loadFeed = useCallback(async () => {
     try {
@@ -33,6 +64,48 @@ export default function FeedPage() {
     }
   }, []);
 
+  const loadPreviewStats = useCallback(async (ownerId) => {
+    if (!ownerId) {
+      setPreviewStats(null);
+      setPreviewStatsLoading(false);
+      return;
+    }
+
+    if (previewStatsCacheRef.current.has(ownerId)) {
+      setPreviewStats(previewStatsCacheRef.current.get(ownerId));
+      setPreviewStatsLoading(false);
+      return;
+    }
+
+    const requestId = ++previewRequestIdRef.current;
+
+    try {
+      setPreviewStatsLoading(true);
+
+      const res = await userApi.getSummary(ownerId);
+
+      const nextStats = buildPreviewStats(res.data?.stats);
+
+      previewStatsCacheRef.current.set(ownerId, nextStats);
+
+      if (requestId !== previewRequestIdRef.current) return;
+      setPreviewStats(nextStats);
+    } catch (e) {
+      console.log(e);
+      if (requestId !== previewRequestIdRef.current) return;
+
+      setPreviewStats([
+        { label: "Posts", value: "0" },
+        { label: "Followers", value: "0" },
+        { label: "Following", value: "0" },
+      ]);
+    } finally {
+      if (requestId === previewRequestIdRef.current) {
+        setPreviewStatsLoading(false);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     loadFeed();
   }, [loadFeed]);
@@ -42,10 +115,12 @@ export default function FeedPage() {
     await loadFeed();
   }
 
-  function handlePreviewUser(user) {
+  async function handlePreviewUser(user) {
     if (!user) return;
 
     const ownerId = user?._id || user?.id || "";
+
+    if (!ownerId) return;
 
     const ownerTrips = feedItems.filter((item) => {
       const itemOwnerId = item?.ownerId?._id || item?.ownerId?.id || "";
@@ -54,9 +129,10 @@ export default function FeedPage() {
 
     setPreviewUser({
       id: ownerId,
+      _id: ownerId,
       name: user?.name || "Traveler",
       email: user?.email || "",
-      avatar:
+      avatarUrl:
         user?.avatarUrl ||
         user?.avatar ||
         user?.profile?.avatarUrl ||
@@ -64,6 +140,9 @@ export default function FeedPage() {
         "",
       previewTrips: ownerTrips,
     });
+
+    setPreviewStats(null);
+    await loadPreviewStats(ownerId);
   }
 
   return (
@@ -109,7 +188,14 @@ export default function FeedPage() {
         <div className="grid min-h-[900px] grid-cols-1 lg:h-full lg:min-h-0 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
           <LeftSidebar
             previewUser={previewUser}
-            onClearPreview={() => setPreviewUser(null)}
+            previewStats={previewStats}
+            previewStatsLoading={previewStatsLoading}
+            onClearPreview={() => {
+              previewRequestIdRef.current += 1;
+              setPreviewUser(null);
+              setPreviewStats(null);
+              setPreviewStatsLoading(false);
+            }}
           />
           <MainFeed
             onOpenComposer={() => setOpenComposer(true)}

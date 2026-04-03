@@ -1,6 +1,6 @@
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
-import { profile, requests, navItems } from "../page/feed.constants";
+import { requests, navItems } from "../page/feed.constants";
 import { CheckIcon } from "../page/feed.icons";
 import Divider from "./Divider";
 
@@ -16,6 +16,8 @@ function getPreviewAvatar(user) {
 
 export default function LeftSidebar({
   previewUser = null,
+  previewStats = null,
+  previewStatsLoading = false,
   onClearPreview = () => {},
 }) {
   const navigate = useNavigate();
@@ -23,6 +25,22 @@ export default function LeftSidebar({
 
   const displayUser = previewUser || null;
   const previewAvatar = getPreviewAvatar(displayUser);
+
+  const previewUserId = displayUser?._id || displayUser?.id || "";
+
+  const sidebarStats = previewStatsLoading
+    ? [
+        { label: "Posts", value: "..." },
+        { label: "Followers", value: "..." },
+        { label: "Following", value: "..." },
+      ]
+    : Array.isArray(previewStats) && previewStats.length
+      ? previewStats
+      : [
+          { label: "Posts", value: "0" },
+          { label: "Followers", value: "0" },
+          { label: "Following", value: "0" },
+        ];
 
   const sidebarNavItems = navItems.map((item) => {
     if (item.label === "Feed") {
@@ -49,9 +67,9 @@ export default function LeftSidebar({
   }
 
   function handleViewProfile() {
-    if (!displayUser?.id) return;
+    if (!previewUserId) return;
 
-    navigate(`/profile/${displayUser.id}`, {
+    navigate(`/profile/${previewUserId}`, {
       state: {
         profileUser: displayUser,
         profileTrips: displayUser.previewTrips || [],
@@ -255,7 +273,7 @@ export default function LeftSidebar({
                     }}
                     className="mt-5 grid grid-cols-3 gap-2 rounded-[24px] bg-white/82 p-3 shadow-[0_12px_30px_rgba(20,20,43,0.05)] ring-1 ring-zinc-200/60 backdrop-blur"
                   >
-                    {profile.stats.map((stat) => (
+                    {sidebarStats.map((stat) => (
                       <motion.div
                         key={stat.label}
                         whileHover={{ y: -2 }}

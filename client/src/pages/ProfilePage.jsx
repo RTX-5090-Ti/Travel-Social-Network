@@ -5,6 +5,8 @@ import { Grid3X3, ImageIcon, Sparkles, Camera, PenSquare } from "lucide-react";
 
 import { useAuth } from "../auth/useAuth";
 import { userApi } from "../api/user.api";
+import { followApi } from "../api/follow.api";
+import { useToast } from "../toast/useToast";
 import FloatingShape from "../components/auth/login/FloatingShape";
 import JourneyFeedCard from "../components/feed/page/JourneyFeedCard";
 
@@ -83,18 +85,21 @@ const PROFILE_TABS = [
 const PROFILE_COVER_URL =
   "https://plus.unsplash.com/premium_photo-1675826539716-54a369329428?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
 
+const EMPTY_ARRAY = [];
+
 export default function ProfilePage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { userId } = useParams();
   const { user } = useAuth();
+  const { showToast } = useToast();
 
   const isVisitorProfile = Boolean(userId) && userId !== user?.id;
 
-  const routedProfileUser = location.state?.profileUser || null;
+  const routedProfileUser = location.state?.profileUser ?? null;
   const routedProfileTrips = Array.isArray(location.state?.profileTrips)
     ? location.state.profileTrips
-    : [];
+    : EMPTY_ARRAY;
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -105,8 +110,28 @@ export default function ProfilePage() {
   const [selectedHighlightTrip, setSelectedHighlightTrip] = useState(null);
   const [openComposer, setOpenComposer] = useState(false);
 
-  const displayUser = isVisitorProfile ? routedProfileUser : user;
-  const profileTrips = isVisitorProfile ? routedProfileTrips : ownTrips;
+  const [visitorProfileUser, setVisitorProfileUser] =
+    useState(routedProfileUser);
+  const [visitorProfileTrips, setVisitorProfileTrips] =
+    useState(routedProfileTrips);
+  const [isFollowing, setIsFollowing] = useState(null);
+  const [isFollowSubmitting, setIsFollowSubmitting] = useState(false);
+
+  const [ownFollowCounts, setOwnFollowCounts] = useState({
+    followersCount: 0,
+    followingCount: 0,
+  });
+
+  const [visitorFollowCounts, setVisitorFollowCounts] = useState({
+    followersCount: 0,
+    followingCount: 0,
+  });
+
+  const [ownPostsCount, setOwnPostsCount] = useState(0);
+  const [visitorPostsCount, setVisitorPostsCount] = useState(0);
+
+  const displayUser = isVisitorProfile ? visitorProfileUser : user;
+  const profileTrips = isVisitorProfile ? visitorProfileTrips : ownTrips;
 
   const activeTabIndex = PROFILE_TABS.findIndex((tab) => tab.key === activeTab);
 
@@ -145,6 +170,7 @@ export default function ProfilePage() {
     async ({ skipLoading = false } = {}) => {
       if (!user?.id) {
         setOwnTrips([]);
+        setOwnPostsCount(0);
         setLoading(false);
         return [];
       }
@@ -155,7 +181,9 @@ export default function ProfilePage() {
 
         const res = await userApi.listMyTrips({ limit: 50 });
         const items = Array.isArray(res.data?.items) ? res.data.items : [];
+
         setOwnTrips(items);
+        setOwnPostsCount(Number(res.data?.meta?.total || 0));
         return items;
       } catch (err) {
         setError(
@@ -163,6 +191,7 @@ export default function ProfilePage() {
             "Không tải được trang cá nhân lúc này.",
         );
         setOwnTrips([]);
+        setOwnPostsCount(0);
         return [];
       } finally {
         if (!skipLoading) setLoading(false);
@@ -171,14 +200,105 @@ export default function ProfilePage() {
     [user?.id],
   );
 
-  useEffect(() => {
-    if (isVisitorProfile) {
-      setLoading(false);
+  const loadOwnFollowSummary = useCallback(async () => {
+    if (!user?.id) {
+      setOwnFollowCounts({
+        followersCount: 0,
+        followingCount: 0,
+      });
       return;
     }
 
-    loadOwnTrips();
-  }, [isVisitorProfile, loadOwnTrips]);
+    try {
+      const res = await followApi.getSummary();
+
+      setOwnFollowCounts({
+        followersCount: Number(res.data?.followersCount || 0),
+        followingCount: Number(res.data?.followingCount || 0),
+      });
+    } catch (err) {
+      console.log(err);
+      setOwnFollowCounts({
+        followersCount: 0,
+        followingCount: 0,
+      });
+    }
+  }, [user?.id]);
+
+  const loadVisitorProfile = useCallback(async () => {
+    if (!userId) return;
+
+    try {
+      setLoading(true);
+      setError("");
+
+      const res = await userApi.getProfile(userId, { limit: 50 });
+
+      setVisitorProfileUser(res.data?.user || null);
+      setVisitorProfileTrips(
+        Array.isArray(res.data?.trips) ? res.data.trips : [],
+      );
+
+      setVisitorPostsCount(Number(res.data?.meta?.totalTrips || 0));
+
+      setVisitorFollowCounts({
+        followersCount: Number(res.data?.follow?.followersCount || 0),
+        followingCount: Number(res.data?.follow?.followingCount || 0),
+      });
+
+      const followed =
+        typeof res.data?.follow?.followed === "boolean"
+          ? res.data.follow.followed
+          : false;
+
+      setIsFollowing(followed);
+    } catch (err) {
+      setError(
+        err?.response?.data?.message ||
+          "Không tải được profile người dùng lúc này.",
+      );
+      setVisitorProfileUser(routedProfileUser || null);
+      setVisitorProfileTrips(
+        Array.isArray(routedProfileTrips) ? routedProfileTrips : [],
+      );
+      setVisitorPostsCount(0);
+      setVisitorFollowCounts({
+        followersCount: 0,
+        followingCount: 0,
+      });
+      setIsFollowing(false);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, routedProfileUser, routedProfileTrips]);
+
+  useEffect(() => {
+    if (!isVisitorProfile) return;
+
+    setVisitorProfileUser(routedProfileUser || null);
+    setVisitorProfileTrips(
+      Array.isArray(routedProfileTrips) ? routedProfileTrips : [],
+    );
+    setVisitorPostsCount(0);
+    setVisitorFollowCounts({
+      followersCount: 0,
+      followingCount: 0,
+    });
+    setIsFollowing(null);
+  }, [isVisitorProfile, routedProfileUser, routedProfileTrips, userId]);
+
+  useEffect(() => {
+    if (!isVisitorProfile) {
+      loadOwnTrips();
+      loadOwnFollowSummary();
+    }
+  }, [isVisitorProfile, loadOwnTrips, loadOwnFollowSummary]);
+
+  useEffect(() => {
+    if (isVisitorProfile) {
+      loadVisitorProfile();
+    }
+  }, [isVisitorProfile, loadVisitorProfile]);
 
   const avatar = getUserAvatar(displayUser);
   const initials = getInitials(displayUser?.name || "Traveler");
@@ -207,6 +327,37 @@ export default function ProfilePage() {
       totalMedia,
     };
   }, [profileTrips]);
+
+  const sidebarStats = useMemo(() => {
+    const followCounts = isVisitorProfile
+      ? visitorFollowCounts
+      : ownFollowCounts;
+
+    const postsCount = isVisitorProfile ? visitorPostsCount : ownPostsCount;
+
+    return [
+      {
+        label: "Posts",
+        value: formatLargeNumber(postsCount || 0),
+      },
+      {
+        label: "Followers",
+        value: formatLargeNumber(followCounts.followersCount || 0),
+      },
+      {
+        label: "Following",
+        value: formatLargeNumber(followCounts.followingCount || 0),
+      },
+    ];
+  }, [
+    isVisitorProfile,
+    ownPostsCount,
+    visitorPostsCount,
+    ownFollowCounts.followersCount,
+    ownFollowCounts.followingCount,
+    visitorFollowCounts.followersCount,
+    visitorFollowCounts.followingCount,
+  ]);
 
   const highlightTrips = useMemo(() => {
     return [...profileTrips]
@@ -246,6 +397,55 @@ export default function ProfilePage() {
     mediaLightboxIndex !== null &&
     mediaLightboxIndex >= 0 &&
     mediaLightboxIndex < mediaItems.length;
+
+  const handleToggleFollow = useCallback(async () => {
+    if (
+      !isVisitorProfile ||
+      !userId ||
+      isFollowSubmitting ||
+      isFollowing === null
+    ) {
+      return;
+    }
+
+    try {
+      setIsFollowSubmitting(true);
+
+      const res = isFollowing
+        ? await followApi.unfollow(userId)
+        : await followApi.follow(userId);
+
+      const nextFollowed =
+        typeof res?.data?.followed === "boolean"
+          ? res.data.followed
+          : !isFollowing;
+
+      setIsFollowing(nextFollowed);
+
+      setVisitorFollowCounts((prev) => {
+        const currentFollowers = Number(prev?.followersCount || 0);
+
+        return {
+          ...prev,
+          followersCount: nextFollowed
+            ? currentFollowers + 1
+            : Math.max(0, currentFollowers - 1),
+        };
+      });
+
+      showToast(
+        nextFollowed ? "Đã follow người dùng." : "Đã unfollow người dùng.",
+        "success",
+      );
+    } catch (err) {
+      showToast(
+        err?.response?.data?.message || "Không cập nhật follow được.",
+        "error",
+      );
+    } finally {
+      setIsFollowSubmitting(false);
+    }
+  }, [isVisitorProfile, userId, isFollowSubmitting, isFollowing, showToast]);
 
   function handleOpenShareJourney() {
     setOpenComposer(true);
@@ -320,7 +520,7 @@ export default function ProfilePage() {
 
       <div className="relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden rounded-[34px] border border-white/60 bg-[#fafafb] shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
         <div className="grid min-h-[900px] grid-cols-1 lg:h-full lg:min-h-0 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
-          <ProfileLeftSidebar user={displayUser} />
+          <ProfileLeftSidebar user={displayUser} stats={sidebarStats} />
 
           <main className="profile-main-scroll min-w-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,250,251,0.96))] px-5 py-6 sm:px-7 sm:py-8 lg:h-full lg:overflow-y-auto lg:overflow-x-hidden lg:border-r lg:px-9 xl:px-10 border-zinc-200/80">
             <div className="mx-auto w-full max-w-[920px]">
@@ -333,8 +533,10 @@ export default function ProfilePage() {
                 coverUrl={PROFILE_COVER_URL}
                 formatLargeNumber={formatLargeNumber}
                 isVisitorProfile={isVisitorProfile}
-                isFollowing={false}
-                onToggleFollow={() => {}}
+                isFollowing={isFollowing}
+                isFollowSubmitting={isFollowSubmitting}
+                isFollowHydrating={isVisitorProfile && isFollowing === null}
+                onToggleFollow={handleToggleFollow}
               />
 
               <section className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">

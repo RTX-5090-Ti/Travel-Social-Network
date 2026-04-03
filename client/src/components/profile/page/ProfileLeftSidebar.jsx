@@ -2,27 +2,45 @@ import { motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../../auth/useAuth";
-import { profile, requests, navItems } from "../../feed/page/feed.constants";
+import { requests, navItems } from "../../feed/page/feed.constants";
 import { CheckIcon } from "../../feed/page/feed.icons";
 import ProfileDivider from "./ProfileDivider";
 
-export default function ProfileLeftSidebar({ user: profileUser = null }) {
+export default function ProfileLeftSidebar({
+  user: profileUser = null,
+  stats = null,
+}) {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const displayUser = profileUser || user;
 
+  const fallbackProfile = {
+    name: "Traveler",
+    location: "No email",
+    avatar: "",
+    stats: [
+      { label: "Posts", value: "0" },
+      { label: "Followers", value: "0" },
+      { label: "Following", value: "0" },
+    ],
+  };
+
   const sidebarProfile = {
-    name: displayUser?.name || profile.name,
-    location: displayUser?.email || profile.location,
+    name: displayUser?.name || fallbackProfile.name,
+    location: displayUser?.email || fallbackProfile.location,
     avatar:
       displayUser?.avatarUrl ||
       displayUser?.avatar ||
       displayUser?.profile?.avatarUrl ||
       displayUser?.profile?.avatar ||
-      profile.avatar,
-    stats: profile.stats,
+      fallbackProfile.avatar,
+    stats: Array.isArray(stats) && stats.length ? stats : fallbackProfile.stats,
   };
+
+  const sidebarInitial = (sidebarProfile.name || "Traveler")
+    .charAt(0)
+    .toUpperCase();
 
   const sidebarNavItems = navItems.map((item) => {
     if (item.label === "Feed") {
@@ -92,16 +110,17 @@ export default function ProfileLeftSidebar({ user: profileUser = null }) {
 
         <div className="mt-8 rounded-[28px] bg-[linear-gradient(180deg,#eef4ff_0%,#ffffff_100%)] p-5 shadow-[0_16px_40px_rgba(76,109,255,0.08)] ring-1 ring-zinc-200/70">
           <div className="relative mx-auto h-[110px] w-[110px]">
-            <img
-              src={
-                displayUser?.avatarUrl ||
-                displayUser?.avatar ||
-                displayUser?.profile?.avatarUrl ||
-                displayUser?.profile?.avatar
-              }
-              alt={sidebarProfile.name}
-              className="h-full w-full rounded-[30px] object-cover shadow-[0_16px_30px_rgba(80,97,164,0.18)]"
-            />
+            {sidebarProfile.avatar ? (
+              <img
+                src={sidebarProfile.avatar}
+                alt={sidebarProfile.name}
+                className="h-full w-full rounded-[30px] object-cover shadow-[0_16px_30px_rgba(80,97,164,0.18)]"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center rounded-[30px] bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-[32px] font-semibold text-white shadow-[0_16px_30px_rgba(80,97,164,0.18)]">
+                {sidebarInitial}
+              </div>
+            )}
           </div>
 
           <div className="mt-5 text-center">
