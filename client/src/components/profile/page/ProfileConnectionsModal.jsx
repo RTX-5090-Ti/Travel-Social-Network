@@ -20,6 +20,11 @@ const TAB_META = {
   following: "Following",
 };
 
+const TAB_SEARCH_META = {
+  followers: "followers",
+  following: "following",
+};
+
 export default function ProfileConnectionsModal({
   open,
   onClose,
@@ -109,7 +114,7 @@ export default function ProfileConnectionsModal({
                 <input
                   value={searchValue}
                   onChange={(e) => onSearchChange(e.target.value)}
-                  placeholder={`Search ${TAB_META[activeTab].toLowerCase()}...`}
+                  placeholder={`Tìm trong ${TAB_SEARCH_META[activeTab]}...`}
                   className="h-12 w-full rounded-[18px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(240,243,252,0.96))] pl-11 pr-4 text-sm text-zinc-700 outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-zinc-200/50 placeholder:text-zinc-400 focus:border-[rgba(139,92,246,0.28)] focus:ring-[rgba(139,92,246,0.16)]"
                 />
               </div>
@@ -202,7 +207,7 @@ export default function ProfileConnectionsModal({
                                   {person?.name || "Traveler"}
                                 </p>
                                 <p className="text-sm truncate text-zinc-500">
-                                  {person?.email || "No email"}
+                                  {person?.email || "Chưa cập nhật email"}
                                 </p>
                               </div>
                             </div>
@@ -220,9 +225,9 @@ export default function ProfileConnectionsModal({
                               } ${isBusy ? "opacity-70" : ""}`}
                             >
                               {isSelf
-                                ? "You"
+                                ? "Bạn"
                                 : isBusy
-                                  ? "Loading..."
+                                  ? "Đang tải..."
                                   : followed
                                     ? "Following"
                                     : "Follow"}
@@ -235,10 +240,14 @@ export default function ProfileConnectionsModal({
                     <div className="flex items-center justify-center h-full">
                       <div className="w-full max-w-md rounded-[24px] border border-white/70 bg-white/80 px-5 py-8 text-center shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60">
                         <p className="text-lg font-semibold text-zinc-900">
-                          No {TAB_META[activeTab].toLowerCase()} yet
+                          {activeTab === "followers"
+                            ? "Chưa có follower nào"
+                            : "Chưa có following nào"}
                         </p>
                         <p className="mt-2 text-sm text-zinc-500">
-                          This list is empty right now.
+                          {activeTab === "followers"
+                            ? "Danh sách này hiện chưa có ai."
+                            : "Bạn chưa theo dõi ai trong danh sách này."}
                         </p>
                       </div>
                     </div>

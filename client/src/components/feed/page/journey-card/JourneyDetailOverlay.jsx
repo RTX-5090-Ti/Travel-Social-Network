@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -103,19 +103,19 @@ export default function JourneyDetailOverlay({
     setLightboxIndex(0);
   }
 
-  function showPrevLightboxItem() {
+  const showPrevLightboxItem = useCallback(() => {
     setLightboxIndex((prev) =>
       lightboxMedia.length
         ? (prev - 1 + lightboxMedia.length) % lightboxMedia.length
         : 0,
     );
-  }
+  }, [lightboxMedia.length]);
 
-  function showNextLightboxItem() {
+  const showNextLightboxItem = useCallback(() => {
     setLightboxIndex((prev) =>
       lightboxMedia.length ? (prev + 1) % lightboxMedia.length : 0,
     );
-  }
+  }, [lightboxMedia.length]);
 
   function getSafeListKey(item, index, prefix = "item") {
     const rawId =
@@ -181,7 +181,12 @@ export default function JourneyDetailOverlay({
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [lightboxMedia.length, onClose]);
+  }, [
+    lightboxMedia.length,
+    onClose,
+    showNextLightboxItem,
+    showPrevLightboxItem,
+  ]);
 
   useEffect(() => {
     let ignore = false;

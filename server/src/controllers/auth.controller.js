@@ -1,5 +1,4 @@
 import crypto from "crypto";
-import bcrypt from "bcrypt";
 import User from "../models/User.js";
 import {
   signAccessToken,
@@ -13,18 +12,29 @@ function sha256(input) {
   return crypto.createHash("sha256").update(input).digest("hex");
 }
 
+function normalizeEmail(email = "") {
+  return email.trim().toLowerCase();
+}
+
 // Đăng kí
 export async function register(req, res, next) {
   try {
     const { name, email, password } = req.body;
 
-    const existed = await User.findOne({ email });
+    const normalizedEmail = normalizeEmail(email);
+    const normalizedName = name.trim();
+
+    const existed = await User.findOne({ email: normalizedEmail });
     if (existed) {
       res.status(409);
       throw new Error("Email already exists");
     }
 
-    const user = await User.create({ name, email, password });
+    const user = await User.create({
+      name: normalizedName,
+      email: normalizedEmail,
+      password,
+    });
 
     const payload = { userId: user._id.toString(), role: user.role };
     const accessToken = signAccessToken(payload);
@@ -60,7 +70,9 @@ export async function login(req, res, next) {
   try {
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    const normalizedEmail = normalizeEmail(email);
+
+    const user = await User.findOne({ email: normalizedEmail });
     if (!user) {
       res.status(401);
       throw new Error("Invalid credentials");
@@ -84,7 +96,7 @@ export async function login(req, res, next) {
     await user.save();
 
     const opts = getCookieOptions();
-    res.cookie("accessToken", accessToken, { ...opts, maxAge: 15 * 60 * 1000 }); // 15 * 60 * 1000=15p
+    res.cookie("accessToken", accessToken, { ...opts, maxAge: 15 * 60 * 1000 });
     res.cookie("refreshToken", refreshToken, {
       ...opts,
       maxAge: 7 * 24 * 60 * 60 * 1000,

@@ -34,6 +34,21 @@ async function ensureUserExists(userId) {
   return !!exists;
 }
 
+async function validateTargetUser(userId, res) {
+  if (!mongoose.isValidObjectId(userId)) {
+    res.status(400).json({ message: "Invalid userId" });
+    return false;
+  }
+
+  const exists = await ensureUserExists(userId);
+  if (!exists) {
+    res.status(404).json({ message: "User not found" });
+    return false;
+  }
+
+  return true;
+}
+
 async function listFollowUsers({
   targetUserId,
   viewerId,
@@ -107,9 +122,8 @@ export async function followUser(req, res, next) {
     const followerId = req.user.userId;
     const followingId = req.params.userId;
 
-    if (!mongoose.isValidObjectId(followingId)) {
-      return res.status(400).json({ message: "Invalid userId" });
-    }
+    const isValidTarget = await validateTargetUser(followingId, res);
+    if (!isValidTarget) return;
 
     if (followerId === followingId) {
       return res.status(400).json({ message: "Cannot follow yourself" });
@@ -131,9 +145,8 @@ export async function unfollowUser(req, res, next) {
     const followerId = req.user.userId;
     const followingId = req.params.userId;
 
-    if (!mongoose.isValidObjectId(followingId)) {
-      return res.status(400).json({ message: "Invalid userId" });
-    }
+    const isValidTarget = await validateTargetUser(followingId, res);
+    if (!isValidTarget) return;
 
     if (followerId === followingId) {
       return res.status(400).json({ message: "Cannot unfollow yourself" });
@@ -152,9 +165,8 @@ export async function getFollowStatus(req, res, next) {
     const followerId = req.user.userId;
     const followingId = req.params.userId;
 
-    if (!mongoose.isValidObjectId(followingId)) {
-      return res.status(400).json({ message: "Invalid userId" });
-    }
+    const isValidTarget = await validateTargetUser(followingId, res);
+    if (!isValidTarget) return;
 
     const doc = await Follow.findOne({ followerId, followingId })
       .select("_id")
@@ -228,14 +240,8 @@ export async function listFollowersByUserId(req, res, next) {
     const targetUserId = req.params.userId;
     const { page, limit } = parsePagination(req.query);
 
-    if (!mongoose.isValidObjectId(targetUserId)) {
-      return res.status(400).json({ message: "Invalid userId" });
-    }
-
-    const exists = await ensureUserExists(targetUserId);
-    if (!exists) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    const isValidTarget = await validateTargetUser(targetUserId, res);
+    if (!isValidTarget) return;
 
     const result = await listFollowUsers({
       targetUserId,
@@ -257,14 +263,8 @@ export async function listFollowingByUserId(req, res, next) {
     const targetUserId = req.params.userId;
     const { page, limit } = parsePagination(req.query);
 
-    if (!mongoose.isValidObjectId(targetUserId)) {
-      return res.status(400).json({ message: "Invalid userId" });
-    }
-
-    const exists = await ensureUserExists(targetUserId);
-    if (!exists) {
-      return res.status(404).json({ message: "User not found" });
-    }
+    const isValidTarget = await validateTargetUser(targetUserId, res);
+    if (!isValidTarget) return;
 
     const result = await listFollowUsers({
       targetUserId,

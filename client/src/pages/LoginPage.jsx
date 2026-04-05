@@ -303,9 +303,7 @@ export default function LoginPage() {
   };
 
   const handleSocialLogin = async (platform) => {
-    console.log(`Initiating creative login with ${platform}...`);
-    await new Promise((resolve) => setTimeout(resolve, 900));
-    console.log(`Redirecting to ${platform} for creative authentication...`);
+    showToast(`Đăng nhập bằng ${platform} sẽ được cập nhật sau.`, "warning");
   };
 
   return (

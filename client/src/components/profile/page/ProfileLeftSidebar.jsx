@@ -18,7 +18,7 @@ export default function ProfileLeftSidebar({
 
   const fallbackProfile = {
     name: "Traveler",
-    location: "No email",
+    location: "Chưa cập nhật email",
     avatar: "",
     stats: [
       { label: "Posts", value: "0" },

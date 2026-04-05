@@ -1,17 +1,15 @@
-import { useCallback, useEffect, useMemo, useState, useRef } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Grid3X3, ImageIcon, Sparkles, Camera, PenSquare } from "lucide-react";
+import { ImageIcon, Sparkles, Camera, PenSquare } from "lucide-react";
 
 import { useAuth } from "../auth/useAuth";
-import { userApi } from "../api/user.api";
-import { followApi } from "../api/follow.api";
 import { useToast } from "../toast/useToast";
 import FloatingShape from "../components/auth/login/FloatingShape";
 import JourneyFeedCard from "../components/feed/page/JourneyFeedCard";
+import { tripApi } from "../api/trip.api";
 
 import { shapeStyles } from "../components/feed/page/feed.constants";
-
 import { getInitials } from "../components/feed/page/feed.utils";
 import ProfileHero from "../components/profile/page/ProfileHero";
 import ProfileLeftSidebar from "../components/profile/page/ProfileLeftSidebar";
@@ -26,67 +24,15 @@ import ProfileEmptyJourneyPanel from "../components/profile/page/ProfileEmptyJou
 import ProfileFeedSkeleton from "../components/profile/page/ProfileFeedSkeleton";
 import ShareJourneyModal from "../components/feed/ShareJourneyModal";
 import ProfileConnectionsModal from "../components/profile/page/ProfileConnectionsModal";
-
-function formatLargeNumber(value = 0) {
-  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
-  if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
-  return `${value}`;
-}
-
-function getUserAvatar(user) {
-  return (
-    user?.avatarUrl ||
-    user?.avatar ||
-    user?.profile?.avatarUrl ||
-    user?.profile?.avatar ||
-    ""
-  );
-}
-
-function collectProfileMedia(trips = []) {
-  const output = [];
-  const seen = new Set();
-
-  for (const trip of trips) {
-    const sourceMedia =
-      Array.isArray(trip?.profileMedia) && trip.profileMedia.length
-        ? trip.profileMedia
-        : Array.isArray(trip?.feedPreview?.previewMedia)
-          ? trip.feedPreview.previewMedia
-          : [];
-
-    for (const media of sourceMedia) {
-      if (!media?.url) continue;
-
-      const dedupeKey = `${trip?._id || "trip"}-${media.url}`;
-      if (seen.has(dedupeKey)) continue;
-      seen.add(dedupeKey);
-
-      output.push({
-        id: dedupeKey,
-        url: media.url,
-        type: media.type === "video" ? "video" : "image",
-        tripId: trip?._id,
-        tripTitle: trip?.title || "Untitled journey",
-        privacy: trip?.privacy || "public",
-        createdAt: trip?.createdAt,
-        milestoneTitle: media?.milestoneTitle || null,
-      });
-    }
-  }
-
-  return output;
-}
-
-const PROFILE_TABS = [
-  { key: "posts", label: "Posts", icon: Grid3X3 },
-  { key: "media", label: "Media", icon: ImageIcon },
-];
-
-const PROFILE_COVER_URL =
-  "https://plus.unsplash.com/premium_photo-1675826539716-54a369329428?q=80&w=1740&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D";
-
-const EMPTY_ARRAY = [];
+import {
+  getTripId,
+  PROFILE_TABS,
+  PROFILE_COVER_URL,
+  EMPTY_ARRAY,
+  formatLargeNumber,
+} from "../components/profile/page/profile-page.helpers";
+import { useProfileData } from "../components/profile/page/useProfileData";
+import { useProfileConnections } from "../components/profile/page/useProfileConnections";
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -102,74 +48,96 @@ export default function ProfilePage() {
     ? location.state.profileTrips
     : EMPTY_ARRAY;
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [ownTrips, setOwnTrips] = useState([]);
   const [activeTab, setActiveTab] = useState("posts");
   const [tabDirection, setTabDirection] = useState(0);
   const [mediaLightboxIndex, setMediaLightboxIndex] = useState(null);
   const [selectedHighlightTrip, setSelectedHighlightTrip] = useState(null);
+  const [highlightDetailLoading, setHighlightDetailLoading] = useState(false);
   const [openComposer, setOpenComposer] = useState(false);
 
-  const [isConnectionsOpen, setIsConnectionsOpen] = useState(false);
-  const [connectionsTab, setConnectionsTab] = useState("followers");
-  const [connectionsDirection, setConnectionsDirection] = useState(0);
-  const [connectionsSearch, setConnectionsSearch] = useState("");
-  const [connectionsLoading, setConnectionsLoading] = useState(false);
-  const [connectionsError, setConnectionsError] = useState("");
-  const [connectionsFollowBusyId, setConnectionsFollowBusyId] = useState("");
-
-  const [connectionLists, setConnectionLists] = useState({
-    followers: { items: [], meta: null },
-    following: { items: [], meta: null },
+  const {
+    loading,
+    error,
+    avatar,
+    displayUser,
+    profileTrips,
+    profileUserId,
+    stats,
+    sidebarStats,
+    highlightTrips,
+    mediaItems,
+    recentCaptures,
+    isFollowing,
+    isFollowSubmitting,
+    applyOwnFollowingCountDelta,
+    handleToggleFollow,
+    loadOwnTrips,
+  } = useProfileData({
+    user,
+    userId,
+    isVisitorProfile,
+    routedProfileUser,
+    routedProfileTrips,
+    showToast,
   });
 
-  const connectionCacheRef = useRef(new Map());
-
-  const [visitorProfileUser, setVisitorProfileUser] =
-    useState(routedProfileUser);
-  const [visitorProfileTrips, setVisitorProfileTrips] =
-    useState(routedProfileTrips);
-  const [isFollowing, setIsFollowing] = useState(null);
-  const [isFollowSubmitting, setIsFollowSubmitting] = useState(false);
-
-  const [ownFollowCounts, setOwnFollowCounts] = useState({
-    followersCount: 0,
-    followingCount: 0,
+  const {
+    isConnectionsOpen,
+    setIsConnectionsOpen,
+    connectionsTab,
+    connectionsDirection,
+    connectionsSearch,
+    setConnectionsSearch,
+    connectionsLoading,
+    connectionsError,
+    connectionsFollowBusyId,
+    filteredConnections,
+    handleOpenConnections,
+    handleChangeConnectionsTab,
+    handleToggleConnectionFollow,
+  } = useProfileConnections({
+    profileUserId,
+    isVisitorProfile,
+    user,
+    showToast,
+    applyOwnFollowingCountDelta,
   });
 
-  const [visitorFollowCounts, setVisitorFollowCounts] = useState({
-    followersCount: 0,
-    followingCount: 0,
-  });
-
-  const [ownPostsCount, setOwnPostsCount] = useState(0);
-  const [visitorPostsCount, setVisitorPostsCount] = useState(0);
-
-  const displayUser = isVisitorProfile ? visitorProfileUser : user;
-  const profileTrips = isVisitorProfile ? visitorProfileTrips : ownTrips;
-
-  const profileUserId = displayUser?._id || displayUser?.id || user?.id || "";
-
+  const initials = getInitials(displayUser?.name || "Traveler");
   const activeTabIndex = PROFILE_TABS.findIndex((tab) => tab.key === activeTab);
 
-  function getTripId(trip) {
-    return trip?._id || trip?.id || trip?.tripId || "";
-  }
-
-  function handleOpenHighlightTrip(trip) {
+  async function handleOpenHighlightTrip(trip) {
     const tripId = getTripId(trip);
-    // console.log("clicked highlight trip:", trip);
 
     if (!tripId) {
-      console.log("Highlight trip missing id:", trip);
+      showToast("Không mở được journey này lúc này.", "warning");
       return;
     }
 
-    setSelectedHighlightTrip({
-      ...trip,
-      _id: tripId,
-    });
+    try {
+      setHighlightDetailLoading(true);
+
+      const res = await tripApi.getDetail(tripId);
+      const detailTrip = res?.data;
+
+      if (!detailTrip) {
+        showToast("Không tải được chi tiết journey.", "error");
+        return;
+      }
+
+      setSelectedHighlightTrip({
+        ...trip,
+        ...detailTrip,
+        _id: detailTrip?._id || tripId,
+      });
+    } catch (err) {
+      showToast(
+        err?.response?.data?.message || "Không tải được chi tiết journey.",
+        "error",
+      );
+    } finally {
+      setHighlightDetailLoading(false);
+    }
   }
 
   function handleCloseHighlightTrip() {
@@ -183,469 +151,6 @@ export default function ProfilePage() {
     setTabDirection(nextIndex > activeTabIndex ? 1 : -1);
     setActiveTab(nextTab);
   }
-
-  const loadOwnTrips = useCallback(
-    async ({ skipLoading = false } = {}) => {
-      if (!user?.id) {
-        setOwnTrips([]);
-        setOwnPostsCount(0);
-        setLoading(false);
-        return [];
-      }
-
-      try {
-        if (!skipLoading) setLoading(true);
-        setError("");
-
-        const res = await userApi.listMyTrips({ limit: 50 });
-        const items = Array.isArray(res.data?.items) ? res.data.items : [];
-
-        setOwnTrips(items);
-        setOwnPostsCount(Number(res.data?.meta?.total || 0));
-        return items;
-      } catch (err) {
-        setError(
-          err?.response?.data?.message ||
-            "Không tải được trang cá nhân lúc này.",
-        );
-        setOwnTrips([]);
-        setOwnPostsCount(0);
-        return [];
-      } finally {
-        if (!skipLoading) setLoading(false);
-      }
-    },
-    [user?.id],
-  );
-
-  const loadOwnFollowSummary = useCallback(async () => {
-    if (!user?.id) {
-      setOwnFollowCounts({
-        followersCount: 0,
-        followingCount: 0,
-      });
-      return;
-    }
-
-    try {
-      const res = await followApi.getSummary();
-
-      setOwnFollowCounts({
-        followersCount: Number(res.data?.followersCount || 0),
-        followingCount: Number(res.data?.followingCount || 0),
-      });
-    } catch (err) {
-      console.log(err);
-      setOwnFollowCounts({
-        followersCount: 0,
-        followingCount: 0,
-      });
-    }
-  }, [user?.id]);
-
-  const loadVisitorProfile = useCallback(async () => {
-    if (!userId) return;
-
-    try {
-      setLoading(true);
-      setError("");
-
-      const res = await userApi.getProfile(userId, { limit: 50 });
-
-      setVisitorProfileUser(res.data?.user || null);
-      setVisitorProfileTrips(
-        Array.isArray(res.data?.trips) ? res.data.trips : [],
-      );
-
-      setVisitorPostsCount(Number(res.data?.meta?.totalTrips || 0));
-
-      setVisitorFollowCounts({
-        followersCount: Number(res.data?.follow?.followersCount || 0),
-        followingCount: Number(res.data?.follow?.followingCount || 0),
-      });
-
-      const followed =
-        typeof res.data?.follow?.followed === "boolean"
-          ? res.data.follow.followed
-          : false;
-
-      setIsFollowing(followed);
-    } catch (err) {
-      setError(
-        err?.response?.data?.message ||
-          "Không tải được profile người dùng lúc này.",
-      );
-      setVisitorProfileUser(routedProfileUser || null);
-      setVisitorProfileTrips(
-        Array.isArray(routedProfileTrips) ? routedProfileTrips : [],
-      );
-      setVisitorPostsCount(0);
-      setVisitorFollowCounts({
-        followersCount: 0,
-        followingCount: 0,
-      });
-      setIsFollowing(false);
-    } finally {
-      setLoading(false);
-    }
-  }, [userId, routedProfileUser, routedProfileTrips]);
-
-  useEffect(() => {
-    if (!isVisitorProfile) return;
-
-    setVisitorProfileUser(routedProfileUser || null);
-    setVisitorProfileTrips(
-      Array.isArray(routedProfileTrips) ? routedProfileTrips : [],
-    );
-    setVisitorPostsCount(0);
-    setVisitorFollowCounts({
-      followersCount: 0,
-      followingCount: 0,
-    });
-    setIsFollowing(null);
-  }, [isVisitorProfile, routedProfileUser, routedProfileTrips, userId]);
-
-  useEffect(() => {
-    if (!isVisitorProfile) {
-      loadOwnTrips();
-      loadOwnFollowSummary();
-    }
-  }, [isVisitorProfile, loadOwnTrips, loadOwnFollowSummary]);
-
-  useEffect(() => {
-    if (isVisitorProfile) {
-      loadVisitorProfile();
-    }
-  }, [isVisitorProfile, loadVisitorProfile]);
-
-  const avatar = getUserAvatar(displayUser);
-  const initials = getInitials(displayUser?.name || "Traveler");
-
-  const stats = useMemo(() => {
-    const totalJourneys = profileTrips.length;
-    const totalHearts = profileTrips.reduce(
-      (sum, trip) => sum + (trip?.counts?.reactions || 0),
-      0,
-    );
-    const totalComments = profileTrips.reduce(
-      (sum, trip) => sum + (trip?.counts?.comments || 0),
-      0,
-    );
-    const totalMedia = profileTrips.reduce((sum, trip) => {
-      if (Array.isArray(trip?.profileMedia)) {
-        return sum + trip.profileMedia.length;
-      }
-      return sum + (trip?.feedPreview?.mediaCount || 0);
-    }, 0);
-
-    return {
-      totalJourneys,
-      totalHearts,
-      totalComments,
-      totalMedia,
-    };
-  }, [profileTrips]);
-
-  const sidebarStats = useMemo(() => {
-    const followCounts = isVisitorProfile
-      ? visitorFollowCounts
-      : ownFollowCounts;
-
-    const postsCount = isVisitorProfile ? visitorPostsCount : ownPostsCount;
-
-    return [
-      {
-        label: "Posts",
-        value: formatLargeNumber(postsCount || 0),
-      },
-      {
-        label: "Followers",
-        value: formatLargeNumber(followCounts.followersCount || 0),
-      },
-      {
-        label: "Following",
-        value: formatLargeNumber(followCounts.followingCount || 0),
-      },
-    ];
-  }, [
-    isVisitorProfile,
-    ownPostsCount,
-    visitorPostsCount,
-    ownFollowCounts.followersCount,
-    ownFollowCounts.followingCount,
-    visitorFollowCounts.followersCount,
-    visitorFollowCounts.followingCount,
-  ]);
-
-  const currentConnections = connectionLists[connectionsTab]?.items || [];
-
-  const filteredConnections = useMemo(() => {
-    const keyword = connectionsSearch.trim().toLowerCase();
-
-    if (!keyword) return currentConnections;
-
-    return currentConnections.filter((item) => {
-      const name = String(item?.name || "").toLowerCase();
-      const email = String(item?.email || "").toLowerCase();
-
-      return name.includes(keyword) || email.includes(keyword);
-    });
-  }, [currentConnections, connectionsSearch]);
-
-  const highlightTrips = useMemo(() => {
-    return [...profileTrips]
-      .sort((a, b) => {
-        const reactionsDiff =
-          (b?.counts?.reactions || 0) - (a?.counts?.reactions || 0);
-        if (reactionsDiff !== 0) return reactionsDiff;
-
-        const commentsDiff =
-          (b?.counts?.comments || 0) - (a?.counts?.comments || 0);
-        if (commentsDiff !== 0) return commentsDiff;
-
-        const mediaDiff =
-          (Array.isArray(b?.profileMedia)
-            ? b.profileMedia.length
-            : b?.feedPreview?.mediaCount || 0) -
-          (Array.isArray(a?.profileMedia)
-            ? a.profileMedia.length
-            : a?.feedPreview?.mediaCount || 0);
-        if (mediaDiff !== 0) return mediaDiff;
-
-        return (
-          new Date(b?.createdAt || 0).getTime() -
-          new Date(a?.createdAt || 0).getTime()
-        );
-      })
-      .slice(0, 2);
-  }, [profileTrips]);
-
-  const mediaItems = useMemo(
-    () => collectProfileMedia(profileTrips),
-    [profileTrips],
-  );
-  const recentCaptures = useMemo(() => mediaItems.slice(0, 4), [mediaItems]);
-
-  const isMediaLightboxOpen =
-    mediaLightboxIndex !== null &&
-    mediaLightboxIndex >= 0 &&
-    mediaLightboxIndex < mediaItems.length;
-
-  const handleToggleFollow = useCallback(async () => {
-    if (
-      !isVisitorProfile ||
-      !userId ||
-      isFollowSubmitting ||
-      isFollowing === null
-    ) {
-      return;
-    }
-
-    try {
-      setIsFollowSubmitting(true);
-
-      const res = isFollowing
-        ? await followApi.unfollow(userId)
-        : await followApi.follow(userId);
-
-      const nextFollowed =
-        typeof res?.data?.followed === "boolean"
-          ? res.data.followed
-          : !isFollowing;
-
-      setIsFollowing(nextFollowed);
-
-      setVisitorFollowCounts((prev) => {
-        const currentFollowers = Number(prev?.followersCount || 0);
-
-        return {
-          ...prev,
-          followersCount: nextFollowed
-            ? currentFollowers + 1
-            : Math.max(0, currentFollowers - 1),
-        };
-      });
-
-      showToast(
-        nextFollowed ? "Đã follow người dùng." : "Đã unfollow người dùng.",
-        "success",
-      );
-    } catch (err) {
-      showToast(
-        err?.response?.data?.message || "Không cập nhật follow được.",
-        "error",
-      );
-    } finally {
-      setIsFollowSubmitting(false);
-    }
-  }, [isVisitorProfile, userId, isFollowSubmitting, isFollowing, showToast]);
-
-  const loadConnectionsTab = useCallback(
-    async (tab, { force = false } = {}) => {
-      if (!profileUserId) return;
-
-      const cacheKey = `${profileUserId}:${tab}`;
-
-      if (!force && connectionCacheRef.current.has(cacheKey)) {
-        const cachedPayload = connectionCacheRef.current.get(cacheKey);
-
-        setConnectionLists((prev) => ({
-          ...prev,
-          [tab]: cachedPayload,
-        }));
-        setConnectionsError("");
-        return;
-      }
-
-      try {
-        setConnectionsLoading(true);
-        setConnectionsError("");
-
-        const res =
-          tab === "followers"
-            ? await followApi.listFollowersByUserId(profileUserId, {
-                page: 1,
-                limit: 50,
-              })
-            : await followApi.listFollowingByUserId(profileUserId, {
-                page: 1,
-                limit: 50,
-              });
-
-        const nextPayload = {
-          items: Array.isArray(res.data?.items) ? res.data.items : [],
-          meta: res.data?.meta || null,
-        };
-
-        connectionCacheRef.current.set(cacheKey, nextPayload);
-
-        setConnectionLists((prev) => ({
-          ...prev,
-          [tab]: nextPayload,
-        }));
-      } catch (err) {
-        setConnectionsError(
-          err?.response?.data?.message || "Không tải được danh sách lúc này.",
-        );
-
-        setConnectionLists((prev) => ({
-          ...prev,
-          [tab]: { items: [], meta: null },
-        }));
-      } finally {
-        setConnectionsLoading(false);
-      }
-    },
-    [profileUserId],
-  );
-
-  const handleOpenConnections = useCallback(
-    (tab) => {
-      if (tab !== "followers" && tab !== "following") return;
-
-      setConnectionsDirection(
-        tab === connectionsTab ? 0 : tab === "following" ? 1 : -1,
-      );
-      setConnectionsTab(tab);
-      setConnectionsSearch("");
-      setIsConnectionsOpen(true);
-      loadConnectionsTab(tab);
-    },
-    [connectionsTab, loadConnectionsTab],
-  );
-
-  const handleChangeConnectionsTab = useCallback(
-    (nextTab) => {
-      if (nextTab === connectionsTab) return;
-
-      setConnectionsDirection(nextTab === "following" ? 1 : -1);
-      setConnectionsTab(nextTab);
-      setConnectionsSearch("");
-      loadConnectionsTab(nextTab);
-    },
-    [connectionsTab, loadConnectionsTab],
-  );
-
-  const updateConnectionFollowState = useCallback(
-    (targetId, nextFollowed) => {
-      setConnectionLists((prev) => {
-        const nextState = {
-          followers: {
-            ...prev.followers,
-            items: prev.followers.items.map((item) => {
-              const itemId = item?._id || item?.id || "";
-              return itemId === targetId
-                ? { ...item, followedByMe: nextFollowed }
-                : item;
-            }),
-          },
-          following: {
-            ...prev.following,
-            items: prev.following.items.map((item) => {
-              const itemId = item?._id || item?.id || "";
-              return itemId === targetId
-                ? { ...item, followedByMe: nextFollowed }
-                : item;
-            }),
-          },
-        };
-
-        connectionCacheRef.current.set(
-          `${profileUserId}:followers`,
-          nextState.followers,
-        );
-        connectionCacheRef.current.set(
-          `${profileUserId}:following`,
-          nextState.following,
-        );
-
-        return nextState;
-      });
-    },
-    [profileUserId],
-  );
-
-  const handleToggleConnectionFollow = useCallback(
-    async (person) => {
-      const targetId = person?._id || person?.id || "";
-
-      if (
-        !targetId ||
-        targetId === user?.id ||
-        connectionsFollowBusyId === targetId
-      ) {
-        return;
-      }
-
-      try {
-        setConnectionsFollowBusyId(targetId);
-
-        const res = person?.followedByMe
-          ? await followApi.unfollow(targetId)
-          : await followApi.follow(targetId);
-
-        const nextFollowed =
-          typeof res?.data?.followed === "boolean"
-            ? res.data.followed
-            : !person?.followedByMe;
-
-        updateConnectionFollowState(targetId, nextFollowed);
-
-        showToast(
-          nextFollowed ? "Đã follow người dùng." : "Đã unfollow người dùng.",
-          "success",
-        );
-      } catch (err) {
-        showToast(
-          err?.response?.data?.message || "Không cập nhật follow được.",
-          "error",
-        );
-      } finally {
-        setConnectionsFollowBusyId("");
-      }
-    },
-    [user?.id, connectionsFollowBusyId, updateConnectionFollowState, showToast],
-  );
 
   function handleOpenShareJourney() {
     setOpenComposer(true);
@@ -686,14 +191,10 @@ export default function ProfilePage() {
     });
   }
 
-  useEffect(() => {
-    setIsConnectionsOpen(false);
-    setConnectionsTab("followers");
-    setConnectionsDirection(0);
-    setConnectionsSearch("");
-    setConnectionsError("");
-    setConnectionsFollowBusyId("");
-  }, [profileUserId]);
+  const isMediaLightboxOpen =
+    mediaLightboxIndex !== null &&
+    mediaLightboxIndex >= 0 &&
+    mediaLightboxIndex < mediaItems.length;
 
   return (
     <div className="relative min-h-screen bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-4">
@@ -777,7 +278,11 @@ export default function ProfilePage() {
                               `highlight-trip-${trip?.createdAt || "x"}-${index}`
                             }
                             trip={trip}
-                            onOpen={() => handleOpenHighlightTrip(trip)}
+                            onOpen={() => {
+                              if (!highlightDetailLoading) {
+                                handleOpenHighlightTrip(trip);
+                              }
+                            }}
                           />
                         );
                       })}

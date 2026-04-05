@@ -345,8 +345,8 @@ export default function ShareJourneyModal({ open, onClose, onPosted }) {
           type: item.type,
         })),
       );
-    } catch (error) {
-      console.error("Cleanup uploaded media failed:", error);
+    } catch {
+      // bỏ qua lỗi cleanup nền để không làm gián đoạn UX
     }
   }
 

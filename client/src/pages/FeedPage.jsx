@@ -90,8 +90,7 @@ export default function FeedPage() {
 
       if (requestId !== previewRequestIdRef.current) return;
       setPreviewStats(nextStats);
-    } catch (e) {
-      console.log(e);
+    } catch {
       if (requestId !== previewRequestIdRef.current) return;
 
       setPreviewStats([

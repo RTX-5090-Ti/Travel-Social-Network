@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
+
 import { tripApi } from "../../../api/trip.api";
+import { useToast } from "../../../toast/useToast";
 import {
   getInitials,
   formatFeedTime,
@@ -30,6 +32,13 @@ function getUserAvatar(user) {
   );
 }
 
+function hasEmbeddedDetail(trip) {
+  return Boolean(
+    (Array.isArray(trip?.generalItems) && trip.generalItems.length > 0) ||
+    (Array.isArray(trip?.milestones) && trip.milestones.length > 0),
+  );
+}
+
 export default function JourneyFeedCard({
   trip,
   forceOpen = false,
@@ -37,6 +46,7 @@ export default function JourneyFeedCard({
   onForceOpenClose,
   onPreviewUser,
 }) {
+  const { showToast } = useToast();
   const ownerName = trip.ownerId?.name || "Traveler";
   const initials = getInitials(ownerName);
   const ownerAvatar = getUserAvatar(trip.ownerId);
@@ -53,11 +63,23 @@ export default function JourneyFeedCard({
   const [expanded, setExpanded] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
-  const [detail, setDetail] = useState(null);
+  const [detail, setDetail] = useState(() =>
+    hasEmbeddedDetail(trip) ? trip : null,
+  );
 
   const [previewIndex, setPreviewIndex] = useState(0);
   const [previousPreviewIndex, setPreviousPreviewIndex] = useState(null);
   const [previewDirection, setPreviewDirection] = useState(1);
+
+  useEffect(() => {
+    if (hasEmbeddedDetail(trip)) {
+      setDetail(trip);
+      setDetailError("");
+      return;
+    }
+
+    setDetail(null);
+  }, [trip]);
 
   const previewItems = useMemo(() => {
     const rawItems = trip.feedPreview?.previewMedia?.length
@@ -213,10 +235,14 @@ export default function JourneyFeedCard({
 
     let cancelled = false;
 
-    // Mở overlay ngay lập tức
     setExpanded(true);
 
-    // Nếu đã có detail rồi thì không fetch lại
+    if (hasEmbeddedDetail(trip)) {
+      setDetail(trip);
+      setDetailError("");
+      return;
+    }
+
     if (detail || detailLoading) return;
 
     async function openForcedDetail() {
@@ -246,7 +272,7 @@ export default function JourneyFeedCard({
     return () => {
       cancelled = true;
     };
-  }, [forceOpen, trip?._id]);
+  }, [detail, detailLoading, forceOpen, trip]);
 
   async function handleToggleLike() {
     if (likeLoading || !trip?._id) return;
@@ -268,10 +294,10 @@ export default function JourneyFeedCard({
       setLikeCount(
         typeof res.data?.count === "number" ? res.data.count : optimisticCount,
       );
-    } catch (err) {
+    } catch {
       setLiked(prevLiked);
       setLikeCount(prevCount);
-      console.error("Toggle like failed:", err);
+      showToast("Không cập nhật lượt tim được.", "error");
     } finally {
       setLikeLoading(false);
     }
@@ -297,6 +323,12 @@ export default function JourneyFeedCard({
     setExpanded(true);
 
     // Nếu đã có detail hoặc đang load thì thôi
+    if (hasEmbeddedDetail(trip)) {
+      setDetail(trip);
+      setDetailError("");
+      return;
+    }
+
     if (detail || detailLoading) return;
 
     try {
@@ -455,7 +487,9 @@ export default function JourneyFeedCard({
                     <div className="flex items-center justify-center w-12 h-12 mx-auto shadow-sm rounded-2xl bg-white/80">
                       <PhotoIcon className="w-6 h-6" />
                     </div>
-                    <p className="mt-3 text-sm font-medium">No media yet</p>
+                    <p className="mt-3 text-sm font-medium">
+                      Chưa có media nào
+                    </p>
                   </div>
                 </div>
               )}

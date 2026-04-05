@@ -98,7 +98,7 @@ export default function ProfileHero({
     if (!file) return;
 
     if (!file.type?.startsWith("image/")) {
-      alert("Vui lòng chọn file ảnh.");
+      showToast("Vui lòng chọn file ảnh hợp lệ.", "warning");
       e.target.value = "";
       return;
     }
@@ -384,11 +384,11 @@ export default function ProfileHero({
                   <div className="mt-4 flex flex-wrap gap-2.5 text-[13px] text-zinc-500">
                     <ProfileMetaPill
                       icon={<Mail className="w-4 h-4" />}
-                      text={displayUser?.email || "No email"}
+                      text={displayUser?.email || "Chưa cập nhật email"}
                     />
                     <ProfileMetaPill
                       icon={<MapPin className="w-4 h-4" />}
-                      text="Travel Social profile"
+                      text="Travel Social"
                     />
                     <ProfileMetaPill
                       icon={<Compass className="w-4 h-4" />}
