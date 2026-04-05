@@ -5,12 +5,20 @@ export const followApi = {
     return api.get("/api/follow/summary");
   },
 
-  listFollowers() {
-    return api.get("/api/follow/followers");
+  listMyFollowers(params = {}) {
+    return api.get("/api/follow/followers", { params });
   },
 
-  listFollowing() {
-    return api.get("/api/follow/following");
+  listMyFollowing(params = {}) {
+    return api.get("/api/follow/following", { params });
+  },
+
+  listFollowersByUserId(userId, params = {}) {
+    return api.get(`/api/follow/users/${userId}/followers`, { params });
+  },
+
+  listFollowingByUserId(userId, params = {}) {
+    return api.get(`/api/follow/users/${userId}/following`, { params });
   },
 
   getStatus(userId) {

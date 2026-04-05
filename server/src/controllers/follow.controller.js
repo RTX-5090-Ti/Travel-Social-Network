@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
+
 import Follow from "../models/Follow.js";
+import User from "../models/User.js";
 
 function mapUserItem(user, extra = {}) {
   return {
@@ -8,6 +10,95 @@ function mapUserItem(user, extra = {}) {
     email: user?.email || "",
     avatarUrl: user?.avatarUrl || "",
     ...extra,
+  };
+}
+
+function parsePagination(query) {
+  const pageRaw = Number(query.page ?? 1);
+  const limitRaw = Number(query.limit ?? 12);
+
+  const page = Number.isFinite(pageRaw) ? Math.max(pageRaw, 1) : 1;
+  const limit = Number.isFinite(limitRaw)
+    ? Math.min(Math.max(limitRaw, 1), 50)
+    : 12;
+
+  return {
+    page,
+    limit,
+    skip: (page - 1) * limit,
+  };
+}
+
+async function ensureUserExists(userId) {
+  const exists = await User.exists({ _id: userId });
+  return !!exists;
+}
+
+async function listFollowUsers({
+  targetUserId,
+  viewerId,
+  mode,
+  page = 1,
+  limit = 12,
+}) {
+  const isFollowersMode = mode === "followers";
+
+  const baseFilter = isFollowersMode
+    ? { followingId: targetUserId }
+    : { followerId: targetUserId };
+
+  const populatePath = isFollowersMode ? "followerId" : "followingId";
+
+  const [docs, total] = await Promise.all([
+    Follow.find(baseFilter)
+      .populate(populatePath, "_id name email avatarUrl")
+      .sort({ createdAt: -1, _id: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+    Follow.countDocuments(baseFilter),
+  ]);
+
+  const users = docs
+    .map((doc) => doc?.[populatePath])
+    .filter(Boolean)
+    .filter((user) => user?._id?.toString() !== targetUserId);
+
+  const relatedUserIds = users.map((user) => user._id);
+
+  const myFollowDocs =
+    viewerId && relatedUserIds.length
+      ? await Follow.find({
+          followerId: viewerId,
+          followingId: { $in: relatedUserIds },
+        })
+          .select("followingId")
+          .lean()
+      : [];
+
+  const followedSet = new Set(
+    myFollowDocs.map((item) => item.followingId.toString()),
+  );
+
+  const items = users.map((user) =>
+    mapUserItem(user, {
+      id: user?._id,
+      followedByMe:
+        viewerId && user?._id?.toString() !== viewerId
+          ? followedSet.has(user._id.toString())
+          : false,
+    }),
+  );
+
+  return {
+    items,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+      hasMore: page * limit < total,
+    },
   };
 }
 
@@ -96,44 +187,17 @@ export async function getFollowSummary(req, res, next) {
 export async function listFollowers(req, res, next) {
   try {
     const currentUserId = req.user.userId;
+    const { page, limit } = parsePagination(req.query);
 
-    const docs = await Follow.find({ followingId: currentUserId })
-      .populate("followerId", "_id name email avatarUrl")
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const followerUsers = docs
-      .map((doc) => doc.followerId)
-      .filter(Boolean)
-      .filter((user) => user?._id?.toString() !== currentUserId);
-
-    const followerIds = followerUsers.map((user) => user._id);
-
-    const myFollowDocs = followerIds.length
-      ? await Follow.find({
-          followerId: currentUserId,
-          followingId: { $in: followerIds },
-        })
-          .select("followingId")
-          .lean()
-      : [];
-
-    const followedSet = new Set(
-      myFollowDocs.map((item) => item.followingId.toString()),
-    );
-
-    const items = followerUsers.map((user) =>
-      mapUserItem(user, {
-        followedByMe: followedSet.has(user._id.toString()),
-      }),
-    );
-
-    res.json({
-      items,
-      meta: {
-        total: items.length,
-      },
+    const result = await listFollowUsers({
+      targetUserId: currentUserId,
+      viewerId: currentUserId,
+      mode: "followers",
+      page,
+      limit,
     });
+
+    res.json(result);
   } catch (err) {
     next(err);
   }
@@ -142,29 +206,75 @@ export async function listFollowers(req, res, next) {
 export async function listFollowing(req, res, next) {
   try {
     const currentUserId = req.user.userId;
+    const { page, limit } = parsePagination(req.query);
 
-    const docs = await Follow.find({ followerId: currentUserId })
-      .populate("followingId", "_id name email avatarUrl")
-      .sort({ createdAt: -1 })
-      .lean();
-
-    const followingUsers = docs
-      .map((doc) => doc.followingId)
-      .filter(Boolean)
-      .filter((user) => user?._id?.toString() !== currentUserId);
-
-    const items = followingUsers.map((user) =>
-      mapUserItem(user, {
-        followedByMe: true,
-      }),
-    );
-
-    res.json({
-      items,
-      meta: {
-        total: items.length,
-      },
+    const result = await listFollowUsers({
+      targetUserId: currentUserId,
+      viewerId: currentUserId,
+      mode: "following",
+      page,
+      limit,
     });
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listFollowersByUserId(req, res, next) {
+  try {
+    const viewerId = req.user.userId;
+    const targetUserId = req.params.userId;
+    const { page, limit } = parsePagination(req.query);
+
+    if (!mongoose.isValidObjectId(targetUserId)) {
+      return res.status(400).json({ message: "Invalid userId" });
+    }
+
+    const exists = await ensureUserExists(targetUserId);
+    if (!exists) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const result = await listFollowUsers({
+      targetUserId,
+      viewerId,
+      mode: "followers",
+      page,
+      limit,
+    });
+
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listFollowingByUserId(req, res, next) {
+  try {
+    const viewerId = req.user.userId;
+    const targetUserId = req.params.userId;
+    const { page, limit } = parsePagination(req.query);
+
+    if (!mongoose.isValidObjectId(targetUserId)) {
+      return res.status(400).json({ message: "Invalid userId" });
+    }
+
+    const exists = await ensureUserExists(targetUserId);
+    if (!exists) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const result = await listFollowUsers({
+      targetUserId,
+      viewerId,
+      mode: "following",
+      page,
+      limit,
+    });
+
+    res.json(result);
   } catch (err) {
     next(err);
   }

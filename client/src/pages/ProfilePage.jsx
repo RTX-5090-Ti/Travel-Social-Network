@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { Grid3X3, ImageIcon, Sparkles, Camera, PenSquare } from "lucide-react";
@@ -25,6 +25,7 @@ import ProfileEmptyLuxuryCard from "../components/profile/page/ProfileEmptyLuxur
 import ProfileEmptyJourneyPanel from "../components/profile/page/ProfileEmptyJourneyPanel";
 import ProfileFeedSkeleton from "../components/profile/page/ProfileFeedSkeleton";
 import ShareJourneyModal from "../components/feed/ShareJourneyModal";
+import ProfileConnectionsModal from "../components/profile/page/ProfileConnectionsModal";
 
 function formatLargeNumber(value = 0) {
   if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
@@ -110,6 +111,21 @@ export default function ProfilePage() {
   const [selectedHighlightTrip, setSelectedHighlightTrip] = useState(null);
   const [openComposer, setOpenComposer] = useState(false);
 
+  const [isConnectionsOpen, setIsConnectionsOpen] = useState(false);
+  const [connectionsTab, setConnectionsTab] = useState("followers");
+  const [connectionsDirection, setConnectionsDirection] = useState(0);
+  const [connectionsSearch, setConnectionsSearch] = useState("");
+  const [connectionsLoading, setConnectionsLoading] = useState(false);
+  const [connectionsError, setConnectionsError] = useState("");
+  const [connectionsFollowBusyId, setConnectionsFollowBusyId] = useState("");
+
+  const [connectionLists, setConnectionLists] = useState({
+    followers: { items: [], meta: null },
+    following: { items: [], meta: null },
+  });
+
+  const connectionCacheRef = useRef(new Map());
+
   const [visitorProfileUser, setVisitorProfileUser] =
     useState(routedProfileUser);
   const [visitorProfileTrips, setVisitorProfileTrips] =
@@ -132,6 +148,8 @@ export default function ProfilePage() {
 
   const displayUser = isVisitorProfile ? visitorProfileUser : user;
   const profileTrips = isVisitorProfile ? visitorProfileTrips : ownTrips;
+
+  const profileUserId = displayUser?._id || displayUser?.id || user?.id || "";
 
   const activeTabIndex = PROFILE_TABS.findIndex((tab) => tab.key === activeTab);
 
@@ -359,6 +377,21 @@ export default function ProfilePage() {
     visitorFollowCounts.followingCount,
   ]);
 
+  const currentConnections = connectionLists[connectionsTab]?.items || [];
+
+  const filteredConnections = useMemo(() => {
+    const keyword = connectionsSearch.trim().toLowerCase();
+
+    if (!keyword) return currentConnections;
+
+    return currentConnections.filter((item) => {
+      const name = String(item?.name || "").toLowerCase();
+      const email = String(item?.email || "").toLowerCase();
+
+      return name.includes(keyword) || email.includes(keyword);
+    });
+  }, [currentConnections, connectionsSearch]);
+
   const highlightTrips = useMemo(() => {
     return [...profileTrips]
       .sort((a, b) => {
@@ -447,6 +480,173 @@ export default function ProfilePage() {
     }
   }, [isVisitorProfile, userId, isFollowSubmitting, isFollowing, showToast]);
 
+  const loadConnectionsTab = useCallback(
+    async (tab, { force = false } = {}) => {
+      if (!profileUserId) return;
+
+      const cacheKey = `${profileUserId}:${tab}`;
+
+      if (!force && connectionCacheRef.current.has(cacheKey)) {
+        const cachedPayload = connectionCacheRef.current.get(cacheKey);
+
+        setConnectionLists((prev) => ({
+          ...prev,
+          [tab]: cachedPayload,
+        }));
+        setConnectionsError("");
+        return;
+      }
+
+      try {
+        setConnectionsLoading(true);
+        setConnectionsError("");
+
+        const res =
+          tab === "followers"
+            ? await followApi.listFollowersByUserId(profileUserId, {
+                page: 1,
+                limit: 50,
+              })
+            : await followApi.listFollowingByUserId(profileUserId, {
+                page: 1,
+                limit: 50,
+              });
+
+        const nextPayload = {
+          items: Array.isArray(res.data?.items) ? res.data.items : [],
+          meta: res.data?.meta || null,
+        };
+
+        connectionCacheRef.current.set(cacheKey, nextPayload);
+
+        setConnectionLists((prev) => ({
+          ...prev,
+          [tab]: nextPayload,
+        }));
+      } catch (err) {
+        setConnectionsError(
+          err?.response?.data?.message || "Không tải được danh sách lúc này.",
+        );
+
+        setConnectionLists((prev) => ({
+          ...prev,
+          [tab]: { items: [], meta: null },
+        }));
+      } finally {
+        setConnectionsLoading(false);
+      }
+    },
+    [profileUserId],
+  );
+
+  const handleOpenConnections = useCallback(
+    (tab) => {
+      if (tab !== "followers" && tab !== "following") return;
+
+      setConnectionsDirection(
+        tab === connectionsTab ? 0 : tab === "following" ? 1 : -1,
+      );
+      setConnectionsTab(tab);
+      setConnectionsSearch("");
+      setIsConnectionsOpen(true);
+      loadConnectionsTab(tab);
+    },
+    [connectionsTab, loadConnectionsTab],
+  );
+
+  const handleChangeConnectionsTab = useCallback(
+    (nextTab) => {
+      if (nextTab === connectionsTab) return;
+
+      setConnectionsDirection(nextTab === "following" ? 1 : -1);
+      setConnectionsTab(nextTab);
+      setConnectionsSearch("");
+      loadConnectionsTab(nextTab);
+    },
+    [connectionsTab, loadConnectionsTab],
+  );
+
+  const updateConnectionFollowState = useCallback(
+    (targetId, nextFollowed) => {
+      setConnectionLists((prev) => {
+        const nextState = {
+          followers: {
+            ...prev.followers,
+            items: prev.followers.items.map((item) => {
+              const itemId = item?._id || item?.id || "";
+              return itemId === targetId
+                ? { ...item, followedByMe: nextFollowed }
+                : item;
+            }),
+          },
+          following: {
+            ...prev.following,
+            items: prev.following.items.map((item) => {
+              const itemId = item?._id || item?.id || "";
+              return itemId === targetId
+                ? { ...item, followedByMe: nextFollowed }
+                : item;
+            }),
+          },
+        };
+
+        connectionCacheRef.current.set(
+          `${profileUserId}:followers`,
+          nextState.followers,
+        );
+        connectionCacheRef.current.set(
+          `${profileUserId}:following`,
+          nextState.following,
+        );
+
+        return nextState;
+      });
+    },
+    [profileUserId],
+  );
+
+  const handleToggleConnectionFollow = useCallback(
+    async (person) => {
+      const targetId = person?._id || person?.id || "";
+
+      if (
+        !targetId ||
+        targetId === user?.id ||
+        connectionsFollowBusyId === targetId
+      ) {
+        return;
+      }
+
+      try {
+        setConnectionsFollowBusyId(targetId);
+
+        const res = person?.followedByMe
+          ? await followApi.unfollow(targetId)
+          : await followApi.follow(targetId);
+
+        const nextFollowed =
+          typeof res?.data?.followed === "boolean"
+            ? res.data.followed
+            : !person?.followedByMe;
+
+        updateConnectionFollowState(targetId, nextFollowed);
+
+        showToast(
+          nextFollowed ? "Đã follow người dùng." : "Đã unfollow người dùng.",
+          "success",
+        );
+      } catch (err) {
+        showToast(
+          err?.response?.data?.message || "Không cập nhật follow được.",
+          "error",
+        );
+      } finally {
+        setConnectionsFollowBusyId("");
+      }
+    },
+    [user?.id, connectionsFollowBusyId, updateConnectionFollowState, showToast],
+  );
+
   function handleOpenShareJourney() {
     setOpenComposer(true);
   }
@@ -486,6 +686,15 @@ export default function ProfilePage() {
     });
   }
 
+  useEffect(() => {
+    setIsConnectionsOpen(false);
+    setConnectionsTab("followers");
+    setConnectionsDirection(0);
+    setConnectionsSearch("");
+    setConnectionsError("");
+    setConnectionsFollowBusyId("");
+  }, [profileUserId]);
+
   return (
     <div className="relative min-h-screen bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-4">
       <div className="absolute inset-0 pointer-events-none">
@@ -520,7 +729,11 @@ export default function ProfilePage() {
 
       <div className="relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden rounded-[34px] border border-white/60 bg-[#fafafb] shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
         <div className="grid min-h-[900px] grid-cols-1 lg:h-full lg:min-h-0 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
-          <ProfileLeftSidebar user={displayUser} stats={sidebarStats} />
+          <ProfileLeftSidebar
+            user={displayUser}
+            stats={sidebarStats}
+            onOpenConnections={handleOpenConnections}
+          />
 
           <main className="profile-main-scroll min-w-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,250,251,0.96))] px-5 py-6 sm:px-7 sm:py-8 lg:h-full lg:overflow-y-auto lg:overflow-x-hidden lg:border-r lg:px-9 xl:px-10 border-zinc-200/80">
             <div className="mx-auto w-full max-w-[920px]">
@@ -780,6 +993,22 @@ export default function ProfilePage() {
           <ProfileRightSidebar />
         </div>
       </div>
+
+      <ProfileConnectionsModal
+        open={isConnectionsOpen}
+        onClose={() => setIsConnectionsOpen(false)}
+        activeTab={connectionsTab}
+        onChangeTab={handleChangeConnectionsTab}
+        tabDirection={connectionsDirection}
+        searchValue={connectionsSearch}
+        onSearchChange={setConnectionsSearch}
+        items={filteredConnections}
+        loading={connectionsLoading}
+        error={connectionsError}
+        onToggleFollow={handleToggleConnectionFollow}
+        followBusyId={connectionsFollowBusyId}
+        viewerUserId={user?.id || ""}
+      />
 
       <ShareJourneyModal
         open={openComposer}

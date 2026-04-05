@@ -9,6 +9,7 @@ import ProfileDivider from "./ProfileDivider";
 export default function ProfileLeftSidebar({
   user: profileUser = null,
   stats = null,
+  onOpenConnections = () => {},
 }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -43,10 +44,6 @@ export default function ProfileLeftSidebar({
     .toUpperCase();
 
   const sidebarNavItems = navItems.map((item) => {
-    if (item.label === "Feed") {
-      return { ...item, active: location.pathname === "/" };
-    }
-
     if (item.label === "Home") {
       return { ...item, active: location.pathname === "/profile" };
     }
@@ -133,14 +130,47 @@ export default function ProfileLeftSidebar({
           </div>
 
           <div className="mt-6 grid grid-cols-3 gap-2 rounded-[22px] bg-white p-3 shadow-[0_10px_26px_rgba(20,20,43,0.04)] ring-1 ring-zinc-200/60">
-            {sidebarProfile.stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <p className="text-[17px] font-semibold text-zinc-900">
-                  {stat.value}
-                </p>
-                <p className="mt-1 text-[12px] text-zinc-400">{stat.label}</p>
-              </div>
-            ))}
+            {sidebarProfile.stats.map((stat) => {
+              const labelKey = String(stat.label || "").toLowerCase();
+              const isFollowers = labelKey === "followers";
+              const isFollowing = labelKey === "following";
+              const isClickable = isFollowers || isFollowing;
+
+              if (!isClickable) {
+                return (
+                  <div
+                    key={stat.label}
+                    className="rounded-[16px] px-2 py-2 text-center"
+                  >
+                    <p className="text-[17px] font-semibold text-zinc-900">
+                      {stat.value}
+                    </p>
+                    <p className="mt-1 text-[12px] text-zinc-400">
+                      {stat.label}
+                    </p>
+                  </div>
+                );
+              }
+
+              return (
+                <button
+                  key={stat.label}
+                  type="button"
+                  onClick={() =>
+                    onOpenConnections(isFollowers ? "followers" : "following")
+                  }
+                  className="rounded-[16px] px-2 py-2 text-center transition duration-300 "
+                >
+                  <p className="text-[17px] font-semibold text-zinc-900">
+                    {stat.value}
+                  </p>
+
+                  <p className="mt-1 text-[12px] text-zinc-400 transition hover:text-[#7c6cf4] hover:underline underline-offset-4 decoration-[1.5px] cursor-pointer">
+                    {stat.label}
+                  </p>
+                </button>
+              );
+            })}
           </div>
         </div>
 
