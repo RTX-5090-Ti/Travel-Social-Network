@@ -172,7 +172,6 @@ export default function ProfileLeftSidebar({
               );
             })}
           </div>
-          <p>Thông tin cá nhân</p>
         </div>
 
         <nav className="space-y-2 mt-7">

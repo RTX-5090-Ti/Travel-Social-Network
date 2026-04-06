@@ -23,6 +23,12 @@ import ProfileHeroStatCard from "./ProfileHeroStatCard";
 import AvatarCropModal from "./AvatarCropModal";
 import AvatarPreviewModal from "./AvatarPreviewModal";
 import { createCroppedAvatar } from "./profileAvatar.utils";
+import {
+  getProfileBioText,
+  getProfileLocationText,
+  getProfileTravelStyleText,
+} from "./profile.constants";
+import EditProfileModal from "./EditProfileModal";
 
 export default function ProfileHero({
   user,
@@ -36,6 +42,7 @@ export default function ProfileHero({
   isFollowing = null,
   isFollowSubmitting = false,
   isFollowHydrating = false,
+  isProfileHydrating = false,
   onToggleFollow,
 }) {
   const fileInputRef = useRef(null);
@@ -58,7 +65,27 @@ export default function ProfileHero({
   const [isCropModalOpen, setIsCropModalOpen] = useState(false);
   const [isAvatarPreviewOpen, setIsAvatarPreviewOpen] = useState(false);
 
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false);
   const displayUser = user || null;
+
+  const isBioHydrating =
+    isProfileHydrating && !String(displayUser?.bio || "").trim();
+
+  const isLocationHydrating =
+    isProfileHydrating && !String(displayUser?.location || "").trim();
+
+  const isTravelStyleHydrating =
+    isProfileHydrating && !String(displayUser?.travelStyle || "").trim();
+
+  const displayBio = getProfileBioText({
+    bio: displayUser?.bio,
+    isVisitorProfile,
+  });
+
+  const displayLocation = getProfileLocationText(displayUser?.location);
+  const displayTravelStyle = getProfileTravelStyleText(
+    displayUser?.travelStyle,
+  );
 
   const resolvedIsFollowing = isFollowing === true;
   const isFollowBusy = isFollowSubmitting || isFollowHydrating;
@@ -86,6 +113,15 @@ export default function ProfileHero({
 
   function handleCloseAvatarPreview() {
     setIsAvatarPreviewOpen(false);
+  }
+
+  function handleOpenEditProfile() {
+    if (isVisitorProfile) return;
+    setIsEditProfileOpen(true);
+  }
+
+  function handleCloseEditProfile() {
+    setIsEditProfileOpen(false);
   }
 
   function handleOpenAvatarPicker() {
@@ -301,7 +337,11 @@ export default function ProfileHero({
                     )}
                   </button>
                 ) : (
-                  <button className="inline-flex items-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.28)] transition hover:-translate-y-0.5 cursor-pointer">
+                  <button
+                    type="button"
+                    onClick={handleOpenEditProfile}
+                    className="inline-flex items-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.28)] transition hover:-translate-y-0.5 cursor-pointer"
+                  >
                     <PenSquare className="w-4 h-4" />
                     Edit profile
                   </button>
@@ -376,24 +416,46 @@ export default function ProfileHero({
                     {displayUser?.name || "Traveler"}
                   </h1>
 
-                  <p className="mt-2 max-w-[640px] text-[15px] leading-7 text-zinc-600">
-                    Không gian riêng tư dành cho những câu chuyện và kỷ niệm du
-                    lịch của bạn.
-                  </p>
+                  {isBioHydrating ? (
+                    <div className="mt-3 max-w-[640px] space-y-2">
+                      <div className="h-[12px] w-[92%] animate-pulse rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.88),rgba(226,232,240,0.92),rgba(255,255,255,0.88))]" />
+                      <div className="h-[12px] w-[74%] animate-pulse rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.88),rgba(226,232,240,0.92),rgba(255,255,255,0.88))]" />
+                    </div>
+                  ) : (
+                    <p
+                      className="mt-2 max-w-[640px] overflow-hidden text-[15px] leading-7 text-zinc-600"
+                      style={{
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                      }}
+                      title={displayBio}
+                    >
+                      {displayBio}
+                    </p>
+                  )}
 
                   <div className="mt-4 flex flex-wrap gap-2.5 text-[13px] text-zinc-500">
-                    <ProfileMetaPill
-                      icon={<Mail className="w-4 h-4" />}
-                      text={displayUser?.email || "Chưa cập nhật email"}
-                    />
-                    <ProfileMetaPill
-                      icon={<MapPin className="w-4 h-4" />}
-                      text="Travel Social"
-                    />
-                    <ProfileMetaPill
-                      icon={<Compass className="w-4 h-4" />}
-                      text="Journey creator"
-                    />
+                    <div className="w-full">
+                      <ProfileMetaPill
+                        icon={<Mail className="w-4 h-4" />}
+                        text={displayUser?.email || "Chưa cập nhật email"}
+                      />
+                    </div>
+                    <div className="w-full">
+                      <ProfileMetaPill
+                        icon={<MapPin className="w-4 h-4" />}
+                        text={displayLocation}
+                        loading={isLocationHydrating}
+                      />
+                    </div>
+                    <div className="w-full">
+                      <ProfileMetaPill
+                        icon={<Compass className="w-4 h-4" />}
+                        text={displayTravelStyle}
+                        loading={isTravelStyleHydrating}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -445,6 +507,16 @@ export default function ProfileHero({
             src={displayAvatar}
             alt={displayUser?.name || "Traveler"}
             onClose={handleCloseAvatarPreview}
+          />
+        ) : null}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {!isVisitorProfile && isEditProfileOpen ? (
+          <EditProfileModal
+            open={isEditProfileOpen}
+            user={displayUser}
+            onClose={handleCloseEditProfile}
           />
         ) : null}
       </AnimatePresence>

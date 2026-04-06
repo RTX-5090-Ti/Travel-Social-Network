@@ -1,5 +1,9 @@
 import mongoose from "mongoose";
 import bcrypt from "bcrypt";
+import {
+  PROFILE_LOCATION_OPTIONS,
+  TRAVEL_STYLE_KEYS,
+} from "../constants/profile.constants.js";
 
 const userSchema = new mongoose.Schema(
   {
@@ -25,6 +29,27 @@ const userSchema = new mongoose.Schema(
 
     avatarUrl: {
       type: String,
+      default: "",
+      trim: true,
+    },
+
+    bio: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 160,
+    },
+
+    location: {
+      type: String,
+      enum: ["", ...PROFILE_LOCATION_OPTIONS],
+      default: "",
+      trim: true,
+    },
+
+    travelStyle: {
+      type: String,
+      enum: ["", ...TRAVEL_STYLE_KEYS],
       default: "",
       trim: true,
     },

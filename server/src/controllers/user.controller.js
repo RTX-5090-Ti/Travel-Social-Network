@@ -26,6 +26,29 @@ function uploadFilePathToCloudinary(filePath, options) {
   });
 }
 
+function normalizeProfileValue(value = "") {
+  return typeof value === "string" ? value.trim() : "";
+}
+
+function buildUserPayload(user) {
+  const payload = {
+    _id: user._id,
+    id: user._id,
+    name: user.name || "Traveler",
+    email: user.email || "",
+    avatarUrl: user.avatarUrl || "",
+    bio: user.bio || "",
+    location: user.location || "",
+    travelStyle: user.travelStyle || "",
+  };
+
+  if (typeof user.role === "string" && user.role) {
+    payload.role = user.role;
+  }
+
+  return payload;
+}
+
 export async function uploadAvatarController(req, res, next) {
   try {
     if (!req.file) {
@@ -34,7 +57,7 @@ export async function uploadAvatarController(req, res, next) {
 
     const userId = req.user?.userId;
     const user = await User.findById(userId).select(
-      "_id name email role avatarUrl",
+      "_id name email role avatarUrl bio location travelStyle",
     );
 
     if (!user) {
@@ -62,13 +85,7 @@ export async function uploadAvatarController(req, res, next) {
 
     res.json({
       message: "Avatar updated successfully",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatarUrl: user.avatarUrl || "",
-      },
+      user: buildUserPayload(user),
     });
   } catch (err) {
     next(err);
@@ -219,7 +236,7 @@ export async function getUserProfileController(req, res, next) {
       : 50;
 
     const profileUser = await User.findById(profileUserId)
-      .select("_id name email avatarUrl")
+      .select("_id name email avatarUrl  bio location travelStyle")
       .lean();
 
     if (!profileUser) {
@@ -247,13 +264,7 @@ export async function getUserProfileController(req, res, next) {
       ]);
 
     res.json({
-      user: {
-        _id: profileUser._id,
-        id: profileUser._id,
-        name: profileUser.name || "Traveler",
-        email: profileUser.email || "",
-        avatarUrl: profileUser.avatarUrl || "",
-      },
+      user: buildUserPayload(profileUser),
       trips,
       follow: {
         followed: !!followDoc,
@@ -281,7 +292,9 @@ export async function getUserSummaryController(req, res, next) {
 
     const [profileUser, followDoc, followersCount, followingCount, postsCount] =
       await Promise.all([
-        User.findById(profileUserId).select("_id name email avatarUrl").lean(),
+        User.findById(profileUserId)
+          .select("_id name email avatarUrl bio location travelStyle")
+          .lean(),
         viewerId && viewerId !== profileUserId
           ? Follow.findOne({
               followerId: viewerId,
@@ -300,13 +313,7 @@ export async function getUserSummaryController(req, res, next) {
     }
 
     res.json({
-      user: {
-        _id: profileUser._id,
-        id: profileUser._id,
-        name: profileUser.name || "Traveler",
-        email: profileUser.email || "",
-        avatarUrl: profileUser.avatarUrl || "",
-      },
+      user: buildUserPayload(profileUser),
       follow: {
         followed: !!followDoc,
         followersCount,
@@ -317,6 +324,55 @@ export async function getUserSummaryController(req, res, next) {
         followersCount,
         followingCount,
       },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function updateProfileController(req, res, next) {
+  try {
+    const userId = req.user?.userId;
+    const body = req.validated?.body ?? req.body ?? {};
+
+    const updateData = {};
+
+    if (Object.prototype.hasOwnProperty.call(body, "name")) {
+      updateData.name = normalizeProfileValue(body.name);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "bio")) {
+      updateData.bio = normalizeProfileValue(body.bio);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "location")) {
+      updateData.location = normalizeProfileValue(body.location);
+    }
+
+    if (Object.prototype.hasOwnProperty.call(body, "travelStyle")) {
+      updateData.travelStyle = normalizeProfileValue(body.travelStyle);
+    }
+
+    if (!Object.keys(updateData).length) {
+      return res.status(400).json({ message: "No profile fields provided" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      {
+        new: true,
+        runValidators: true,
+      },
+    ).select("_id name email role avatarUrl bio location travelStyle");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({
+      message: "Profile updated successfully",
+      user: buildUserPayload(user),
     });
   } catch (err) {
     next(err);

@@ -16,6 +16,20 @@ function normalizeEmail(email = "") {
   return email.trim().toLowerCase();
 }
 
+function buildAuthUserPayload(user) {
+  return {
+    _id: user._id,
+    id: user._id,
+    name: user.name || "Traveler",
+    email: user.email || "",
+    role: user.role,
+    avatarUrl: user.avatarUrl || "",
+    bio: user.bio || "",
+    location: user.location || "",
+    travelStyle: user.travelStyle || "",
+  };
+}
+
 // Đăng kí
 export async function register(req, res, next) {
   try {
@@ -52,13 +66,7 @@ export async function register(req, res, next) {
 
     res.status(201).json({
       message: "Registered",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatarUrl: user.avatarUrl || "",
-      },
+      user: buildAuthUserPayload(user),
     });
   } catch (e) {
     next(e);
@@ -104,13 +112,7 @@ export async function login(req, res, next) {
 
     res.json({
       message: "Logged in",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatarUrl: user.avatarUrl || "",
-      },
+      user: buildAuthUserPayload(user),
     });
   } catch (e) {
     next(e);
@@ -197,7 +199,7 @@ export async function logout(req, res, next) {
 export async function me(req, res, next) {
   try {
     const user = await User.findById(req.user.userId).select(
-      "_id name email role avatarUrl",
+      "_id name email role avatarUrl bio location travelStyle",
     );
 
     if (!user) {
@@ -206,13 +208,7 @@ export async function me(req, res, next) {
     }
 
     res.json({
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role,
-        avatarUrl: user.avatarUrl || "",
-      },
+      user: buildAuthUserPayload(user),
     });
   } catch (e) {
     next(e);

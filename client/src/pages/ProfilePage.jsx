@@ -250,6 +250,7 @@ export default function ProfilePage() {
                 isFollowing={isFollowing}
                 isFollowSubmitting={isFollowSubmitting}
                 isFollowHydrating={isVisitorProfile && isFollowing === null}
+                isProfileHydrating={loading}
                 onToggleFollow={handleToggleFollow}
               />
 
