@@ -1375,23 +1375,6 @@ function PrivacyOptionIcon({ value, className = "w-5 h-5" }) {
     );
   }
 
-  if (value === "protected") {
-    return (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.9"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-      >
-        <path d="M12 3 19 6v5c0 4.3-2.8 7.8-7 9-4.2-1.2-7-4.7-7-9V6l7-3Z" />
-        <path d="m9.5 12 1.7 1.7L14.8 10" />
-      </svg>
-    );
-  }
-
   return (
     <svg
       viewBox="0 0 24 24"

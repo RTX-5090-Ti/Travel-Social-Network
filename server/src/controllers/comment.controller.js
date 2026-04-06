@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Comment from "../models/Comment.js";
+import { getTripAccessContext } from "../utils/tripVisibility.js";
 import Trip from "../models/Trip.js";
 
 // POST /api/trips/:id/comments
@@ -17,8 +18,12 @@ export async function createTripComment(req, res, next) {
       return res.status(400).json({ message: "Content is required" });
     }
 
-    const trip = await Trip.findById(tripId).select("_id").lean();
-    if (!trip) {
+    const { trip, canView } = await getTripAccessContext({
+      tripId,
+      viewerId: userId,
+    });
+
+    if (!trip || !canView) {
       return res.status(404).json({ message: "Trip not found" });
     }
 
@@ -46,6 +51,7 @@ export async function createTripComment(req, res, next) {
 export async function listTripComments(req, res, next) {
   try {
     const tripId = req.params.id;
+    const viewerId = req.user.userId;
 
     if (!mongoose.isValidObjectId(tripId)) {
       return res.status(400).json({ message: "Invalid trip id" });
@@ -58,9 +64,14 @@ export async function listTripComments(req, res, next) {
 
     const cursor = req.query.cursor ? new Date(req.query.cursor) : null;
 
-    // check trip tồn tại (optional nhưng giúp trả 404 đúng)
-    const trip = await Trip.findById(tripId).select("_id").lean();
-    if (!trip) return res.status(404).json({ message: "Trip not found" });
+    const { trip, canView } = await getTripAccessContext({
+      tripId,
+      viewerId,
+    });
+
+    if (!trip || !canView) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
 
     const filter = {
       targetType: "trip",
@@ -76,7 +87,7 @@ export async function listTripComments(req, res, next) {
     const docs = await Comment.find(filter)
       .sort({ createdAt: -1 })
       .limit(limit + 1)
-      .populate("userId", "name avatarUrl") // nếu User model mày có fields khác thì đổi
+      .populate("userId", "name avatarUrl")
       .lean();
 
     const hasMore = docs.length > limit;
@@ -86,7 +97,6 @@ export async function listTripComments(req, res, next) {
       ? items[items.length - 1].createdAt.toISOString()
       : null;
 
-    // đảo lại để UI render theo thứ tự thời gian tăng dần (giống FB)
     items.reverse();
 
     res.json({

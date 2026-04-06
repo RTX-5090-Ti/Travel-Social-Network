@@ -2,6 +2,8 @@ import Trip from "../models/Trip.js";
 import Follow from "../models/Follow.js";
 import Reaction from "../models/Reaction.js";
 
+const FOLLOWER_VISIBLE_PRIVACIES = ["public", "followers"];
+
 function dedupeAndSortTrips(items, limit) {
   const seen = new Set();
   const unique = [];
@@ -60,7 +62,7 @@ export async function getFeed(req, res, next) {
       followingIds.length
         ? buildFeedQuery({
             ownerId: { $in: followingIds },
-            privacy: "public",
+            privacy: { $in: FOLLOWER_VISIBLE_PRIVACIES },
           })
             .limit(followingCount)
             .lean()
@@ -80,6 +82,7 @@ export async function getFeed(req, res, next) {
     );
 
     const tripIds = items.map((item) => item._id);
+
     const myReactions = tripIds.length
       ? await Reaction.find({
           targetType: "trip",

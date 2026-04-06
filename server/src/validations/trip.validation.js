@@ -32,7 +32,7 @@ export const createTripSchema = Joi.object({
     caption: Joi.string().allow("", null).max(2000),
 
     privacy: Joi.string()
-      .valid("public", "followers", "protected", "private")
+      .valid("public", "followers", "private")
       .default("public"),
 
     participantIds: Joi.array().items(objectIdSchema).default([]),

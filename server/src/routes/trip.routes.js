@@ -7,6 +7,6 @@ import { createTrip, getTripDetail } from "../controllers/trip.controller.js";
 const router = Router();
 
 router.post("/", requireAuth, validate(createTripSchema), createTrip);
-router.get("/:id", getTripDetail);
+router.get("/:id", requireAuth, getTripDetail);
 
 export default router;

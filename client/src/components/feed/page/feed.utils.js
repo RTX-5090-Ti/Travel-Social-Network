@@ -33,7 +33,6 @@ export function formatFeedTime(value) {
 
 export function getPrivacyLabel(value) {
   if (value === "followers") return "Followers";
-  if (value === "protected") return "Protected";
   if (value === "private") return "Private";
   return "Public";
 }

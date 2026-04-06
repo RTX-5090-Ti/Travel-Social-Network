@@ -4,6 +4,7 @@ import Milestone from "../models/Milestone.js";
 import TripItem from "../models/TripItem.js";
 import { buildTripFeedPreview } from "../utils/buildTripFeedPreview.js";
 import { cloudinary } from "../config/cloudinary.js";
+import { getTripAccessContext } from "../utils/tripVisibility.js";
 
 function getPermanentPublicId(oldPublicId, userId, tripId) {
   const tempPrefix = `trips/tmp/${userId}/`;
@@ -206,15 +207,23 @@ export async function createTrip(req, res, next) {
 export async function getTripDetail(req, res, next) {
   try {
     const { id } = req.params;
+    const viewerId = req.user.userId;
 
     if (!mongoose.isValidObjectId(id)) {
       return res.status(400).json({ message: "Invalid trip id" });
     }
 
-    const trip = await Trip.findById(id)
-      .populate("ownerId", "name avatarUrl")
-      .lean();
-    if (!trip) return res.status(404).json({ message: "Trip not found" });
+    const { trip, canView } = await getTripAccessContext({
+      tripId: id,
+      viewerId,
+      select:
+        "ownerId title caption privacy participantIds coverUrl counts feedPreview createdAt updatedAt",
+      populateOwner: true,
+    });
+
+    if (!trip || !canView) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
 
     const milestones = await Milestone.find({ tripId: id })
       .sort({ order: 1, createdAt: 1 })

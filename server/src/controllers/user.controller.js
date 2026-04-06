@@ -9,6 +9,7 @@ import Reaction from "../models/Reaction.js";
 import Milestone from "../models/Milestone.js";
 import TripItem from "../models/TripItem.js";
 import Follow from "../models/Follow.js";
+import { buildOwnerTripVisibilityFilter } from "../utils/tripVisibility.js";
 
 function uploadFilePathToCloudinary(filePath, options) {
   return new Promise((resolve, reject) => {
@@ -101,8 +102,19 @@ function safeUrl(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-async function buildProfileTrips({ ownerId, viewerId, limit = 50 }) {
-  const trips = await Trip.find({ ownerId })
+async function buildProfileTrips({
+  ownerId,
+  viewerId,
+  isFollowingOwner = false,
+  limit = 50,
+}) {
+  const visibilityFilter = buildOwnerTripVisibilityFilter({
+    ownerId,
+    viewerId,
+    isFollowingOwner,
+  });
+
+  const trips = await Trip.find(visibilityFilter)
     .select(
       "ownerId title caption privacy coverUrl counts createdAt feedPreview",
     )
@@ -201,13 +213,20 @@ export async function getMyTripsController(req, res, next) {
       ? Math.min(Math.max(limitRaw, 1), 100)
       : 50;
 
+    const visibilityFilter = buildOwnerTripVisibilityFilter({
+      ownerId: userId,
+      viewerId: userId,
+      isFollowingOwner: false,
+    });
+
     const [items, total] = await Promise.all([
       buildProfileTrips({
         ownerId: userId,
         viewerId: userId,
+        isFollowingOwner: false,
         limit,
       }),
-      Trip.countDocuments({ ownerId: userId }),
+      Trip.countDocuments(visibilityFilter),
     ]);
 
     res.json({
@@ -236,21 +255,11 @@ export async function getUserProfileController(req, res, next) {
       ? Math.min(Math.max(limitRaw, 1), 100)
       : 50;
 
-    const profileUser = await User.findById(profileUserId)
-      .select("_id name email avatarUrl coverUrl  bio location travelStyle")
-      .lean();
-
-    if (!profileUser) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
-    const [trips, followDoc, followersCount, followingCount, totalTrips] =
+    const [profileUser, followDoc, followersCount, followingCount] =
       await Promise.all([
-        buildProfileTrips({
-          ownerId: profileUserId,
-          viewerId,
-          limit,
-        }),
+        User.findById(profileUserId)
+          .select("_id name email avatarUrl coverUrl bio location travelStyle")
+          .lean(),
         viewerId && viewerId !== profileUserId
           ? Follow.findOne({
               followerId: viewerId,
@@ -261,14 +270,35 @@ export async function getUserProfileController(req, res, next) {
           : null,
         Follow.countDocuments({ followingId: profileUserId }),
         Follow.countDocuments({ followerId: profileUserId }),
-        Trip.countDocuments({ ownerId: profileUserId }),
       ]);
+
+    if (!profileUser) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isFollowingOwner = !!followDoc;
+
+    const visibilityFilter = buildOwnerTripVisibilityFilter({
+      ownerId: profileUserId,
+      viewerId,
+      isFollowingOwner,
+    });
+
+    const [trips, totalTrips] = await Promise.all([
+      buildProfileTrips({
+        ownerId: profileUserId,
+        viewerId,
+        isFollowingOwner,
+        limit,
+      }),
+      Trip.countDocuments(visibilityFilter),
+    ]);
 
     res.json({
       user: buildUserPayload(profileUser),
       trips,
       follow: {
-        followed: !!followDoc,
+        followed: isFollowingOwner,
         followersCount,
         followingCount,
       },
@@ -291,7 +321,7 @@ export async function getUserSummaryController(req, res, next) {
       return res.status(400).json({ message: "Invalid user id" });
     }
 
-    const [profileUser, followDoc, followersCount, followingCount, postsCount] =
+    const [profileUser, followDoc, followersCount, followingCount] =
       await Promise.all([
         User.findById(profileUserId)
           .select("_id name email avatarUrl coverUrl bio location travelStyle")
@@ -306,17 +336,26 @@ export async function getUserSummaryController(req, res, next) {
           : null,
         Follow.countDocuments({ followingId: profileUserId }),
         Follow.countDocuments({ followerId: profileUserId }),
-        Trip.countDocuments({ ownerId: profileUserId }),
       ]);
 
     if (!profileUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
+    const isFollowingOwner = !!followDoc;
+
+    const postsCount = await Trip.countDocuments(
+      buildOwnerTripVisibilityFilter({
+        ownerId: profileUserId,
+        viewerId,
+        isFollowingOwner,
+      }),
+    );
+
     res.json({
       user: buildUserPayload(profileUser),
       follow: {
-        followed: !!followDoc,
+        followed: isFollowingOwner,
         followersCount,
         followingCount,
       },

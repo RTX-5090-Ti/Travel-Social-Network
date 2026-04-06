@@ -2,7 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 
-import { tripApi } from "../../../../api/trip.api";
+import {
+  tripApi,
+  getTripUnavailableMessage,
+  isTripUnavailableError,
+} from "../../../../api/trip.api";
+import { useToast } from "../../../../toast/useToast";
 import { useAuth } from "../../../../auth/useAuth";
 import {
   getInitials,
@@ -51,6 +56,7 @@ export default function JourneyDetailOverlay({
   const caption = trip.caption?.trim() || "";
 
   const { user } = useAuth();
+  const { showToast } = useToast();
   const [commentText, setCommentText] = useState("");
   const [commentItems, setCommentItems] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
@@ -116,6 +122,15 @@ export default function JourneyDetailOverlay({
       lightboxMedia.length ? (prev + 1) % lightboxMedia.length : 0,
     );
   }, [lightboxMedia.length]);
+
+  function handleTripUnavailable(error) {
+    setCommentsError("");
+    showToast(
+      getTripUnavailableMessage(error, "Không tải được comment lúc này."),
+      "warning",
+    );
+    onClose?.();
+  }
 
   function getSafeListKey(item, index, prefix = "item") {
     const rawId =
@@ -189,11 +204,11 @@ export default function JourneyDetailOverlay({
   ]);
 
   useEffect(() => {
+    if (!trip?._id || !detail || detailLoading || detailError) return;
+
     let ignore = false;
 
     async function loadComments() {
-      if (!trip?._id) return;
-
       try {
         setCommentsLoading(true);
         setCommentsError("");
@@ -211,6 +226,12 @@ export default function JourneyDetailOverlay({
         setCommentsHasMore(!!res.data?.page?.hasMore);
       } catch (err) {
         if (ignore) return;
+
+        if (isTripUnavailableError(err)) {
+          handleTripUnavailable(err);
+          return;
+        }
+
         setCommentsError(
           err?.response?.data?.message || "Không tải được comment lúc này.",
         );
@@ -224,7 +245,7 @@ export default function JourneyDetailOverlay({
     return () => {
       ignore = true;
     };
-  }, [trip?._id]);
+  }, [trip?._id, detail, detailLoading, detailError]);
 
   useEffect(() => {
     if (!shouldScrollToNewestCommentRef.current) return;
@@ -268,6 +289,11 @@ export default function JourneyDetailOverlay({
       setCommentsCursor(res.data?.page?.nextCursor || null);
       setCommentsHasMore(!!res.data?.page?.hasMore);
     } catch (err) {
+      if (isTripUnavailableError(err)) {
+        handleTripUnavailable(err);
+        return;
+      }
+
       setCommentsError(
         err?.response?.data?.message || "Không tải thêm comment được.",
       );
@@ -298,6 +324,11 @@ export default function JourneyDetailOverlay({
       setCommentText("");
       onCommentCreated?.(createdComment);
     } catch (err) {
+      if (isTripUnavailableError(err)) {
+        handleTripUnavailable(err);
+        return;
+      }
+
       setCommentsError(
         err?.response?.data?.message || "Gửi comment thất bại. Thử lại nhé.",
       );

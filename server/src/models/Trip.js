@@ -27,7 +27,7 @@ const TripSchema = new mongoose.Schema(
 
     privacy: {
       type: String,
-      enum: ["public", "followers", "protected", "private"],
+      enum: ["public", "followers", "private"],
       default: "public",
       index: true,
     },
@@ -54,5 +54,7 @@ const TripSchema = new mongoose.Schema(
 );
 
 TripSchema.index({ createdAt: -1 });
+TripSchema.index({ ownerId: 1, privacy: 1, createdAt: -1 });
+TripSchema.index({ privacy: 1, createdAt: -1 });
 
 export default mongoose.model("Trip", TripSchema);

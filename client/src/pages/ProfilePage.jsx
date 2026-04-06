@@ -7,7 +7,11 @@ import { useAuth } from "../auth/useAuth";
 import { useToast } from "../toast/useToast";
 import FloatingShape from "../components/auth/login/FloatingShape";
 import JourneyFeedCard from "../components/feed/page/JourneyFeedCard";
-import { tripApi } from "../api/trip.api";
+import {
+  tripApi,
+  getTripUnavailableMessage,
+  isTripUnavailableError,
+} from "../api/trip.api";
 
 import { shapeStyles } from "../components/feed/page/feed.constants";
 import { getInitials } from "../components/feed/page/feed.utils";
@@ -131,6 +135,11 @@ export default function ProfilePage() {
         _id: detailTrip?._id || tripId,
       });
     } catch (err) {
+      if (isTripUnavailableError(err)) {
+        showToast(getTripUnavailableMessage(err), "warning");
+        return;
+      }
+
       showToast(
         err?.response?.data?.message || "Không tải được chi tiết journey.",
         "error",

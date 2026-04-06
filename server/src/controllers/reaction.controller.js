@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import Reaction from "../models/Reaction.js";
 import Trip from "../models/Trip.js";
+import { getTripAccessContext } from "../utils/tripVisibility.js";
 
 export async function toggleTripHeart(req, res, next) {
   try {
@@ -11,10 +12,13 @@ export async function toggleTripHeart(req, res, next) {
       return res.status(400).json({ message: "Invalid trip id" });
     }
 
-    const trip = await Trip.findById(tripId)
-      .select("_id counts.reactions")
-      .lean();
-    if (!trip) {
+    const { trip, canView } = await getTripAccessContext({
+      tripId,
+      viewerId: userId,
+      select: "_id ownerId privacy counts.reactions",
+    });
+
+    if (!trip || !canView) {
       return res.status(404).json({ message: "Trip not found" });
     }
 
@@ -63,8 +67,12 @@ export async function toggleTripHeart(req, res, next) {
       const userId = req.user.userId;
 
       try {
-        const [trip, mine] = await Promise.all([
-          Trip.findById(tripId).select("counts.reactions").lean(),
+        const [accessContext, mine] = await Promise.all([
+          getTripAccessContext({
+            tripId,
+            viewerId: userId,
+            select: "_id ownerId privacy counts.reactions",
+          }),
           Reaction.findOne({
             targetType: "trip",
             targetId: tripId,
@@ -74,9 +82,13 @@ export async function toggleTripHeart(req, res, next) {
             .lean(),
         ]);
 
+        if (!accessContext.trip || !accessContext.canView) {
+          return res.status(404).json({ message: "Trip not found" });
+        }
+
         return res.status(200).json({
           hearted: !!mine,
-          count: Math.max(0, trip?.counts?.reactions || 0),
+          count: Math.max(0, accessContext.trip?.counts?.reactions || 0),
         });
       } catch {
         return res.status(409).json({ message: "Duplicate reaction" });
@@ -90,14 +102,21 @@ export async function toggleTripHeart(req, res, next) {
 export async function getTripHeartSummary(req, res, next) {
   try {
     const tripId = req.params.id;
-    const userId = req.user?.userId; // nếu route này requireAuth thì luôn có
+    const userId = req.user?.userId;
 
     if (!mongoose.isValidObjectId(tripId)) {
       return res.status(400).json({ message: "Invalid trip id" });
     }
 
-    const trip = await Trip.findById(tripId).select("counts.reactions").lean();
-    if (!trip) return res.status(404).json({ message: "Trip not found" });
+    const { trip, canView } = await getTripAccessContext({
+      tripId,
+      viewerId: userId,
+      select: "_id ownerId privacy counts.reactions",
+    });
+
+    if (!trip || !canView) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
 
     let hearted = false;
     if (userId) {

@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 
-import { tripApi } from "../../../api/trip.api";
+import {
+  tripApi,
+  getTripUnavailableMessage,
+  isTripUnavailableError,
+} from "../../../api/trip.api";
 import { useToast } from "../../../toast/useToast";
 import {
   getInitials,
@@ -70,6 +74,13 @@ export default function JourneyFeedCard({
   const [previewIndex, setPreviewIndex] = useState(0);
   const [previousPreviewIndex, setPreviousPreviewIndex] = useState(null);
   const [previewDirection, setPreviewDirection] = useState(1);
+
+  function closeOverlayWithUnavailableToast(error) {
+    setDetail(null);
+    setDetailError("");
+    setExpanded(false);
+    showToast(getTripUnavailableMessage(error), "warning");
+  }
 
   useEffect(() => {
     if (hasEmbeddedDetail(trip)) {
@@ -257,6 +268,12 @@ export default function JourneyFeedCard({
       } catch (e) {
         if (cancelled) return;
 
+        if (isTripUnavailableError(e)) {
+          closeOverlayWithUnavailableToast(e);
+          onForceOpenClose?.();
+          return;
+        }
+
         setDetailError(
           e?.response?.data?.message || "Không tải được chi tiết journey.",
         );
@@ -294,9 +311,15 @@ export default function JourneyFeedCard({
       setLikeCount(
         typeof res.data?.count === "number" ? res.data.count : optimisticCount,
       );
-    } catch {
+    } catch (error) {
       setLiked(prevLiked);
       setLikeCount(prevCount);
+
+      if (isTripUnavailableError(error)) {
+        showToast(getTripUnavailableMessage(error), "warning");
+        return;
+      }
+
       showToast("Không cập nhật lượt tim được.", "error");
     } finally {
       setLikeLoading(false);
@@ -319,10 +342,8 @@ export default function JourneyFeedCard({
       return;
     }
 
-    // Mở box trước
     setExpanded(true);
 
-    // Nếu đã có detail hoặc đang load thì thôi
     if (hasEmbeddedDetail(trip)) {
       setDetail(trip);
       setDetailError("");
@@ -337,9 +358,14 @@ export default function JourneyFeedCard({
 
       const res = await tripApi.getDetail(trip._id);
       setDetail(res.data);
-    } catch (e) {
+    } catch (error) {
+      if (isTripUnavailableError(error)) {
+        closeOverlayWithUnavailableToast(error);
+        return;
+      }
+
       setDetailError(
-        e?.response?.data?.message || "Không tải được chi tiết journey.",
+        error?.response?.data?.message || "Không tải được chi tiết journey.",
       );
     } finally {
       setDetailLoading(false);
