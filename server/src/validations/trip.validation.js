@@ -43,3 +43,13 @@ export const createTripSchema = Joi.object({
   query: Joi.object(),
   params: Joi.object(),
 });
+
+export const updateTripPrivacySchema = Joi.object({
+  body: Joi.object({
+    privacy: Joi.string().valid("public", "followers", "private").required(),
+  }),
+  query: Joi.object(),
+  params: Joi.object({
+    id: objectIdSchema.required(),
+  }),
+});

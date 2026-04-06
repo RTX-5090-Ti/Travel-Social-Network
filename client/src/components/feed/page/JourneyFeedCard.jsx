@@ -7,6 +7,7 @@ import {
   isTripUnavailableError,
 } from "../../../api/trip.api";
 import { useToast } from "../../../toast/useToast";
+import { useAuth } from "../../../auth/useAuth";
 import {
   getInitials,
   formatFeedTime,
@@ -14,7 +15,6 @@ import {
   countJourneyMedia,
 } from "./feed.utils";
 import {
-  DotsIcon,
   HeartIcon,
   CommentIcon,
   ShareIcon,
@@ -25,6 +25,8 @@ import {
 import PreviewMediaSlide from "./journey-card/PreviewMediaSlide";
 import JourneyMetaChip from "./journey-card/JourneyMetaChip";
 import JourneyDetailOverlay from "./journey-card/JourneyDetailOverlay";
+import JourneyCardActionsMenu from "./journey-card/JourneyCardActionsMenu";
+import JourneyAudienceModal from "./journey-card/JourneyAudienceModal";
 
 function getUserAvatar(user) {
   return (
@@ -34,6 +36,16 @@ function getUserAvatar(user) {
     user?.profile?.avatar ||
     ""
   );
+}
+
+function getEntityId(value) {
+  if (!value) return "";
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  return value?._id || value?.id || "";
 }
 
 function hasEmbeddedDetail(trip) {
@@ -50,7 +62,17 @@ export default function JourneyFeedCard({
   onForceOpenClose,
   onPreviewUser,
 }) {
+  const { user, bootstrapping } = useAuth();
   const { showToast } = useToast();
+
+  const viewerUserId = getEntityId(user);
+  const ownerUserId = getEntityId(trip?.ownerId);
+  const isOwnerTrip =
+    !bootstrapping &&
+    Boolean(viewerUserId) &&
+    Boolean(ownerUserId) &&
+    viewerUserId === ownerUserId;
+
   const ownerName = trip.ownerId?.name || "Traveler";
   const initials = getInitials(ownerName);
   const ownerAvatar = getUserAvatar(trip.ownerId);
@@ -70,6 +92,13 @@ export default function JourneyFeedCard({
   const [detail, setDetail] = useState(() =>
     hasEmbeddedDetail(trip) ? trip : null,
   );
+
+  const [audienceModalOpen, setAudienceModalOpen] = useState(false);
+  const [displayPrivacy, setDisplayPrivacy] = useState(
+    trip.privacy || "public",
+  );
+  const [audienceDraft, setAudienceDraft] = useState(trip.privacy || "public");
+  const [audienceSaving, setAudienceSaving] = useState(false);
 
   const [previewIndex, setPreviewIndex] = useState(0);
   const [previousPreviewIndex, setPreviousPreviewIndex] = useState(null);
@@ -91,6 +120,13 @@ export default function JourneyFeedCard({
 
     setDetail(null);
   }, [trip]);
+
+  useEffect(() => {
+    const nextPrivacy = trip.privacy || "public";
+    setDisplayPrivacy(nextPrivacy);
+    setAudienceDraft(nextPrivacy);
+    setAudienceModalOpen(false);
+  }, [trip._id, trip.privacy]);
 
   const previewItems = useMemo(() => {
     const rawItems = trip.feedPreview?.previewMedia?.length
@@ -190,12 +226,20 @@ export default function JourneyFeedCard({
     trip.feedPreview?.mediaCount ??
     trip.feedPreview?.imageCount ??
     (detail ? countJourneyMedia(detail) : previewItems.length);
-  const privacyLabel = getPrivacyLabel(trip.privacy);
+  const privacyLabel = getPrivacyLabel(displayPrivacy);
   const shouldPlayActiveMedia =
     !expanded && isNearViewport && isInViewport && previewItems.length > 0;
 
   const shouldAutoplayPreview =
     shouldPlayActiveMedia && previewItems.length > 1;
+
+  const displayTrip = useMemo(
+    () => ({
+      ...trip,
+      privacy: displayPrivacy || "public",
+    }),
+    [displayPrivacy, trip],
+  );
 
   useEffect(() => {
     if (!shouldAutoplayPreview) return;
@@ -372,15 +416,155 @@ export default function JourneyFeedCard({
     }
   }
 
+  function handlePinTrip() {
+    if (!isOwnerTrip) return;
+
+    showToast(
+      "Menu ghim đã lên UI, bước tiếp theo mới nối logic ghim thật.",
+      "warning",
+    );
+  }
+
+  function handleSaveTrip() {
+    showToast(
+      "Menu lưu bài viết đã có, bước tiếp theo mới nối logic lưu.",
+      "warning",
+    );
+  }
+
+  function handleEditTrip() {
+    if (!isOwnerTrip) return;
+
+    showToast(
+      "Menu chỉnh sửa bài viết đã sẵn sàng, bước tiếp theo mới mở modal edit.",
+      "warning",
+    );
+  }
+
+  function handleEditAudience() {
+    if (!isOwnerTrip) return;
+
+    setAudienceDraft(displayPrivacy || "public");
+    setAudienceModalOpen(true);
+  }
+
+  async function handleConfirmAudience() {
+    if (!isOwnerTrip || !trip?._id || audienceSaving) return;
+
+    const nextPrivacy = audienceDraft || "public";
+    const prevPrivacy = displayPrivacy || "public";
+
+    if (nextPrivacy === prevPrivacy) {
+      setAudienceModalOpen(false);
+      return;
+    }
+
+    try {
+      setAudienceSaving(true);
+
+      const res = await tripApi.updatePrivacy(trip._id, {
+        privacy: nextPrivacy,
+      });
+
+      const savedPrivacy = res.data?.trip?.privacy || nextPrivacy;
+
+      setDisplayPrivacy(savedPrivacy);
+      setAudienceDraft(savedPrivacy);
+      setAudienceModalOpen(false);
+
+      setDetail((prev) => {
+        if (!prev) return prev;
+
+        if (prev?.trip) {
+          return {
+            ...prev,
+            trip: {
+              ...prev.trip,
+              privacy: savedPrivacy,
+            },
+          };
+        }
+
+        return {
+          ...prev,
+          privacy: savedPrivacy,
+        };
+      });
+
+      showToast(
+        `Đã cập nhật đối tượng hiển thị sang ${getPrivacyLabel(savedPrivacy)}.`,
+        "success",
+      );
+    } catch (error) {
+      const status = Number(error?.response?.status || 0);
+
+      if (status === 404) {
+        setAudienceModalOpen(false);
+        showToast("Journey này không còn khả dụng.", "warning");
+        return;
+      }
+
+      showToast(
+        error?.response?.data?.message ||
+          "Không cập nhật đối tượng hiển thị được.",
+        "error",
+      );
+    } finally {
+      setAudienceSaving(false);
+    }
+  }
+
+  function handleMoveTripToTrash() {
+    if (!isOwnerTrip) return;
+
+    showToast(
+      "Menu chuyển vào thùng rác đã có, bước tiếp theo mới nối API xóa mềm.",
+      "warning",
+    );
+  }
+
+  function handleReportTrip() {
+    if (isOwnerTrip) return;
+
+    showToast(
+      "Menu báo cáo bài viết đã có, bước tiếp theo mới nối luồng report thật.",
+      "warning",
+    );
+  }
+
+  function handleHideTrip() {
+    if (isOwnerTrip) return;
+
+    showToast(
+      "Menu ẩn bài viết đã có, bước tiếp theo có thể cho card biến mất khỏi feed.",
+      "warning",
+    );
+  }
+
   // const activePreview = previewItems[previewIndex];
 
   return (
     <>
+      {isOwnerTrip ? (
+        <JourneyAudienceModal
+          open={audienceModalOpen}
+          value={audienceDraft}
+          onChange={setAudienceDraft}
+          onClose={() => {
+            if (!audienceSaving) {
+              setAudienceModalOpen(false);
+            }
+          }}
+          onConfirm={handleConfirmAudience}
+          isSaving={audienceSaving}
+        />
+      ) : null}
+
       <AnimatePresence>
         {expanded ? (
           <JourneyDetailOverlay
             key={`journey-overlay-${trip._id}`}
-            trip={trip}
+            trip={displayTrip}
             detail={detail}
             detailLoading={detailLoading}
             detailError={detailError}
@@ -434,9 +618,17 @@ export default function JourneyFeedCard({
                 </div>
               </div>
 
-              <button className="inline-flex items-center justify-center w-10 h-10 transition rounded-full cursor-pointer text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700">
-                <DotsIcon className="h-[18px] w-[18px]" />
-              </button>
+              <JourneyCardActionsMenu
+                variant={isOwnerTrip ? "owner" : "visitor"}
+                privacyLabel={privacyLabel}
+                onPin={handlePinTrip}
+                onSave={handleSaveTrip}
+                onEdit={handleEditTrip}
+                onEditAudience={handleEditAudience}
+                onMoveToTrash={handleMoveTripToTrash}
+                onReport={handleReportTrip}
+                onHide={handleHideTrip}
+              />
             </div>
           </div>
 

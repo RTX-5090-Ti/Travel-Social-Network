@@ -204,6 +204,46 @@ export async function createTrip(req, res, next) {
   }
 }
 
+export async function updateTripPrivacy(req, res, next) {
+  try {
+    const tripId = req.params.id;
+    const userId = req.user?.userId;
+    const privacy = req.validated?.body?.privacy || req.body?.privacy;
+
+    if (!mongoose.isValidObjectId(tripId)) {
+      return res.status(400).json({ message: "Invalid trip id" });
+    }
+
+    const trip = await Trip.findById(tripId).select(
+      "_id ownerId privacy updatedAt",
+    );
+
+    if (!trip) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+
+    if (trip.ownerId.toString() !== userId?.toString()) {
+      return res.status(403).json({
+        message: "Bạn không có quyền chỉnh sửa đối tượng của journey này.",
+      });
+    }
+
+    trip.privacy = privacy;
+    await trip.save();
+
+    res.json({
+      message: "Trip privacy updated successfully",
+      trip: {
+        _id: trip._id,
+        privacy: trip.privacy,
+        updatedAt: trip.updatedAt,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function getTripDetail(req, res, next) {
   try {
     const { id } = req.params;

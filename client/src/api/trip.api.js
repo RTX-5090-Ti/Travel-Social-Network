@@ -29,6 +29,10 @@ export const tripApi = {
     return api.get(`/api/trips/${id}`);
   },
 
+  updatePrivacy(id, payload) {
+    return api.patch(`/api/trips/${id}/privacy`, payload);
+  },
+
   toggleReaction(id) {
     return api.put(`/api/trips/${id}/reaction`);
   },
