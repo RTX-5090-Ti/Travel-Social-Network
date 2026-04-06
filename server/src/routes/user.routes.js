@@ -1,8 +1,9 @@
 import { Router } from "express";
 import { requireAuth } from "../middlewares/requireAuth.js";
-import { uploadAvatar } from "../middlewares/upload.middleware.js";
+import { uploadAvatar, uploadCover } from "../middlewares/upload.middleware.js";
 import {
   uploadAvatarController,
+  uploadCoverController,
   getMyTripsController,
   getUserProfileController,
   getUserSummaryController,
@@ -31,6 +32,13 @@ router.patch(
   requireAuth,
   uploadAvatar.single("avatar"),
   uploadAvatarController,
+);
+
+router.patch(
+  "/me/cover",
+  requireAuth,
+  uploadCover.single("cover"),
+  uploadCoverController,
 );
 
 export default router;

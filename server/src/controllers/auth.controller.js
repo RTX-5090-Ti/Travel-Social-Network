@@ -24,6 +24,7 @@ function buildAuthUserPayload(user) {
     email: user.email || "",
     role: user.role,
     avatarUrl: user.avatarUrl || "",
+    coverUrl: user.coverUrl || "",
     bio: user.bio || "",
     location: user.location || "",
     travelStyle: user.travelStyle || "",
@@ -199,7 +200,7 @@ export async function logout(req, res, next) {
 export async function me(req, res, next) {
   try {
     const user = await User.findById(req.user.userId).select(
-      "_id name email role avatarUrl bio location travelStyle",
+      "_id name email role avatarUrl coverUrl bio location travelStyle",
     );
 
     if (!user) {

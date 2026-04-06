@@ -37,6 +37,7 @@ function buildUserPayload(user) {
     name: user.name || "Traveler",
     email: user.email || "",
     avatarUrl: user.avatarUrl || "",
+    coverUrl: user.coverUrl || "",
     bio: user.bio || "",
     location: user.location || "",
     travelStyle: user.travelStyle || "",
@@ -57,7 +58,7 @@ export async function uploadAvatarController(req, res, next) {
 
     const userId = req.user?.userId;
     const user = await User.findById(userId).select(
-      "_id name email role avatarUrl bio location travelStyle",
+      "_id name email role avatarUrl coverUrl bio location travelStyle",
     );
 
     if (!user) {
@@ -236,7 +237,7 @@ export async function getUserProfileController(req, res, next) {
       : 50;
 
     const profileUser = await User.findById(profileUserId)
-      .select("_id name email avatarUrl  bio location travelStyle")
+      .select("_id name email avatarUrl coverUrl  bio location travelStyle")
       .lean();
 
     if (!profileUser) {
@@ -293,7 +294,7 @@ export async function getUserSummaryController(req, res, next) {
     const [profileUser, followDoc, followersCount, followingCount, postsCount] =
       await Promise.all([
         User.findById(profileUserId)
-          .select("_id name email avatarUrl bio location travelStyle")
+          .select("_id name email avatarUrl coverUrl bio location travelStyle")
           .lean(),
         viewerId && viewerId !== profileUserId
           ? Follow.findOne({
@@ -364,7 +365,7 @@ export async function updateProfileController(req, res, next) {
         new: true,
         runValidators: true,
       },
-    ).select("_id name email role avatarUrl bio location travelStyle");
+    ).select("_id name email role avatarUrl coverUrl bio location travelStyle");
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -372,6 +373,49 @@ export async function updateProfileController(req, res, next) {
 
     res.json({
       message: "Profile updated successfully",
+      user: buildUserPayload(user),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function uploadCoverController(req, res, next) {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: "No cover uploaded" });
+    }
+
+    const userId = req.user?.userId;
+    const user = await User.findById(userId).select(
+      "_id name email role avatarUrl coverUrl bio location travelStyle",
+    );
+
+    if (!user) {
+      await unlink(req.file.path).catch(() => {});
+      res.status(404);
+      throw new Error("User not found");
+    }
+
+    let result;
+
+    try {
+      result = await uploadFilePathToCloudinary(req.file.path, {
+        folder: `covers/${userId}`,
+        public_id: "profile-cover",
+        overwrite: true,
+        invalidate: true,
+        resource_type: "image",
+      });
+    } finally {
+      await unlink(req.file.path).catch(() => {});
+    }
+
+    user.coverUrl = result?.secure_url || "";
+    await user.save();
+
+    res.json({
+      message: "Cover updated successfully",
       user: buildUserPayload(user),
     });
   } catch (err) {

@@ -4,6 +4,7 @@ import multer from "multer";
 
 export const MAX_TRIP_MEDIA_FILES = 6;
 export const MAX_AVATAR_FILE_SIZE = 5 * 1024 * 1024;
+export const MAX_COVER_FILE_SIZE = 8 * 1024 * 1024;
 
 const TMP_UPLOAD_DIR = path.join(process.cwd(), "tmp", "uploads");
 fs.mkdirSync(TMP_UPLOAD_DIR, { recursive: true });
@@ -62,5 +63,14 @@ export const uploadAvatar = multer({
   limits: {
     files: 1,
     fileSize: MAX_AVATAR_FILE_SIZE,
+  },
+});
+
+export const uploadCover = multer({
+  storage,
+  fileFilter: createMimeFilter(allowedImageMime, "Cover must be an image file"),
+  limits: {
+    files: 1,
+    fileSize: MAX_COVER_FILE_SIZE,
   },
 });

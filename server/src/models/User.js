@@ -33,6 +33,12 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    coverUrl: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     bio: {
       type: String,
       default: "",

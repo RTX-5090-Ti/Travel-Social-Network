@@ -9,6 +9,14 @@ export const userApi = {
     return api.patch("/api/users/me/profile", payload);
   },
 
+  updateCover(formData) {
+    return api.patch("/api/users/me/cover", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+
   getProfile(userId, params = {}) {
     return api.get(`/api/users/${userId}/profile`, { params });
   },

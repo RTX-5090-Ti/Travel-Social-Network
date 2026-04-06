@@ -244,7 +244,7 @@ export default function ProfilePage() {
                 initials={initials}
                 stats={stats}
                 onBackToFeed={() => navigate("/")}
-                coverUrl={PROFILE_COVER_URL}
+                coverUrl={displayUser?.coverUrl || PROFILE_COVER_URL}
                 formatLargeNumber={formatLargeNumber}
                 isVisitorProfile={isVisitorProfile}
                 isFollowing={isFollowing}

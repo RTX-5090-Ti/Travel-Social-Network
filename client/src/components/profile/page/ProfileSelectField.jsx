@@ -182,7 +182,7 @@ export default function ProfileSelectField({
         type="button"
         onClick={handleToggle}
         aria-expanded={open}
-        className={`group flex w-full items-center justify-between gap-3 rounded-[20px] border px-4 py-3.5 text-left transition duration-300 ${
+        className={`group flex w-full items-center justify-between gap-3 rounded-[20px] border px-4 py-3.5 text-left transition duration-300 cursor-pointer ${
           open
             ? "border-[rgba(139,92,246,0.24)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,242,255,0.96))] shadow-[0_16px_30px_rgba(124,58,237,0.12)] ring-1 ring-[rgba(139,92,246,0.10)]"
             : "border-white/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(240,243,252,0.96))] shadow-[0_10px_22px_rgba(15,23,42,0.05)] hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(91,99,246,0.10)]"
@@ -267,7 +267,7 @@ export default function ProfileSelectField({
                             key={`${option.value ?? option.label ?? "option"}-${index}`}
                             type="button"
                             onClick={() => handleSelect(option.value)}
-                            className={`mb-2 w-full rounded-[18px] px-3.5 py-3 text-left transition last:mb-0 ${
+                            className={`mb-2 w-full rounded-[18px] px-3.5 py-3 text-left transition last:mb-0 cursor-pointer ${
                               isSelected
                                 ? "bg-[linear-gradient(135deg,rgba(247,242,255,0.98),rgba(238,245,255,0.96))] ring-1 ring-[rgba(139,92,246,0.14)] shadow-[0_10px_22px_rgba(124,58,237,0.10)]"
                                 : "hover:bg-white/85"
