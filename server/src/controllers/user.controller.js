@@ -42,6 +42,7 @@ function buildUserPayload(user) {
     bio: user.bio || "",
     location: user.location || "",
     travelStyle: user.travelStyle || "",
+    pinnedTripId: user.pinnedTripId || null,
   };
 
   if (typeof user.role === "string" && user.role) {
@@ -59,7 +60,7 @@ export async function uploadAvatarController(req, res, next) {
 
     const userId = req.user?.userId;
     const user = await User.findById(userId).select(
-      "_id name email role avatarUrl coverUrl bio location travelStyle",
+      "_id name email role avatarUrl coverUrl bio location travelStyle pinnedTripId",
     );
 
     if (!user) {
@@ -258,7 +259,9 @@ export async function getUserProfileController(req, res, next) {
     const [profileUser, followDoc, followersCount, followingCount] =
       await Promise.all([
         User.findById(profileUserId)
-          .select("_id name email avatarUrl coverUrl bio location travelStyle")
+          .select(
+            "_id name email avatarUrl coverUrl bio location travelStyle pinnedTripId",
+          )
           .lean(),
         viewerId && viewerId !== profileUserId
           ? Follow.findOne({
@@ -324,7 +327,9 @@ export async function getUserSummaryController(req, res, next) {
     const [profileUser, followDoc, followersCount, followingCount] =
       await Promise.all([
         User.findById(profileUserId)
-          .select("_id name email avatarUrl coverUrl bio location travelStyle")
+          .select(
+            "_id name email avatarUrl coverUrl bio location travelStyle pinnedTripId",
+          )
           .lean(),
         viewerId && viewerId !== profileUserId
           ? Follow.findOne({
@@ -404,7 +409,9 @@ export async function updateProfileController(req, res, next) {
         new: true,
         runValidators: true,
       },
-    ).select("_id name email role avatarUrl coverUrl bio location travelStyle");
+    ).select(
+      "_id name email role avatarUrl coverUrl bio location travelStyle pinnedTripId",
+    );
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -427,7 +434,7 @@ export async function uploadCoverController(req, res, next) {
 
     const userId = req.user?.userId;
     const user = await User.findById(userId).select(
-      "_id name email role avatarUrl coverUrl bio location travelStyle",
+      "_id name email role avatarUrl coverUrl bio location travelStyle pinnedTripId",
     );
 
     if (!user) {

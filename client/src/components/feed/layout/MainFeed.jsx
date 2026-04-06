@@ -74,6 +74,7 @@ export default function MainFeed({
                     trip._id || `feed-trip-${trip.createdAt || "x"}-${index}`
                   }
                   trip={trip}
+                  surface="feed"
                   onPreviewUser={onPreviewUser}
                 />
               ))

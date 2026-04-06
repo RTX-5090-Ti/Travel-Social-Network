@@ -28,6 +28,7 @@ function buildAuthUserPayload(user) {
     bio: user.bio || "",
     location: user.location || "",
     travelStyle: user.travelStyle || "",
+    pinnedTripId: user.pinnedTripId || null,
   };
 }
 
@@ -200,7 +201,7 @@ export async function logout(req, res, next) {
 export async function me(req, res, next) {
   try {
     const user = await User.findById(req.user.userId).select(
-      "_id name email role avatarUrl coverUrl bio location travelStyle",
+      "_id name email role avatarUrl coverUrl bio location travelStyle pinnedTripId",
     );
 
     if (!user) {

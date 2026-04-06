@@ -41,7 +41,34 @@ export function useProfileData({
   const [visitorPostsCount, setVisitorPostsCount] = useState(0);
 
   const displayUser = isVisitorProfile ? visitorProfileUser : user;
-  const profileTrips = isVisitorProfile ? visitorProfileTrips : ownTrips;
+  const rawProfileTrips = isVisitorProfile ? visitorProfileTrips : ownTrips;
+
+  const pinnedTripId =
+    typeof displayUser?.pinnedTripId === "string"
+      ? displayUser.pinnedTripId
+      : displayUser?.pinnedTripId?._id || displayUser?.pinnedTripId?.id || "";
+
+  const profileTrips = useMemo(() => {
+    if (!Array.isArray(rawProfileTrips) || rawProfileTrips.length === 0) {
+      return [];
+    }
+
+    if (!pinnedTripId) {
+      return rawProfileTrips;
+    }
+
+    return [...rawProfileTrips].sort((a, b) => {
+      const aId = a?._id || a?.id || "";
+      const bId = b?._id || b?.id || "";
+
+      const aPinned = aId === pinnedTripId;
+      const bPinned = bId === pinnedTripId;
+
+      if (aPinned === bPinned) return 0;
+      return aPinned ? -1 : 1;
+    });
+  }, [rawProfileTrips, pinnedTripId]);
+
   const profileUserId = displayUser?._id || displayUser?.id || user?.id || "";
 
   const loadOwnTrips = useCallback(

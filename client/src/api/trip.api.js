@@ -33,6 +33,14 @@ export const tripApi = {
     return api.patch(`/api/trips/${id}/privacy`, payload);
   },
 
+  pinTrip(id) {
+    return api.put(`/api/trips/${id}/pin`);
+  },
+
+  unpinTrip(id) {
+    return api.delete(`/api/trips/${id}/pin`);
+  },
+
   toggleReaction(id) {
     return api.put(`/api/trips/${id}/reaction`);
   },

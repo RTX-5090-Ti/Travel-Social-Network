@@ -55,14 +55,35 @@ function hasEmbeddedDetail(trip) {
   );
 }
 
+function PinBadgeIcon({ className = "" }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="m15 4 5 5" />
+      <path d="m11.5 7.5 5 5" />
+      <path d="m14 2 8 8-3 3-3-1-7 7-1.5-1.5 7-7-1-3Z" />
+      <path d="M4 20h6" />
+    </svg>
+  );
+}
+
 export default function JourneyFeedCard({
   trip,
   forceOpen = false,
   overlayOnly = false,
+  surface = "feed",
+  isPinnedOverride,
   onForceOpenClose,
   onPreviewUser,
 }) {
-  const { user, bootstrapping } = useAuth();
+  const { user, setUser, bootstrapping } = useAuth();
   const { showToast } = useToast();
 
   const viewerUserId = getEntityId(user);
@@ -72,6 +93,13 @@ export default function JourneyFeedCard({
     Boolean(viewerUserId) &&
     Boolean(ownerUserId) &&
     viewerUserId === ownerUserId;
+
+  const authPinnedTripId = getEntityId(user?.pinnedTripId);
+  const tripId = getEntityId(trip);
+  const derivedPinned = isOwnerTrip && authPinnedTripId === tripId;
+
+  const isPinned =
+    typeof isPinnedOverride === "boolean" ? isPinnedOverride : derivedPinned;
 
   const ownerName = trip.ownerId?.name || "Traveler";
   const initials = getInitials(ownerName);
@@ -99,6 +127,8 @@ export default function JourneyFeedCard({
   );
   const [audienceDraft, setAudienceDraft] = useState(trip.privacy || "public");
   const [audienceSaving, setAudienceSaving] = useState(false);
+
+  const [pinSaving, setPinSaving] = useState(false);
 
   const [previewIndex, setPreviewIndex] = useState(0);
   const [previousPreviewIndex, setPreviousPreviewIndex] = useState(null);
@@ -416,13 +446,76 @@ export default function JourneyFeedCard({
     }
   }
 
-  function handlePinTrip() {
-    if (!isOwnerTrip) return;
+  async function handlePinTrip() {
+    if (!isOwnerTrip || !tripId || pinSaving) return;
 
-    showToast(
-      "Menu ghim đã lên UI, bước tiếp theo mới nối logic ghim thật.",
-      "warning",
-    );
+    try {
+      setPinSaving(true);
+
+      if (isPinned) {
+        await tripApi.unpinTrip(tripId);
+
+        setUser((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            pinnedTripId: null,
+          };
+        });
+
+        showToast(
+          surface === "profile"
+            ? "Đã gỡ ghim bài viết khỏi profile."
+            : "Đã gỡ bài ghim khỏi profile của bạn.",
+          "success",
+        );
+        return;
+      }
+
+      const res = await tripApi.pinTrip(tripId);
+
+      const nextPinnedTripId = res.data?.pinnedTripId || tripId;
+      const replacedTripId = res.data?.replacedTripId || null;
+
+      setUser((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          pinnedTripId: nextPinnedTripId,
+        };
+      });
+
+      if (surface === "profile") {
+        showToast(
+          replacedTripId
+            ? "Đã thay bài ghim trong profile."
+            : "Đã ghim bài viết lên đầu profile.",
+          "success",
+        );
+      } else {
+        showToast(
+          replacedTripId
+            ? "Đã thay bài ghim trong profile của bạn."
+            : "Đã ghim trong profile của bạn.",
+          "success",
+        );
+      }
+    } catch (error) {
+      const status = Number(error?.response?.status || 0);
+
+      if (status === 404) {
+        showToast("Journey này không còn khả dụng.", "warning");
+        return;
+      }
+
+      showToast(
+        error?.response?.data?.message ||
+          "Không cập nhật trạng thái ghim được.",
+        "error",
+      );
+    } finally {
+      setPinSaving(false);
+    }
   }
 
   function handleSaveTrip() {
@@ -606,12 +699,23 @@ export default function JourneyFeedCard({
                   <button
                     type="button"
                     onClick={() => onPreviewUser?.(trip.ownerId)}
-                    className="block max-w-full cursor-pointer truncate text-left text-[16px] font-semibold text-zinc-900 transition hover:text-[#5b6ee1] cursor-pointer"
+                    className="block max-w-full cursor-pointer truncate text-left text-[16px] font-semibold text-zinc-900 transition hover:text-[#5b6ee1] "
                   >
                     {ownerName}
                   </button>
                   <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[13px] text-zinc-400">
                     <span>{formatFeedTime(trip.createdAt)}</span>
+
+                    {isPinned ? (
+                      <>
+                        <span className="w-1 h-1 rounded-full bg-zinc-300" />
+                        <span className="inline-flex items-center gap-1 rounded-full bg-[linear-gradient(135deg,rgba(238,242,255,0.98),rgba(245,240,255,0.98))] px-2 py-0.5 text-[12px] font-semibold text-[#5b6ee1] ring-1 ring-violet-100/80">
+                          <PinBadgeIcon className="h-3.5 w-3.5" />
+                          Pinned Trip
+                        </span>
+                      </>
+                    ) : null}
+
                     <span className="w-1 h-1 rounded-full bg-zinc-300" />
                     <span className="capitalize">{privacyLabel}</span>
                   </div>
@@ -621,6 +725,7 @@ export default function JourneyFeedCard({
               <JourneyCardActionsMenu
                 variant={isOwnerTrip ? "owner" : "visitor"}
                 privacyLabel={privacyLabel}
+                isPinned={isPinned}
                 onPin={handlePinTrip}
                 onSave={handleSaveTrip}
                 onEdit={handleEditTrip}
@@ -715,6 +820,9 @@ export default function JourneyFeedCard({
               <div className="absolute inset-x-0 bottom-0 pointer-events-none h-28 bg-gradient-to-t from-black/35 via-black/8 to-transparent" />
 
               <div className="absolute flex flex-wrap gap-2 left-4 top-4">
+                {isPinned ? (
+                  <JourneyMetaChip text="Pinned" tone="blue" />
+                ) : null}
                 <JourneyMetaChip text={privacyLabel} tone="blue" />
                 {milestoneCount ? (
                   <JourneyMetaChip

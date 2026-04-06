@@ -196,6 +196,7 @@ function MenuActionButton({
 export default function JourneyCardActionsMenu({
   variant = "owner",
   privacyLabel = "Public",
+  isPinned = false,
   onPin,
   onSave,
   onEdit,
@@ -269,8 +270,8 @@ export default function JourneyCardActionsMenu({
       [
         {
           key: "pin",
-          title: "Ghim bài viết",
-          description: "",
+          title: isPinned ? "Gỡ ghim bài viết" : "Ghim bài viết",
+          description: isPinned ? "" : "",
           icon: PinIcon,
           onClick: onPin,
         },
@@ -312,6 +313,7 @@ export default function JourneyCardActionsMenu({
   }, [
     variant,
     privacyLabel,
+    isPinned,
     onPin,
     onSave,
     onEdit,

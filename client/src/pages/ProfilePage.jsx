@@ -110,6 +110,11 @@ export default function ProfilePage() {
   const initials = getInitials(displayUser?.name || "Traveler");
   const activeTabIndex = PROFILE_TABS.findIndex((tab) => tab.key === activeTab);
 
+  const profilePinnedTripId =
+    typeof displayUser?.pinnedTripId === "string"
+      ? displayUser.pinnedTripId
+      : displayUser?.pinnedTripId?._id || displayUser?.pinnedTripId?.id || "";
+
   async function handleOpenHighlightTrip(trip) {
     const tripId = getTripId(trip);
 
@@ -461,6 +466,11 @@ export default function ProfilePage() {
                                   `profile-trip-${trip?.createdAt || "x"}-${index}`
                                 }
                                 trip={trip}
+                                surface="profile"
+                                isPinnedOverride={
+                                  (trip?._id || trip?.id || "") ===
+                                  profilePinnedTripId
+                                }
                               />
                             ))}
                           </div>

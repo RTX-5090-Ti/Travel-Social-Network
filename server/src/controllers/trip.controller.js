@@ -5,6 +5,7 @@ import TripItem from "../models/TripItem.js";
 import { buildTripFeedPreview } from "../utils/buildTripFeedPreview.js";
 import { cloudinary } from "../config/cloudinary.js";
 import { getTripAccessContext } from "../utils/tripVisibility.js";
+import User from "../models/User.js";
 
 function getPermanentPublicId(oldPublicId, userId, tripId) {
   const tempPrefix = `trips/tmp/${userId}/`;
@@ -238,6 +239,103 @@ export async function updateTripPrivacy(req, res, next) {
         privacy: trip.privacy,
         updatedAt: trip.updatedAt,
       },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function pinTrip(req, res, next) {
+  try {
+    const tripId = req.params.id;
+    const userId = req.user?.userId;
+
+    if (!mongoose.isValidObjectId(tripId)) {
+      return res.status(400).json({ message: "Invalid trip id" });
+    }
+
+    const [trip, user] = await Promise.all([
+      Trip.findById(tripId).select("_id ownerId"),
+      User.findById(userId).select("_id pinnedTripId"),
+    ]);
+
+    if (!trip) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (trip.ownerId.toString() !== userId?.toString()) {
+      return res.status(403).json({
+        message: "Bạn chỉ có thể ghim journey của chính mình.",
+      });
+    }
+
+    const previousPinnedTripId = user.pinnedTripId?.toString() || "";
+    const nextPinnedTripId = trip._id.toString();
+
+    user.pinnedTripId = trip._id;
+    await user.save();
+
+    const replacedTripId =
+      previousPinnedTripId && previousPinnedTripId !== nextPinnedTripId
+        ? previousPinnedTripId
+        : null;
+
+    res.json({
+      message: replacedTripId
+        ? "Pinned trip replaced successfully"
+        : "Trip pinned successfully",
+      pinnedTripId: nextPinnedTripId,
+      replacedTripId,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function unpinTrip(req, res, next) {
+  try {
+    const tripId = req.params.id;
+    const userId = req.user?.userId;
+
+    if (!mongoose.isValidObjectId(tripId)) {
+      return res.status(400).json({ message: "Invalid trip id" });
+    }
+
+    const [trip, user] = await Promise.all([
+      Trip.findById(tripId).select("_id ownerId"),
+      User.findById(userId).select("_id pinnedTripId"),
+    ]);
+
+    if (!trip) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (trip.ownerId.toString() !== userId?.toString()) {
+      return res.status(403).json({
+        message: "Bạn chỉ có thể gỡ ghim journey của chính mình.",
+      });
+    }
+
+    const currentPinnedTripId = user.pinnedTripId?.toString() || "";
+    const targetTripId = trip._id.toString();
+
+    if (currentPinnedTripId === targetTripId) {
+      user.pinnedTripId = null;
+      await user.save();
+    }
+
+    res.json({
+      message: "Trip unpinned successfully",
+      pinnedTripId: null,
+      removedTripId: currentPinnedTripId === targetTripId ? targetTripId : null,
     });
   } catch (err) {
     next(err);

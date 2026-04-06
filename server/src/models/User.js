@@ -60,6 +60,12 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    pinnedTripId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Trip",
+      default: null,
+    },
+
     //  để sau làm refresh/logout “chuẩn sản phẩm”
     refreshTokenHash: { type: String, default: null },
   },

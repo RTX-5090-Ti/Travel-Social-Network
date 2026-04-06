@@ -53,3 +53,11 @@ export const updateTripPrivacySchema = Joi.object({
     id: objectIdSchema.required(),
   }),
 });
+
+export const updateTripPinSchema = Joi.object({
+  body: Joi.object(),
+  query: Joi.object(),
+  params: Joi.object({
+    id: objectIdSchema.required(),
+  }),
+});
