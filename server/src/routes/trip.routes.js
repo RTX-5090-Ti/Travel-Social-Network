@@ -5,6 +5,8 @@ import {
   createTripSchema,
   listSavedTripsSchema,
   listTripTrashSchema,
+  updateTripHideSchema,
+  updateTripSchema,
   updateTripPinSchema,
   updateTripPrivacySchema,
   updateTripSaveSchema,
@@ -21,12 +23,16 @@ import {
   saveTrip,
   unpinTrip,
   unsaveTrip,
+  hideTripForViewer,
+  updateTrip,
   updateTripPrivacy,
 } from "../controllers/trip.controller.js";
 
 const router = Router();
 
 router.post("/", requireAuth, validate(createTripSchema), createTrip);
+
+router.patch("/:id", requireAuth, validate(updateTripSchema), updateTrip);
 
 router.patch(
   "/:id/privacy",
@@ -60,6 +66,13 @@ router.delete(
   requireAuth,
   validate(updateTripSaveSchema),
   unsaveTrip,
+);
+
+router.patch(
+  "/:id/hide",
+  requireAuth,
+  validate(updateTripHideSchema),
+  hideTripForViewer,
 );
 
 router.patch(

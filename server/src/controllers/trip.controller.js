@@ -3,6 +3,7 @@ import Trip from "../models/Trip.js";
 import Milestone from "../models/Milestone.js";
 import TripItem from "../models/TripItem.js";
 import Follow from "../models/Follow.js";
+import HiddenTrip from "../models/HiddenTrip.js";
 import Reaction from "../models/Reaction.js";
 import SavedTrip from "../models/SavedTrip.js";
 import { buildTripFeedPreview } from "../utils/buildTripFeedPreview.js";
@@ -12,6 +13,7 @@ import {
   getTripAccessContext,
 } from "../utils/tripVisibility.js";
 import User from "../models/User.js";
+import { buildHiddenTripExpiry } from "../services/hiddenTripCleanup.service.js";
 import { buildTripDeletionSchedule } from "../services/tripTrashCleanup.service.js";
 
 function getPermanentPublicId(oldPublicId, userId, tripId) {
@@ -106,6 +108,19 @@ function buildUnavailableSavedTripItem(savedDoc) {
     unavailable: true,
     savedAt: savedDoc?.createdAt || null,
   };
+}
+
+function extractMediaFilesFromItems(items = []) {
+  return items.flatMap((item) =>
+    Array.isArray(item?.media)
+      ? item.media
+          .filter((media) => media?.publicId)
+          .map((media) => ({
+            publicId: media.publicId,
+            type: media.type === "video" ? "video" : "image",
+          }))
+      : [],
+  );
 }
 
 // Tạo trip mới
@@ -222,6 +237,168 @@ export async function createTrip(req, res, next) {
     session.endSession();
 
     res.status(201).json({ tripId: tripDoc._id.toString() });
+  } catch (err) {
+    await session.abortTransaction().catch(() => {});
+    session.endSession();
+
+    await cleanupCloudinaryFiles(movedFilesForCleanup);
+
+    next(err);
+  }
+}
+
+export async function updateTrip(req, res, next) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  const movedFilesForCleanup = [];
+  let oldMediaFiles = [];
+  let nextMediaFiles = [];
+
+  try {
+    const tripId = req.params.id;
+    const userId = req.user?.userId;
+
+    if (!mongoose.isValidObjectId(tripId)) {
+      await session.abortTransaction().catch(() => {});
+      session.endSession();
+      return res.status(400).json({ message: "Invalid trip id" });
+    }
+
+    const {
+      title,
+      caption,
+      privacy = "public",
+      participantIds = [],
+      milestones = [],
+      items = [],
+    } = req.body;
+
+    const trip = await Trip.findById(tripId).session(session);
+
+    if (!trip) {
+      await session.abortTransaction().catch(() => {});
+      session.endSession();
+      return res.status(404).json({ message: "Trip not found" });
+    }
+
+    if (trip.ownerId.toString() !== userId?.toString()) {
+      await session.abortTransaction().catch(() => {});
+      session.endSession();
+      return res.status(403).json({
+        message: "Bạn không có quyền chỉnh sửa journey này.",
+      });
+    }
+
+    const existingItems = await TripItem.find({ tripId })
+      .session(session)
+      .select("media")
+      .lean();
+
+    oldMediaFiles = extractMediaFilesFromItems(existingItems);
+
+    const normalizedItems = [];
+
+    for (const it of items) {
+      const { movedMedia, movedPublicIds } = await moveMediaToPermanentFolder(
+        it.media ?? [],
+        userId,
+        trip._id.toString(),
+      );
+
+      movedFilesForCleanup.push(...movedPublicIds);
+
+      normalizedItems.push({
+        ...it,
+        media: movedMedia,
+      });
+    }
+
+    await Promise.all([
+      TripItem.deleteMany({ tripId }).session(session),
+      Milestone.deleteMany({ tripId }).session(session),
+    ]);
+
+    const tempMap = new Map();
+
+    if (milestones.length > 0) {
+      const createdMilestones = await Milestone.insertMany(
+        milestones.map((m) => ({
+          tripId: trip._id,
+          title: m.title,
+          time: m.time ?? null,
+          order: m.order ?? 0,
+        })),
+        { session },
+      );
+
+      milestones.forEach((m, idx) => {
+        tempMap.set(m.tempId, createdMilestones[idx]._id);
+      });
+    }
+
+    if (normalizedItems.length > 0) {
+      await TripItem.insertMany(
+        normalizedItems.map((it) => ({
+          tripId: trip._id,
+          milestoneId: it.milestoneTempId
+            ? tempMap.get(it.milestoneTempId)
+            : null,
+          authorId: userId,
+          content: it.content ?? "",
+          media: it.media ?? [],
+          order: it.order ?? 0,
+        })),
+        { session },
+      );
+    }
+
+    const feedPreview = buildTripFeedPreview(
+      {
+        milestones,
+        items: normalizedItems,
+      },
+      { maxPreviewMedia: 6 },
+    );
+
+    trip.title = title;
+    trip.caption = caption;
+    trip.privacy = privacy;
+    trip.participantIds = participantIds;
+    trip.feedPreview = feedPreview;
+    trip.coverUrl = feedPreview.previewMedia?.[0]?.url || "";
+    await trip.save({ session });
+
+    nextMediaFiles = extractMediaFilesFromItems(normalizedItems);
+
+    await session.commitTransaction();
+    session.endSession();
+
+    const nextMediaPublicIds = new Set(
+      nextMediaFiles.map((file) => file.publicId).filter(Boolean),
+    );
+    const removedMediaFiles = oldMediaFiles.filter(
+      (file) => file.publicId && !nextMediaPublicIds.has(file.publicId),
+    );
+
+    if (removedMediaFiles.length > 0) {
+      cleanupCloudinaryFiles(removedMediaFiles).catch(() => {});
+    }
+
+    res.json({
+      tripId: trip._id.toString(),
+      trip: {
+        _id: trip._id,
+        ownerId: trip.ownerId,
+        title: trip.title,
+        caption: trip.caption || "",
+        privacy: trip.privacy,
+        coverUrl: trip.coverUrl || "",
+        counts: trip.counts || { reactions: 0, comments: 0 },
+        feedPreview: trip.feedPreview,
+        updatedAt: trip.updatedAt,
+      },
+    });
   } catch (err) {
     await session.abortTransaction().catch(() => {});
     session.endSession();
@@ -436,6 +613,68 @@ export async function unsaveTrip(req, res, next) {
       message: "Trip unsaved successfully",
       tripId,
       saved: false,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function hideTripForViewer(req, res, next) {
+  try {
+    const tripId = req.params.id;
+    const userId = req.user?.userId;
+
+    if (!mongoose.isValidObjectId(tripId)) {
+      return res.status(400).json({ message: "Invalid trip id" });
+    }
+
+    const { trip, canView } = await getTripAccessContext({
+      tripId,
+      viewerId: userId,
+      select: "_id ownerId privacy deletedAt",
+    });
+
+    if (!trip) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+
+    if (!canView) {
+      return res.status(403).json({
+        message: "Bạn không có quyền ẩn journey này.",
+      });
+    }
+
+    if (trip.ownerId?.toString?.() === userId?.toString()) {
+      return res.status(403).json({
+        message: "Bạn không thể ẩn journey của chính mình khỏi feed.",
+      });
+    }
+
+    const hiddenAt = new Date();
+    const hideExpiresAt = buildHiddenTripExpiry(hiddenAt);
+
+    await HiddenTrip.findOneAndUpdate(
+      { userId, tripId },
+      {
+        $set: {
+          userId,
+          tripId,
+          hiddenAt,
+          hideExpiresAt,
+        },
+      },
+      {
+        upsert: true,
+        returnDocument: "after",
+        setDefaultsOnInsert: true,
+      },
+    );
+
+    res.json({
+      message: "Trip hidden from feed successfully",
+      tripId,
+      hiddenAt,
+      hideExpiresAt,
     });
   } catch (err) {
     next(err);

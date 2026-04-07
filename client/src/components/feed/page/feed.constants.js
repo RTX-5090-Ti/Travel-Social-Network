@@ -155,7 +155,7 @@ export const contacts = [
 export const navItems = [
   { id: 1, label: "Feed", active: true, icon: GridIcon },
   { id: 2, label: "Home", active: false, icon: HomeIcon },
-  { id: 3, label: "My favorites", active: false, icon: BookmarkIcon },
+  { id: 3, label: "Archive", active: false, icon: BookmarkIcon },
   { id: 4, label: "Direct", active: false, icon: SendIcon },
   { id: 5, label: "Settings", active: false, icon: SettingsIcon },
 ];

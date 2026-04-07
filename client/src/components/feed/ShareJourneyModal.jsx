@@ -5,13 +5,14 @@ import { tripApi } from "../../api/trip.api";
 import { uploadApi } from "../../api/upload.api";
 import { useToast } from "../../toast/useToast";
 
-function makeMilestone() {
+function makeMilestone(overrides = {}) {
   return {
     id: crypto.randomUUID(),
     title: "",
     time: "",
     note: "",
     files: [],
+    ...overrides,
   };
 }
 
@@ -40,11 +41,13 @@ function createFileEntry(file) {
     kind,
     previewUrl:
       kind === "image" || kind === "video" ? URL.createObjectURL(file) : "",
+    revokePreview: kind === "image" || kind === "video",
+    existingMedia: null,
   };
 }
 
 function revokeFileEntry(entry) {
-  if (entry?.previewUrl) {
+  if (entry?.revokePreview && entry?.previewUrl) {
     URL.revokeObjectURL(entry.previewUrl);
   }
 }
@@ -60,6 +63,134 @@ function getFileSignature(entryOrFile) {
     entryOrFile?.type,
     entryOrFile?.lastModified,
   ].join("__");
+}
+
+function getMediaKind(type) {
+  return type === "video" ? "video" : "image";
+}
+
+function createExistingMediaEntry(media = {}, index = 0) {
+  const kind = getMediaKind(media?.type);
+  const publicId =
+    typeof media?.publicId === "string" ? media.publicId.trim() : "";
+  const fallbackName =
+    publicId.split("/").pop() || `${kind}-${String(index + 1).padStart(2, "0")}`;
+
+  return {
+    id: crypto.randomUUID(),
+    file: null,
+    name: fallbackName,
+    size: Number(media?.bytes || 0),
+    type: kind,
+    lastModified: 0,
+    kind,
+    previewUrl: typeof media?.url === "string" ? media.url.trim() : "",
+    revokePreview: false,
+    existingMedia: {
+      type: kind,
+      url: typeof media?.url === "string" ? media.url.trim() : "",
+      publicId,
+      width: media?.width ?? null,
+      height: media?.height ?? null,
+      duration: media?.duration ?? null,
+      bytes: media?.bytes ?? null,
+    },
+  };
+}
+
+function formatDateTimeLocal(value) {
+  if (!value) return "";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function normalizeTripDetail(detail) {
+  if (!detail) return null;
+
+  if (detail?.trip || Array.isArray(detail?.milestones) || Array.isArray(detail?.generalItems)) {
+    return detail;
+  }
+
+  return {
+    trip: detail,
+    generalItems: Array.isArray(detail?.generalItems) ? detail.generalItems : [],
+    milestones: Array.isArray(detail?.milestones) ? detail.milestones : [],
+  };
+}
+
+function buildMilestoneNote(items = []) {
+  return items
+    .map((item) => (typeof item?.content === "string" ? item.content.trim() : ""))
+    .filter(Boolean)
+    .join("\n\n");
+}
+
+function buildMilestoneFiles(items = []) {
+  const files = [];
+
+  items.forEach((item) => {
+    (item?.media || []).forEach((media) => {
+      files.push(createExistingMediaEntry(media, files.length));
+    });
+  });
+
+  return files;
+}
+
+function buildEmptyFormState() {
+  return {
+    tripTitle: "",
+    tripCaption: "",
+    privacy: "public",
+    milestones: [makeMilestone()],
+  };
+}
+
+function buildEditFormState(detail) {
+  const normalized = normalizeTripDetail(detail);
+  if (!normalized) {
+    return buildEmptyFormState();
+  }
+
+  const trip = normalized?.trip || normalized;
+
+  const milestoneEntries = Array.isArray(normalized?.milestones)
+    ? normalized.milestones.map((item) =>
+        makeMilestone({
+          id: item?._id || crypto.randomUUID(),
+          title: item?.title || "",
+          time: formatDateTimeLocal(item?.time),
+          note: buildMilestoneNote(item?.items || []),
+          files: buildMilestoneFiles(item?.items || []),
+        }),
+      )
+    : [];
+
+  if (milestoneEntries.length === 0 && Array.isArray(normalized?.generalItems) && normalized.generalItems.length > 0) {
+    milestoneEntries.push(
+      makeMilestone({
+        title: trip?.title || "",
+        note: buildMilestoneNote(normalized.generalItems),
+        files: buildMilestoneFiles(normalized.generalItems),
+      }),
+    );
+  }
+
+  return {
+    tripTitle: typeof trip?.title === "string" ? trip.title : "",
+    tripCaption: typeof trip?.caption === "string" ? trip.caption : "",
+    privacy: trip?.privacy || "public",
+    milestones: milestoneEntries.length > 0 ? milestoneEntries : [makeMilestone()],
+  };
 }
 
 const privacyOptions = [
@@ -85,8 +216,17 @@ const privacyOptions = [
 
 const MAX_FILES_PER_MILESTONE = 6;
 
-export default function ShareJourneyModal({ open, onClose, onPosted }) {
+export default function ShareJourneyModal({
+  open,
+  onClose,
+  onPosted,
+  mode = "create",
+  tripId = "",
+  initialTripDetail = null,
+  onUpdated,
+}) {
   const { showToast } = useToast();
+  const isEditMode = mode === "edit";
 
   const [tripTitle, setTripTitle] = useState("");
   const [tripCaption, setTripCaption] = useState("");
@@ -99,6 +239,7 @@ export default function ShareJourneyModal({ open, onClose, onPosted }) {
 
   const milestonesRef = useRef(milestones);
   const dragDepthRef = useRef({});
+  const initialTripDetailRef = useRef(initialTripDetail);
 
   const totalFiles = useMemo(() => {
     return milestones.reduce((sum, item) => sum + item.files.length, 0);
@@ -109,35 +250,56 @@ export default function ShareJourneyModal({ open, onClose, onPosted }) {
   }, [milestones]);
 
   useEffect(() => {
+    initialTripDetailRef.current = initialTripDetail;
+  }, [initialTripDetail]);
+
+  useEffect(() => {
     return () => {
       milestonesRef.current.forEach((item) => revokeFileEntries(item.files));
     };
   }, []);
 
-  useEffect(() => {
-    if (!open) return;
-
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    setErrorMsg("");
-
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
-
-  function resetForm() {
+  function applyFormState(nextState) {
     setPreviewMedia(null);
     setDraggingMilestoneId(null);
     dragDepthRef.current = {};
 
     milestonesRef.current.forEach((item) => revokeFileEntries(item.files));
 
-    setTripTitle("");
-    setTripCaption("");
-    setPrivacy("public");
-    setMilestones([makeMilestone()]);
+    setTripTitle(nextState.tripTitle || "");
+    setTripCaption(nextState.tripCaption || "");
+    setPrivacy(nextState.privacy || "public");
+    setMilestones(
+      Array.isArray(nextState.milestones) && nextState.milestones.length > 0
+        ? nextState.milestones
+        : [makeMilestone()],
+    );
     setErrorMsg("");
+  }
+
+  useEffect(() => {
+    if (!open) return;
+
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const nextState = isEditMode
+      ? buildEditFormState(initialTripDetail)
+      : buildEmptyFormState();
+
+    applyFormState(nextState);
+
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [initialTripDetail, isEditMode, open]);
+
+  function resetForm() {
+    const nextState = isEditMode
+      ? buildEditFormState(initialTripDetailRef.current)
+      : buildEmptyFormState();
+
+    applyFormState(nextState);
   }
 
   function handleCloseModal() {
@@ -350,7 +512,7 @@ export default function ShareJourneyModal({ open, onClose, onPosted }) {
     }
   }
 
-  async function handleSubmit(e) {
+  async function handleCreateSubmit(e) {
     e.preventDefault();
     if (submitting) return;
 
@@ -451,6 +613,118 @@ export default function ShareJourneyModal({ open, onClose, onPosted }) {
     }
   }
 
+  async function handleSubmit(e) {
+    if (!isEditMode) {
+      return handleCreateSubmit(e);
+    }
+
+    e.preventDefault();
+    if (submitting) return;
+
+    if (!tripId) {
+      const message = "Không xác định được journey để chỉnh sửa.";
+      setErrorMsg(message);
+      showToast(message, "error");
+      return;
+    }
+
+    const normalizedTitle = tripTitle.trim();
+    if (!normalizedTitle) {
+      setErrorMsg("Trip title không được để trống.");
+      return;
+    }
+
+    const normalizedMilestones = milestones.map((item, index) => ({
+      ...item,
+      title: item.title.trim(),
+      note: item.note.trim(),
+      order: index,
+    }));
+
+    const invalidMilestone = normalizedMilestones.find((item) => !item.title);
+    if (invalidMilestone) {
+      setErrorMsg("Mỗi milestone cần có title.");
+      return;
+    }
+
+    const uploadedFilesForCleanup = [];
+
+    try {
+      setSubmitting(true);
+      setErrorMsg("");
+
+      const uploadedEntryMap = new Map();
+
+      for (const item of normalizedMilestones) {
+        const newFileEntries = item.files.filter((entry) => entry?.file);
+
+        try {
+          const uploadedMedia = await uploadFiles(
+            newFileEntries.map((entry) => entry.file),
+          );
+
+          uploadedFilesForCleanup.push(...uploadedMedia);
+
+          newFileEntries.forEach((entry, index) => {
+            uploadedEntryMap.set(entry.id, uploadedMedia[index] || null);
+          });
+        } catch (error) {
+          const milestoneLabel = item.title || `Milestone ${item.order + 1}`;
+
+          await cleanupUploadedFiles(uploadedFilesForCleanup);
+
+          throw new Error(
+            `Upload media ở "${milestoneLabel}" thất bại. ${getRequestErrorMessage(
+              error,
+              "Vui lòng thử lại.",
+            )}`,
+          );
+        }
+      }
+
+      const payload = {
+        title: normalizedTitle,
+        caption: tripCaption.trim(),
+        privacy,
+        participantIds: [],
+        milestones: normalizedMilestones.map((item) => ({
+          tempId: item.id,
+          title: item.title,
+          time: item.time ? new Date(item.time).toISOString() : null,
+          order: item.order,
+        })),
+        items: normalizedMilestones
+          .map((item) => ({
+            milestoneTempId: item.id,
+            content: item.note,
+            media: item.files
+              .map(
+                (entry) => entry.existingMedia || uploadedEntryMap.get(entry.id),
+              )
+              .filter(Boolean),
+            order: 0,
+          }))
+          .filter((item) => item.content || item.media.length > 0),
+      };
+
+      const res = await tripApi.updateTrip(tripId, payload);
+
+      showToast("Đã cập nhật journey.", "success");
+      handleCloseModal();
+      onUpdated?.(res.data?.tripId || tripId, res.data?.trip || null);
+    } catch (error) {
+      await cleanupUploadedFiles(uploadedFilesForCleanup);
+
+      const message =
+        error?.message ||
+        getRequestErrorMessage(error, "Không thể cập nhật journey lúc này.");
+      setErrorMsg(message);
+      showToast(message, "error");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <>
       <AnimatePresence>
@@ -490,7 +764,7 @@ export default function ShareJourneyModal({ open, onClose, onPosted }) {
                       </div>
 
                       <h2 className="mt-3 text-[24px] font-semibold text-zinc-900 sm:text-[28px]">
-                        Share Journey
+                        {isEditMode ? "Chỉnh sửa journey" : "Share Journey"}
                       </h2>
 
                       <p className="max-w-2xl mt-1 text-sm leading-6 text-zinc-500">
@@ -605,7 +879,7 @@ export default function ShareJourneyModal({ open, onClose, onPosted }) {
                           disabled={submitting}
                           className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#d66df7] to-[#2663ff] px-4 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(82,105,255,0.28)] transition hover:-translate-y-0.5 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
                         >
-                          + Add milestone
+                          {isEditMode ? "+ Thêm milestone" : "+ Add milestone"}
                         </button>
                       </div>
 
@@ -822,7 +1096,13 @@ export default function ShareJourneyModal({ open, onClose, onPosted }) {
                         className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-[#d66df7] to-[#2663ff] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(82,105,255,0.28)] transition hover:-translate-y-0.5 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70"
                       >
                         <SendIcon className="w-4 h-4" />
-                        {submitting ? "Posting..." : "Post journey"}
+                        {submitting
+                          ? isEditMode
+                            ? "Đang lưu..."
+                            : "Posting..."
+                          : isEditMode
+                            ? "Lưu thay đổi"
+                            : "Post journey"}
                       </button>
                     </div>
                   </div>

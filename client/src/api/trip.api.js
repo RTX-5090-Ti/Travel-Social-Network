@@ -29,6 +29,10 @@ export const tripApi = {
     return api.get(`/api/trips/${id}`);
   },
 
+  updateTrip(id, payload) {
+    return api.patch(`/api/trips/${id}`, payload);
+  },
+
   updatePrivacy(id, payload) {
     return api.patch(`/api/trips/${id}/privacy`, payload);
   },
@@ -63,6 +67,10 @@ export const tripApi = {
 
   listSaved(params = {}) {
     return api.get("/api/trips/saved", { params });
+  },
+
+  hideTrip(id) {
+    return api.patch(`/api/trips/${id}/hide`);
   },
 
   toggleReaction(id) {

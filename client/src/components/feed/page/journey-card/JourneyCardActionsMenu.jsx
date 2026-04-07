@@ -259,7 +259,7 @@ export default function JourneyCardActionsMenu({
           {
             key: "hide",
             title: "Ẩn bài viết",
-            description: "Tạm ẩn journey này khỏi feed của bạn.",
+            description: "Tạm ẩn journey này khỏi feed của bạn 7 ngày.",
             icon: EyeOffIcon,
             onClick: onHide,
           },
@@ -347,7 +347,7 @@ export default function JourneyCardActionsMenu({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.985 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute right-0 top-[calc(100%+8px)] z-30 w-[296px] overflow-hidden rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,248,255,0.98),rgba(250,246,255,0.98))] p-2 shadow-[0_22px_64px_rgba(76,81,191,0.16)] ring-1 ring-violet-200/40 backdrop-blur-xl"
+            className="absolute right-0 top-[calc(100%+8px)] z-30 w-[280px] overflow-hidden rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,248,255,0.98),rgba(250,246,255,0.98))] p-2 shadow-[0_22px_64px_rgba(76,81,191,0.16)] ring-1 ring-violet-200/40 backdrop-blur-xl"
           >
             <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(132,94,247,0.28),transparent)]" />
 

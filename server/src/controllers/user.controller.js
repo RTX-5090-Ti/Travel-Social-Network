@@ -417,7 +417,7 @@ export async function updateProfileController(req, res, next) {
       userId,
       { $set: updateData },
       {
-        new: true,
+        returnDocument: "after",
         runValidators: true,
       },
     ).select(

@@ -45,7 +45,7 @@ export default function JourneyDetailOverlay({
   detail,
   detailLoading,
   detailError,
-  commentCount,
+  commentCount: _commentCount,
   onCommentCreated,
   onClose,
 }) {
@@ -57,18 +57,25 @@ export default function JourneyDetailOverlay({
 
   const { user } = useAuth();
   const { showToast } = useToast();
+  const currentUserId =
+    user?._id?.toString?.() || user?.id?.toString?.() || "";
   const [commentText, setCommentText] = useState("");
   const [commentItems, setCommentItems] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [commentsError, setCommentsError] = useState("");
   const [commentSubmitting, setCommentSubmitting] = useState(false);
+  const [replyingToCommentId, setReplyingToCommentId] = useState("");
+  const [replyTarget, setReplyTarget] = useState(null);
+  const [replyText, setReplyText] = useState("");
+  const [replySubmittingCommentId, setReplySubmittingCommentId] = useState("");
+  const [expandedReplyThreads, setExpandedReplyThreads] = useState({});
+  const [visibleReplyCounts, setVisibleReplyCounts] = useState({});
   const [commentsCursor, setCommentsCursor] = useState(null);
   const [commentsHasMore, setCommentsHasMore] = useState(false);
   const [commentsLoadingMore, setCommentsLoadingMore] = useState(false);
   const commentTextareaRef = useRef(null);
   const commentListEndRef = useRef(null);
   const shouldScrollToNewestCommentRef = useRef(false);
-  const shouldShowCommentsDivider = commentCount > 0;
 
   const currentUserName =
     user?.name || user?.fullName || user?.username || "You";
@@ -123,14 +130,14 @@ export default function JourneyDetailOverlay({
     );
   }, [lightboxMedia.length]);
 
-  function handleTripUnavailable(error) {
+  const handleTripUnavailable = useCallback((error) => {
     setCommentsError("");
     showToast(
       getTripUnavailableMessage(error, "Không tải được comment lúc này."),
       "warning",
     );
     onClose?.();
-  }
+  }, [onClose, showToast]);
 
   function getSafeListKey(item, index, prefix = "item") {
     const rawId =
@@ -159,6 +166,15 @@ export default function JourneyDetailOverlay({
   useEffect(() => {
     resizeCommentTextarea();
   }, [commentText]);
+
+  useEffect(() => {
+    setReplyingToCommentId("");
+    setReplyTarget(null);
+    setReplyText("");
+    setReplySubmittingCommentId("");
+    setExpandedReplyThreads({});
+    setVisibleReplyCounts({});
+  }, [trip?._id]);
 
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -245,7 +261,7 @@ export default function JourneyDetailOverlay({
     return () => {
       ignore = true;
     };
-  }, [trip?._id, detail, detailLoading, detailError]);
+  }, [trip?._id, detail, detailLoading, detailError, handleTripUnavailable]);
 
   useEffect(() => {
     if (!shouldScrollToNewestCommentRef.current) return;
@@ -334,6 +350,171 @@ export default function JourneyDetailOverlay({
       );
     } finally {
       setCommentSubmitting(false);
+    }
+  }
+
+  function getCommentId(comment) {
+    if (!comment) return "";
+    if (typeof comment?._id === "string") return comment._id;
+    return comment?._id?.toString?.() || "";
+  }
+
+  function getCommentAuthor(comment) {
+    return comment?.userId || comment?.user || null;
+  }
+
+  function getCommentAuthorId(comment) {
+    const author = getCommentAuthor(comment);
+    if (!author) return "";
+    if (typeof author === "string") return author;
+    return author?._id?.toString?.() || author?.id?.toString?.() || "";
+  }
+
+  function getCommentAuthorName(comment) {
+    return getCommentAuthor(comment)?.name?.trim?.() || "";
+  }
+
+  function handleExpandReplies(commentId) {
+    if (!commentId) return;
+
+    setExpandedReplyThreads((prev) => {
+      if (prev[commentId]) return prev;
+      return {
+        ...prev,
+        [commentId]: true,
+      };
+    });
+
+    setVisibleReplyCounts((prev) => ({
+      ...prev,
+      [commentId]: Math.max(prev[commentId] || 0, 10),
+    }));
+  }
+
+  function handleLoadMoreReplies(commentId, totalReplies = 0) {
+    if (!commentId) return;
+
+    setExpandedReplyThreads((prev) => ({
+      ...prev,
+      [commentId]: true,
+    }));
+
+    setVisibleReplyCounts((prev) => ({
+      ...prev,
+      [commentId]: Math.min((prev[commentId] || 10) + 10, totalReplies || 10),
+    }));
+  }
+
+  function appendReplyToTree(items, parentCommentId, createdReply) {
+    let didChange = false;
+
+    const nextItems = items.map((comment) => {
+      const currentId = getCommentId(comment);
+
+      if (currentId === parentCommentId) {
+        didChange = true;
+        const nextReplies = Array.isArray(comment?.replies)
+          ? [...comment.replies, createdReply]
+          : [createdReply];
+
+        return {
+          ...comment,
+          replies: nextReplies,
+          replyCount: Number(comment?.replyCount || 0) + 1,
+        };
+      }
+
+      const existingReplies = Array.isArray(comment?.replies) ? comment.replies : [];
+      if (!existingReplies.length) {
+        return comment;
+      }
+
+      const nextReplies = appendReplyToTree(
+        existingReplies,
+        parentCommentId,
+        createdReply,
+      );
+
+      if (nextReplies === existingReplies) {
+        return comment;
+      }
+
+      didChange = true;
+
+      return {
+        ...comment,
+        replies: nextReplies,
+        replyCount: Number(comment?.replyCount || 0) + 1,
+      };
+    });
+
+    return didChange ? nextItems : items;
+  }
+
+  function handleToggleReply(targetComment = null) {
+    const commentId = getCommentId(targetComment);
+    if (!commentId) return;
+
+    const nextTarget = {
+      userId: getCommentAuthorId(targetComment),
+      name: getCommentAuthorName(targetComment),
+    };
+
+    const isSameTarget =
+      replyingToCommentId === commentId &&
+      (replyTarget?.userId || "") === (nextTarget?.userId || "");
+
+    if (isSameTarget) {
+      setReplyingToCommentId("");
+      setReplyTarget(null);
+      setReplyText("");
+      return;
+    }
+
+    setReplyingToCommentId(commentId);
+    setReplyTarget(nextTarget);
+    setReplyText("");
+  }
+
+  async function handleSubmitReply(commentId) {
+    const content = replyText.trim();
+
+    if (!content || !trip?._id || !commentId || replySubmittingCommentId) {
+      return;
+    }
+
+    try {
+      setReplySubmittingCommentId(commentId);
+      setCommentsError("");
+
+      const res = await tripApi.createComment(trip._id, {
+        content,
+        parentCommentId: commentId,
+      });
+
+      const createdReply = res.data?.comment;
+
+      if (!createdReply) {
+        throw new Error("Missing created reply");
+      }
+
+      setCommentItems((prev) => appendReplyToTree(prev, commentId, createdReply));
+
+      setReplyText("");
+      setReplyingToCommentId("");
+      setReplyTarget(null);
+      onCommentCreated?.(createdReply);
+    } catch (err) {
+      if (isTripUnavailableError(err)) {
+        handleTripUnavailable(err);
+        return;
+      }
+
+      setCommentsError(
+        err?.response?.data?.message || "Gửi reply thất bại. Thử lại nhé.",
+      );
+    } finally {
+      setReplySubmittingCommentId("");
     }
   }
 
@@ -562,72 +743,89 @@ export default function JourneyDetailOverlay({
               <section
               // className={`${detail?.milestones?.length > 0 ? "pl-14" : ""}`}
               >
-                {shouldShowCommentsDivider ? (
-                  <>
-                    <div className="flex items-center gap-3 mt-6 mb-4">
-                      <div className="flex-1 h-px bg-gradient-to-r from-transparent via-zinc-200/90 to-zinc-200/20" />
+                <div className="flex items-center gap-3 mt-6 mb-4">
+                  <div className="flex-1 h-px bg-gradient-to-r from-transparent via-zinc-200/90 to-zinc-200/20" />
 
-                      <span className="shrink-0 rounded-full border border-violet-200/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(245,241,255,0.96))] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-violet-500 shadow-[0_6px_16px_rgba(124,58,237,0.08)]">
-                        Comments
-                      </span>
+                  <span className="shrink-0 rounded-full border border-violet-200/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(245,241,255,0.96))] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-violet-500 shadow-[0_6px_16px_rgba(124,58,237,0.08)]">
+                    Comments
+                  </span>
 
-                      <div className="flex-1 h-px bg-gradient-to-l from-transparent via-zinc-200/90 to-zinc-200/20" />
+                  <div className="flex-1 h-px bg-gradient-to-l from-transparent via-zinc-200/90 to-zinc-200/20" />
+                </div>
+
+                <section
+                  className={`${detail?.milestones?.length > 0 ? "pl-14" : ""}`}
+                >
+                  {commentsHasMore ? (
+                    <div className="mb-3">
+                      <button
+                        type="button"
+                        onClick={handleLoadMoreComments}
+                        disabled={commentsLoadingMore}
+                        className="inline-flex items-center px-4 py-2 text-sm font-semibold transition bg-white border rounded-full cursor-pointer border-zinc-200 text-zinc-600 hover:bg-zinc-50 disabled:opacity-60"
+                      >
+                        {commentsLoadingMore
+                          ? "Loading..."
+                          : "Load older comments"}
+                      </button>
                     </div>
+                  ) : null}
 
-                    <section
-                      className={`${detail?.milestones?.length > 0 ? "pl-14" : ""}`}
-                    >
-                      {commentsHasMore ? (
-                        <div className="mb-3">
-                          <button
-                            type="button"
-                            onClick={handleLoadMoreComments}
-                            disabled={commentsLoadingMore}
-                            className="inline-flex items-center px-4 py-2 text-sm font-semibold transition bg-white border rounded-full cursor-pointer border-zinc-200 text-zinc-600 hover:bg-zinc-50 disabled:opacity-60"
-                          >
-                            {commentsLoadingMore
-                              ? "Loading..."
-                              : "Load older comments"}
-                          </button>
-                        </div>
-                      ) : null}
+                  {commentsError ? (
+                    <div className="rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+                      {commentsError}
+                    </div>
+                  ) : null}
 
-                      {commentsError ? (
-                        <div className="rounded-[18px] border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
-                          {commentsError}
-                        </div>
-                      ) : null}
-
-                      {commentsLoading ? (
-                        <div className="space-y-3">
-                          {[0, 1].map((item) => (
-                            <div key={item} className="flex items-start gap-3">
-                              <div className="w-10 h-10 rounded-full animate-pulse bg-zinc-200" />
-                              <div className="flex-1 min-w-0">
-                                <div className="rounded-[22px] bg-[#f0f2f5] px-4 py-3">
-                                  <div className="h-3 rounded w-28 animate-pulse bg-zinc-200" />
-                                  <div className="w-3/4 h-3 mt-2 rounded animate-pulse bg-zinc-200" />
-                                </div>
-                              </div>
+                  {commentsLoading ? (
+                    <div className="space-y-3">
+                      {[0, 1].map((item) => (
+                        <div key={item} className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-full animate-pulse bg-zinc-200" />
+                          <div className="flex-1 min-w-0">
+                            <div className="rounded-[22px] bg-[#f0f2f5] px-4 py-3">
+                              <div className="h-3 rounded w-28 animate-pulse bg-zinc-200" />
+                              <div className="w-3/4 h-3 mt-2 rounded animate-pulse bg-zinc-200" />
                             </div>
-                          ))}
+                          </div>
                         </div>
-                      ) : commentItems.length ? (
-                        <div className="space-y-3">
-                          {commentItems.map((comment, index) => (
-                            <JourneyCommentCard
-                              key={getSafeListKey(comment, index, "comment")}
-                              comment={comment}
-                            />
-                          ))}
-                          <div ref={commentListEndRef} />
-                        </div>
-                      ) : (
-                        <div ref={commentListEndRef} />
-                      )}
-                    </section>
-                  </>
-                ) : null}
+                      ))}
+                    </div>
+                  ) : commentItems.length ? (
+                    <div className="space-y-3">
+                      {commentItems.map((comment, index) => (
+                        <JourneyCommentCard
+                          key={getSafeListKey(comment, index, "comment")}
+                          comment={comment}
+                          expandedReplyThreads={expandedReplyThreads}
+                          visibleReplyCounts={visibleReplyCounts}
+                          activeReplyId={replyingToCommentId}
+                          replyText={replyText}
+                          replySubmitting={!!replySubmittingCommentId}
+                          replyTargetName={replyTarget?.name || ""}
+                          currentUserId={currentUserId}
+                          currentUserAvatar={currentUserAvatar}
+                          currentUserInitials={currentUserInitials}
+                          currentUserName={currentUserName}
+                          onReplyToggle={handleToggleReply}
+                          onExpandReplies={handleExpandReplies}
+                          onLoadMoreReplies={handleLoadMoreReplies}
+                          onReplyTextChange={setReplyText}
+                          onReplySubmit={(event) => {
+                            event.preventDefault();
+                            handleSubmitReply(replyingToCommentId);
+                          }}
+                        />
+                      ))}
+                      <div ref={commentListEndRef} />
+                    </div>
+                  ) : (
+                    <div className="rounded-[20px] border border-dashed border-zinc-200 bg-zinc-50 px-4 py-4 text-sm text-zinc-400">
+                      Chưa có comment nào. Hãy là người đầu tiên bắt đầu cuộc trò chuyện.
+                      <div ref={commentListEndRef} />
+                    </div>
+                  )}
+                </section>
               </section>
             </>
           ) : null}

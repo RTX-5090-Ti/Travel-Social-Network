@@ -51,7 +51,7 @@ export default function LeftSidebar({
       return { ...item, active: location.pathname === "/profile" };
     }
 
-    if (item.label === "My favorites") {
+    if (item.label === "Archive") {
       return { ...item, active: location.pathname === "/archive" };
     }
 
@@ -69,7 +69,7 @@ export default function LeftSidebar({
       return;
     }
 
-    if (item.label === "My favorites") {
+    if (item.label === "Archive") {
       navigate("/archive");
     }
   }

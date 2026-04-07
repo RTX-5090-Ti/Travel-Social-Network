@@ -16,11 +16,26 @@ const CommentSchema = new mongoose.Schema(
       index: true,
     },
 
+    parentCommentId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Comment",
+      default: null,
+      index: true,
+    },
+
+    replyToUserId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+
     content: { type: String, required: true, trim: true, maxlength: 1000 },
   },
   { timestamps: true },
 );
 
 CommentSchema.index({ targetType: 1, targetId: 1, createdAt: -1 });
+CommentSchema.index({ targetType: 1, targetId: 1, parentCommentId: 1, createdAt: -1 });
 
 export default mongoose.model("Comment", CommentSchema);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, ChevronDown, Search } from "lucide-react";
@@ -59,7 +59,7 @@ export default function ProfileSelectField({
     setQuery("");
   }
 
-  function updateMenuPosition() {
+  const updateMenuPosition = useCallback(() => {
     const triggerEl = buttonRef.current;
     if (!triggerEl) return;
 
@@ -106,7 +106,7 @@ export default function ProfileSelectField({
       maxHeight: nextMaxHeight,
       placement: shouldOpenUp ? "top" : "bottom",
     });
-  }
+  }, [searchable]);
 
   useEffect(() => {
     if (!open) return;
@@ -124,7 +124,7 @@ export default function ProfileSelectField({
       window.removeEventListener("resize", handleResizeOrScroll);
       window.removeEventListener("scroll", handleResizeOrScroll, true);
     };
-  }, [open, searchable, filteredOptions.length]);
+  }, [open, filteredOptions.length, updateMenuPosition]);
 
   useEffect(() => {
     if (!open) return;

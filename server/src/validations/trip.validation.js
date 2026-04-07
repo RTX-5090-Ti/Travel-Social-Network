@@ -44,6 +44,26 @@ export const createTripSchema = Joi.object({
   params: Joi.object(),
 });
 
+export const updateTripSchema = Joi.object({
+  body: Joi.object({
+    title: Joi.string().trim().max(120).required(),
+    caption: Joi.string().allow("", null).max(2000),
+
+    privacy: Joi.string()
+      .valid("public", "followers", "private")
+      .default("public"),
+
+    participantIds: Joi.array().items(objectIdSchema).default([]),
+
+    milestones: Joi.array().items(milestoneSchema).default([]),
+    items: Joi.array().items(tripItemSchema).default([]),
+  }),
+  query: Joi.object(),
+  params: Joi.object({
+    id: objectIdSchema.required(),
+  }),
+});
+
 export const updateTripPrivacySchema = Joi.object({
   body: Joi.object({
     privacy: Joi.string().valid("public", "followers", "private").required(),
@@ -71,6 +91,14 @@ export const updateTripTrashSchema = Joi.object({
 });
 
 export const updateTripSaveSchema = Joi.object({
+  body: Joi.object(),
+  query: Joi.object(),
+  params: Joi.object({
+    id: objectIdSchema.required(),
+  }),
+});
+
+export const updateTripHideSchema = Joi.object({
   body: Joi.object(),
   query: Joi.object(),
   params: Joi.object({

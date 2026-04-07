@@ -1,5 +1,6 @@
 import Trip from "../models/Trip.js";
 import Follow from "../models/Follow.js";
+import HiddenTrip from "../models/HiddenTrip.js";
 import Reaction from "../models/Reaction.js";
 import SavedTrip from "../models/SavedTrip.js";
 
@@ -35,6 +36,7 @@ function buildFeedQuery(filter) {
 export async function getFeed(req, res, next) {
   try {
     const userId = req.user?.userId;
+    const now = new Date();
 
     const limitRaw = Number(req.query.limit ?? 20);
     const limit = Number.isFinite(limitRaw)
@@ -60,12 +62,27 @@ export async function getFeed(req, res, next) {
 
     const communityCount = Math.max(0, limit - ownCount - followingCount);
 
+    const hiddenDocs = await HiddenTrip.find({
+      userId,
+      hideExpiresAt: { $gt: now },
+    })
+      .select("tripId")
+      .lean();
+
+    const hiddenTripIds = hiddenDocs.map((item) => item.tripId);
+
     const [ownTrips, followingTrips, communityTrips] = await Promise.all([
-      buildFeedQuery({ ownerId: userId }).limit(ownCount).lean(),
+      buildFeedQuery({
+        ownerId: userId,
+        _id: { $nin: hiddenTripIds },
+      })
+        .limit(ownCount)
+        .lean(),
 
       followingIds.length
         ? buildFeedQuery({
             ownerId: { $in: followingIds },
+            _id: { $nin: hiddenTripIds },
             privacy: { $in: FOLLOWER_VISIBLE_PRIVACIES },
           })
             .limit(followingCount)
@@ -73,6 +90,7 @@ export async function getFeed(req, res, next) {
         : [],
 
       buildFeedQuery({
+        _id: { $nin: hiddenTripIds },
         privacy: "public",
         ownerId: { $nin: [userId, ...followingIds] },
       })

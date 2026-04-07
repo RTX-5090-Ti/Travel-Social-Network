@@ -135,6 +135,10 @@ export default function ArchivePage() {
     removeSavedTripLocally(tripId);
   }
 
+  async function handleSavedTripUpdated() {
+    await loadSaved();
+  }
+
   async function handleOpenUnavailableSavedTrip(tripId) {
     if (!tripId || openingUnavailableTripId) return;
 
@@ -363,6 +367,7 @@ export default function ArchivePage() {
                                   surface="archive"
                                   onTripSavedChange={handleSavedTripChange}
                                   onTripTrashed={handleSavedTripTrashed}
+                                  onTripUpdated={handleSavedTripUpdated}
                                 />
                               );
                             })}

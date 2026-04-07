@@ -1,4 +1,5 @@
 import Comment from "../models/Comment.js";
+import HiddenTrip from "../models/HiddenTrip.js";
 import Milestone from "../models/Milestone.js";
 import Reaction from "../models/Reaction.js";
 import SavedTrip from "../models/SavedTrip.js";
@@ -74,7 +75,7 @@ async function claimExpiredTrip(now) {
       $inc: { deletionAttempts: 1 },
     },
     {
-      new: true,
+      returnDocument: "after",
       sort: { scheduledDeletionAt: 1, deletedAt: 1 },
     },
   ).lean();
@@ -109,6 +110,7 @@ async function hardDeleteTrip(tripId, now) {
 
   await Promise.all([
     Comment.deleteMany({ targetType: "trip", targetId: tripId }),
+    HiddenTrip.deleteMany({ tripId }),
     Reaction.deleteMany({ targetType: "trip", targetId: tripId }),
     SavedTrip.deleteMany({ tripId }),
     Milestone.deleteMany({ tripId }),

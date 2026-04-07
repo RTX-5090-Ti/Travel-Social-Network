@@ -196,6 +196,12 @@ export default function ProfilePage() {
     }
   }
 
+  async function handleTripUpdated() {
+    if (!isVisitorProfile) {
+      await loadOwnTrips({ skipLoading: true });
+    }
+  }
+
   function openMediaLightbox(index) {
     if (!mediaItems.length) return;
     const safeIndex = Math.min(Math.max(index, 0), mediaItems.length - 1);
@@ -480,13 +486,14 @@ export default function ProfilePage() {
                                   trip?._id ||
                                   `profile-trip-${trip?.createdAt || "x"}-${index}`
                                 }
-                              trip={trip}
-                              surface="profile"
-                              isPinnedOverride={
+                                trip={trip}
+                                surface="profile"
+                                isPinnedOverride={
                                   (trip?._id || trip?.id || "") ===
                                   profilePinnedTripId
                                 }
                                 onTripTrashed={handleTripTrashed}
+                                onTripUpdated={handleTripUpdated}
                               />
                             ))}
                           </div>
@@ -527,6 +534,7 @@ export default function ProfilePage() {
                   overlayOnly
                   onForceOpenClose={handleCloseHighlightTrip}
                   onTripTrashed={handleTripTrashed}
+                  onTripUpdated={handleTripUpdated}
                 />
               ) : null}
             </AnimatePresence>

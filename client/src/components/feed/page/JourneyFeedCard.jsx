@@ -27,6 +27,7 @@ import JourneyMetaChip from "./journey-card/JourneyMetaChip";
 import JourneyDetailOverlay from "./journey-card/JourneyDetailOverlay";
 import JourneyCardActionsMenu from "./journey-card/JourneyCardActionsMenu";
 import JourneyAudienceModal from "./journey-card/JourneyAudienceModal";
+import ShareJourneyModal from "../ShareJourneyModal";
 
 function getUserAvatar(user) {
   return (
@@ -84,6 +85,8 @@ export default function JourneyFeedCard({
   onPreviewUser,
   onTripTrashed,
   onTripSavedChange,
+  onTripUpdated,
+  onTripHidden,
 }) {
   const { user, setUser, bootstrapping } = useAuth();
   const { showToast } = useToast();
@@ -114,6 +117,7 @@ export default function JourneyFeedCard({
   const [likeLoading, setLikeLoading] = useState(false);
   const [saved, setSaved] = useState(!!trip.saved);
   const [saveLoading, setSaveLoading] = useState(false);
+  const [hideLoading, setHideLoading] = useState(false);
   const cardRef = useRef(null);
   const detailRequestIdRef = useRef(0);
   const [isNearViewport, setIsNearViewport] = useState(false);
@@ -135,6 +139,9 @@ export default function JourneyFeedCard({
   const [audienceSaving, setAudienceSaving] = useState(false);
 
   const [pinSaving, setPinSaving] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editLoading, setEditLoading] = useState(false);
+  const [editTripDetail, setEditTripDetail] = useState(null);
 
   const [previewIndex, setPreviewIndex] = useState(0);
   const [previousPreviewIndex, setPreviousPreviewIndex] = useState(null);
@@ -610,12 +617,52 @@ export default function JourneyFeedCard({
   }
 
   function handleEditTrip() {
-    if (!isOwnerTrip) return;
+    if (!isOwnerTrip || !tripId || editLoading) return;
 
-    showToast(
-      "Menu chỉnh sửa bài viết đã sẵn sàng, bước tiếp theo mới mở modal edit.",
-      "warning",
-    );
+    const embeddedDetail = (() => {
+      if (detail?.trip || Array.isArray(detail?.milestones)) return detail;
+
+      if (hasEmbeddedDetail(trip)) {
+        return {
+          trip,
+          generalItems: Array.isArray(trip?.generalItems) ? trip.generalItems : [],
+          milestones: Array.isArray(trip?.milestones) ? trip.milestones : [],
+        };
+      }
+
+      return null;
+    })();
+
+    async function openEditor() {
+      try {
+        setEditLoading(true);
+
+        if (embeddedDetail) {
+          setEditTripDetail(embeddedDetail);
+          setEditModalOpen(true);
+          return;
+        }
+
+        const res = await tripApi.getDetail(tripId);
+        setEditTripDetail(res.data);
+        setDetail(res.data);
+        setEditModalOpen(true);
+      } catch (error) {
+        if (isTripUnavailableError(error)) {
+          showToast(getTripUnavailableMessage(error), "warning");
+          return;
+        }
+
+        showToast(
+          error?.response?.data?.message || "Không tải được dữ liệu để chỉnh sửa.",
+          "error",
+        );
+      } finally {
+        setEditLoading(false);
+      }
+    }
+
+    openEditor();
   }
 
   function handleEditAudience() {
@@ -739,16 +786,58 @@ export default function JourneyFeedCard({
   function handleHideTrip() {
     if (isOwnerTrip) return;
 
-    showToast(
-      "Menu ẩn bài viết đã có, bước tiếp theo có thể cho card biến mất khỏi feed.",
-      "warning",
-    );
+    if (!tripId || hideLoading) return;
+
+    async function hideTripFromFeed() {
+      try {
+        setHideLoading(true);
+
+        const res = await tripApi.hideTrip(tripId);
+
+        showToast("Đã ẩn journey khỏi feed của bạn trong 7 ngày.", "success");
+        onTripHidden?.(tripId, res.data || null);
+      } catch (error) {
+        if (isTripUnavailableError(error)) {
+          showToast(getTripUnavailableMessage(error), "warning");
+          return;
+        }
+
+        showToast(
+          error?.response?.data?.message || "Không ẩn journey khỏi feed được.",
+          "error",
+        );
+      } finally {
+        setHideLoading(false);
+      }
+    }
+
+    hideTripFromFeed();
+  }
+
+  function handleEditCompleted() {
+    setEditModalOpen(false);
+    setExpanded(false);
+    onForceOpenClose?.();
+    onTripUpdated?.(tripId);
   }
 
   // const activePreview = previewItems[previewIndex];
 
   return (
     <>
+      <ShareJourneyModal
+        open={editModalOpen}
+        onClose={() => {
+          if (!editLoading) {
+            setEditModalOpen(false);
+          }
+        }}
+        mode="edit"
+        tripId={tripId}
+        initialTripDetail={editTripDetail}
+        onUpdated={handleEditCompleted}
+      />
+
       {isOwnerTrip ? (
         <JourneyAudienceModal
           open={audienceModalOpen}
