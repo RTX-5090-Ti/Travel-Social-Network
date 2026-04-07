@@ -1,6 +1,7 @@
 import Trip from "../models/Trip.js";
 import Follow from "../models/Follow.js";
 import Reaction from "../models/Reaction.js";
+import SavedTrip from "../models/SavedTrip.js";
 
 const FOLLOWER_VISIBLE_PRIVACIES = ["public", "followers"];
 
@@ -20,7 +21,10 @@ function dedupeAndSortTrips(items, limit) {
 }
 
 function buildFeedQuery(filter) {
-  return Trip.find(filter)
+  return Trip.find({
+    ...filter,
+    deletedAt: null,
+  })
     .select(
       "ownerId title caption privacy coverUrl counts createdAt feedPreview",
     )
@@ -83,23 +87,35 @@ export async function getFeed(req, res, next) {
 
     const tripIds = items.map((item) => item._id);
 
-    const myReactions = tripIds.length
-      ? await Reaction.find({
-          targetType: "trip",
-          userId,
-          targetId: { $in: tripIds },
-        })
-          .select("targetId")
-          .lean()
-      : [];
+    const [myReactions, mySavedTrips] = await Promise.all([
+      tripIds.length
+        ? Reaction.find({
+            targetType: "trip",
+            userId,
+            targetId: { $in: tripIds },
+          })
+            .select("targetId")
+            .lean()
+        : [],
+      tripIds.length
+        ? SavedTrip.find({
+            userId,
+            tripId: { $in: tripIds },
+          })
+            .select("tripId")
+            .lean()
+        : [],
+    ]);
 
     const heartedSet = new Set(
       myReactions.map((item) => item.targetId.toString()),
     );
+    const savedSet = new Set(mySavedTrips.map((item) => item.tripId.toString()));
 
     const hydratedItems = items.map((item) => ({
       ...item,
       hearted: heartedSet.has(item._id.toString()),
+      saved: savedSet.has(item._id.toString()),
     }));
 
     res.json({

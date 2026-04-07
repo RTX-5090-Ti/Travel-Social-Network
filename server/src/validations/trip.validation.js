@@ -61,3 +61,35 @@ export const updateTripPinSchema = Joi.object({
     id: objectIdSchema.required(),
   }),
 });
+
+export const updateTripTrashSchema = Joi.object({
+  body: Joi.object(),
+  query: Joi.object(),
+  params: Joi.object({
+    id: objectIdSchema.required(),
+  }),
+});
+
+export const updateTripSaveSchema = Joi.object({
+  body: Joi.object(),
+  query: Joi.object(),
+  params: Joi.object({
+    id: objectIdSchema.required(),
+  }),
+});
+
+export const listTripTrashSchema = Joi.object({
+  body: Joi.object(),
+  query: Joi.object({
+    limit: Joi.number().integer().min(1).max(100).optional(),
+  }),
+  params: Joi.object(),
+});
+
+export const listSavedTripsSchema = Joi.object({
+  body: Joi.object(),
+  query: Joi.object({
+    limit: Joi.number().integer().min(1).max(100).optional(),
+  }),
+  params: Joi.object(),
+});

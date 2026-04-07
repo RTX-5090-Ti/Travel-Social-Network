@@ -181,6 +181,21 @@ export default function ProfilePage() {
     await loadOwnTrips({ skipLoading: true });
   }
 
+  async function handleTripTrashed(tripId) {
+    if (!tripId) return;
+
+    if (selectedHighlightTrip) {
+      const selectedTripId = getTripId(selectedHighlightTrip);
+      if (selectedTripId === tripId) {
+        setSelectedHighlightTrip(null);
+      }
+    }
+
+    if (!isVisitorProfile) {
+      await loadOwnTrips({ skipLoading: true });
+    }
+  }
+
   function openMediaLightbox(index) {
     if (!mediaItems.length) return;
     const safeIndex = Math.min(Math.max(index, 0), mediaItems.length - 1);
@@ -465,12 +480,13 @@ export default function ProfilePage() {
                                   trip?._id ||
                                   `profile-trip-${trip?.createdAt || "x"}-${index}`
                                 }
-                                trip={trip}
-                                surface="profile"
-                                isPinnedOverride={
+                              trip={trip}
+                              surface="profile"
+                              isPinnedOverride={
                                   (trip?._id || trip?.id || "") ===
                                   profilePinnedTripId
                                 }
+                                onTripTrashed={handleTripTrashed}
                               />
                             ))}
                           </div>
@@ -510,6 +526,7 @@ export default function ProfilePage() {
                   forceOpen
                   overlayOnly
                   onForceOpenClose={handleCloseHighlightTrip}
+                  onTripTrashed={handleTripTrashed}
                 />
               ) : null}
             </AnimatePresence>

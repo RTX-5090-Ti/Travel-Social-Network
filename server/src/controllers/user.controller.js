@@ -9,6 +9,7 @@ import Reaction from "../models/Reaction.js";
 import Milestone from "../models/Milestone.js";
 import TripItem from "../models/TripItem.js";
 import Follow from "../models/Follow.js";
+import SavedTrip from "../models/SavedTrip.js";
 import { buildOwnerTripVisibilityFilter } from "../utils/tripVisibility.js";
 
 function uploadFilePathToCloudinary(filePath, options) {
@@ -126,7 +127,7 @@ async function buildProfileTrips({
 
   const tripIds = trips.map((trip) => trip._id);
 
-  const [myReactions, tripItems, milestones] = await Promise.all([
+  const [myReactions, mySavedTrips, tripItems, milestones] = await Promise.all([
     tripIds.length
       ? Reaction.find({
           targetType: "trip",
@@ -134,6 +135,14 @@ async function buildProfileTrips({
           targetId: { $in: tripIds },
         })
           .select("targetId")
+          .lean()
+      : [],
+    tripIds.length
+      ? SavedTrip.find({
+          userId: viewerId,
+          tripId: { $in: tripIds },
+        })
+          .select("tripId")
           .lean()
       : [],
     tripIds.length
@@ -152,6 +161,7 @@ async function buildProfileTrips({
   const heartedSet = new Set(
     myReactions.map((item) => item.targetId.toString()),
   );
+  const savedSet = new Set(mySavedTrips.map((item) => item.tripId.toString()));
 
   const milestoneTitleMap = new Map(
     milestones.map((milestone) => [
@@ -201,6 +211,7 @@ async function buildProfileTrips({
   return trips.map((trip) => ({
     ...trip,
     hearted: heartedSet.has(trip._id.toString()),
+    saved: savedSet.has(trip._id.toString()),
     profileMedia: mediaByTripId.get(trip._id.toString()) || [],
   }));
 }

@@ -51,6 +51,10 @@ export default function LeftSidebar({
       return { ...item, active: location.pathname === "/profile" };
     }
 
+    if (item.label === "My favorites") {
+      return { ...item, active: location.pathname === "/archive" };
+    }
+
     return { ...item, active: false };
   });
 
@@ -63,6 +67,10 @@ export default function LeftSidebar({
     if (item.label === "Home") {
       navigate("/profile");
       return;
+    }
+
+    if (item.label === "My favorites") {
+      navigate("/archive");
     }
   }
 

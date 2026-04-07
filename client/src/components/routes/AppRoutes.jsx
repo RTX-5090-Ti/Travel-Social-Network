@@ -7,6 +7,7 @@ import PublicRoute from "./PublicRoute";
 const LoginPage = lazy(() => import("../../pages/LoginPage"));
 const FeedPage = lazy(() => import("../../pages/FeedPage"));
 const ProfilePage = lazy(() => import("../../pages/ProfilePage"));
+const ArchivePage = lazy(() => import("../../pages/ArchivePage"));
 
 export default function AppRoutes() {
   return (
@@ -44,6 +45,15 @@ export default function AppRoutes() {
           element={
             <ProtectedRoute>
               <ProfilePage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/archive"
+          element={
+            <ProtectedRoute>
+              <ArchivePage />
             </ProtectedRoute>
           }
         />

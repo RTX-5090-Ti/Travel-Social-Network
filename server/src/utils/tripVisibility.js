@@ -25,6 +25,7 @@ export function canViewerAccessTrip({
   isFollowingOwner = false,
 }) {
   if (!trip) return false;
+  if (trip.deletedAt) return false;
 
   const privacy = normalizePrivacy(trip.privacy);
   const ownerId = extractOwnerId(trip.ownerId);
@@ -55,7 +56,7 @@ export async function getTripAccessContext({
   select = "_id ownerId privacy",
   populateOwner = false,
 }) {
-  let query = Trip.findById(tripId).select(select);
+  let query = Trip.findById(tripId).select(`${select} deletedAt`);
 
   if (populateOwner) {
     query = query.populate("ownerId", "name avatarUrl");
@@ -124,6 +125,7 @@ export function buildOwnerTripVisibilityFilter({
 }) {
   return {
     ownerId,
+    deletedAt: null,
     privacy: {
       $in: getVisibleTripPrivaciesForOwner({
         ownerId,

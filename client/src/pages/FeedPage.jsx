@@ -144,6 +144,31 @@ export default function FeedPage() {
     await loadPreviewStats(ownerId);
   }
 
+  function handleTripTrashed(tripId) {
+    if (!tripId) return;
+
+    setFeedItems((prev) =>
+      prev.filter((item) => {
+        const itemId = item?._id || item?.id || "";
+        return itemId !== tripId;
+      }),
+    );
+
+    setPreviewUser((prev) => {
+      if (!prev) return prev;
+
+      return {
+        ...prev,
+        previewTrips: Array.isArray(prev.previewTrips)
+          ? prev.previewTrips.filter((item) => {
+              const itemId = item?._id || item?.id || "";
+              return itemId !== tripId;
+            })
+          : [],
+      };
+    });
+  }
+
   return (
     <div className="relative min-h-screen bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-4">
       <div className="absolute inset-0 pointer-events-none">
@@ -203,6 +228,7 @@ export default function FeedPage() {
             feedError={feedError}
             onReloadFeed={loadFeed}
             onPreviewUser={handlePreviewUser}
+            onTripTrashed={handleTripTrashed}
           />
           <RightSidebar />
         </div>

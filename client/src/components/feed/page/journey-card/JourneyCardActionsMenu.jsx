@@ -143,7 +143,7 @@ function MenuActionButton({
     <button
       type="button"
       onClick={onClick}
-      className={`group flex w-full items-center gap-2.5 rounded-[18px] px-2.5 py-2.5 text-left transition cursor-pointer ${
+      className={`group flex w-full cursor-pointer items-center gap-2.5 rounded-[18px] px-2.5 py-2.5 text-left transition ${
         isDanger
           ? "hover:bg-[linear-gradient(135deg,rgba(255,241,242,0.9),rgba(255,247,248,0.95))]"
           : isWarning
@@ -197,6 +197,7 @@ export default function JourneyCardActionsMenu({
   variant = "owner",
   privacyLabel = "Public",
   isPinned = false,
+  isSaved = false,
   onPin,
   onSave,
   onEdit,
@@ -235,22 +236,22 @@ export default function JourneyCardActionsMenu({
   }, [open]);
 
   const sections = useMemo(() => {
+    const saveAction = {
+      key: "save",
+      title: isSaved ? "Bỏ lưu bài viết" : "Lưu bài viết",
+      description: isSaved ? "" : "",
+      icon: BookmarkIcon,
+      onClick: onSave,
+    };
+
     if (variant === "visitor") {
       return [
-        [
-          {
-            key: "save",
-            title: "Lưu bài viết",
-            description: "Thêm vào danh sách mục đã lưu",
-            icon: BookmarkIcon,
-            onClick: onSave,
-          },
-        ],
+        [saveAction],
         [
           {
             key: "report",
             title: "Báo cáo bài viết",
-            description: "Báo cáo nếu nội dung không phù hợp",
+            description: "Báo cáo nếu nội dung không phù hợp.",
             icon: FlagIcon,
             tone: "warning",
             onClick: onReport,
@@ -271,17 +272,11 @@ export default function JourneyCardActionsMenu({
         {
           key: "pin",
           title: isPinned ? "Gỡ ghim bài viết" : "Ghim bài viết",
-          description: isPinned ? "" : "",
+          description: "",
           icon: PinIcon,
           onClick: onPin,
         },
-        {
-          key: "save",
-          title: "Lưu bài viết",
-          description: "Chuyển vào mục đã lưu",
-          icon: BookmarkIcon,
-          onClick: onSave,
-        },
+        saveAction,
       ],
       [
         {
@@ -303,7 +298,7 @@ export default function JourneyCardActionsMenu({
         {
           key: "trash",
           title: "Chuyển vào thùng rác",
-          description: "Các mục trong thùng rác sẽ bị xoá sau 7 ngày.",
+          description: "Các mục trong thùng rác sẽ bị xóa sau 7 ngày.",
           icon: TrashIcon,
           tone: "danger",
           onClick: onMoveToTrash,
@@ -311,16 +306,17 @@ export default function JourneyCardActionsMenu({
       ],
     ];
   }, [
-    variant,
-    privacyLabel,
     isPinned,
-    onPin,
-    onSave,
+    isSaved,
     onEdit,
     onEditAudience,
-    onMoveToTrash,
-    onReport,
     onHide,
+    onMoveToTrash,
+    onPin,
+    onReport,
+    onSave,
+    privacyLabel,
+    variant,
   ]);
 
   function handleSelect(action) {
@@ -335,7 +331,7 @@ export default function JourneyCardActionsMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
-        className={`inline-flex h-9 w-9 items-center justify-center rounded-full transition cursor-pointer ${
+        className={`inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full transition ${
           open
             ? "bg-[linear-gradient(135deg,rgba(238,242,255,0.95),rgba(245,240,255,0.98))] text-[#5b6ee1] shadow-[0_10px_22px_rgba(102,126,234,0.16)]"
             : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"

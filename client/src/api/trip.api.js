@@ -41,6 +41,30 @@ export const tripApi = {
     return api.delete(`/api/trips/${id}/pin`);
   },
 
+  moveToTrash(id) {
+    return api.patch(`/api/trips/${id}/trash`);
+  },
+
+  restoreFromTrash(id) {
+    return api.patch(`/api/trips/${id}/restore`);
+  },
+
+  listTrash(params = {}) {
+    return api.get("/api/trips/trash", { params });
+  },
+
+  saveTrip(id) {
+    return api.post(`/api/trips/${id}/save`);
+  },
+
+  unsaveTrip(id) {
+    return api.delete(`/api/trips/${id}/save`);
+  },
+
+  listSaved(params = {}) {
+    return api.get("/api/trips/saved", { params });
+  },
+
   toggleReaction(id) {
     return api.put(`/api/trips/${id}/reaction`);
   },

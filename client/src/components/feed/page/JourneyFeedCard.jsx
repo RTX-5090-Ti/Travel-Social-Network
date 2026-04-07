@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "framer-motion";
 
 import {
@@ -82,6 +82,8 @@ export default function JourneyFeedCard({
   isPinnedOverride,
   onForceOpenClose,
   onPreviewUser,
+  onTripTrashed,
+  onTripSavedChange,
 }) {
   const { user, setUser, bootstrapping } = useAuth();
   const { showToast } = useToast();
@@ -110,11 +112,15 @@ export default function JourneyFeedCard({
   const [liked, setLiked] = useState(!!trip.hearted);
   const [likeCount, setLikeCount] = useState(trip.counts?.reactions ?? 0);
   const [likeLoading, setLikeLoading] = useState(false);
+  const [saved, setSaved] = useState(!!trip.saved);
+  const [saveLoading, setSaveLoading] = useState(false);
   const cardRef = useRef(null);
+  const detailRequestIdRef = useRef(0);
   const [isNearViewport, setIsNearViewport] = useState(false);
   const [isInViewport, setIsInViewport] = useState(false);
 
   const [expanded, setExpanded] = useState(false);
+  const [forceOpenDismissed, setForceOpenDismissed] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState("");
   const [detail, setDetail] = useState(() =>
@@ -134,14 +140,19 @@ export default function JourneyFeedCard({
   const [previousPreviewIndex, setPreviousPreviewIndex] = useState(null);
   const [previewDirection, setPreviewDirection] = useState(1);
 
-  function closeOverlayWithUnavailableToast(error) {
-    setDetail(null);
-    setDetailError("");
-    setExpanded(false);
-    showToast(getTripUnavailableMessage(error), "warning");
-  }
+  const closeOverlayWithUnavailableToast = useCallback(
+    (error) => {
+      setDetail(null);
+      setDetailError("");
+      setExpanded(false);
+      showToast(getTripUnavailableMessage(error), "warning");
+    },
+    [showToast],
+  );
 
   useEffect(() => {
+    setDetailLoading(false);
+
     if (hasEmbeddedDetail(trip)) {
       setDetail(trip);
       setDetailError("");
@@ -157,6 +168,20 @@ export default function JourneyFeedCard({
     setAudienceDraft(nextPrivacy);
     setAudienceModalOpen(false);
   }, [trip._id, trip.privacy]);
+
+  useEffect(() => {
+    detailRequestIdRef.current += 1;
+  }, [trip._id]);
+
+  useEffect(() => {
+    if (!forceOpen) {
+      setForceOpenDismissed(false);
+    }
+  }, [forceOpen]);
+
+  useEffect(() => {
+    setForceOpenDismissed(false);
+  }, [trip._id]);
 
   const previewItems = useMemo(() => {
     const rawItems = trip.feedPreview?.previewMedia?.length
@@ -246,6 +271,10 @@ export default function JourneyFeedCard({
     setLiked(!!trip.hearted);
   }, [trip._id, trip.hearted]);
 
+  useEffect(() => {
+    setSaved(!!trip.saved);
+  }, [trip._id, trip.saved]);
+
   const previewCaption =
     caption.length > 170 ? `${caption.slice(0, 170).trim()}...` : caption;
 
@@ -316,9 +345,10 @@ export default function JourneyFeedCard({
   }, [isNearViewport, previewItems, previewIndex]);
 
   useEffect(() => {
-    if (!forceOpen || !trip?._id) return;
+    if (!forceOpen || forceOpenDismissed || !trip?._id) return;
 
-    let cancelled = false;
+    const currentTripId = trip._id;
+    const requestId = ++detailRequestIdRef.current;
 
     setExpanded(true);
 
@@ -335,12 +365,12 @@ export default function JourneyFeedCard({
         setDetailLoading(true);
         setDetailError("");
 
-        const res = await tripApi.getDetail(trip._id);
-        if (cancelled) return;
+        const res = await tripApi.getDetail(currentTripId);
+        if (detailRequestIdRef.current !== requestId) return;
 
         setDetail(res.data);
       } catch (e) {
-        if (cancelled) return;
+        if (detailRequestIdRef.current !== requestId) return;
 
         if (isTripUnavailableError(e)) {
           closeOverlayWithUnavailableToast(e);
@@ -349,21 +379,26 @@ export default function JourneyFeedCard({
         }
 
         setDetailError(
-          e?.response?.data?.message || "Không tải được chi tiết journey.",
+          e?.response?.data?.message ||
+            "Không tải được chi tiết journey.",
         );
       } finally {
-        if (!cancelled) {
+        if (detailRequestIdRef.current === requestId) {
           setDetailLoading(false);
         }
       }
     }
 
     openForcedDetail();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [detail, detailLoading, forceOpen, trip]);
+  }, [
+    closeOverlayWithUnavailableToast,
+    detail,
+    detailLoading,
+    forceOpen,
+    forceOpenDismissed,
+    onForceOpenClose,
+    trip,
+  ]);
 
   async function handleToggleLike() {
     if (likeLoading || !trip?._id) return;
@@ -413,9 +448,12 @@ export default function JourneyFeedCard({
 
     if (expanded) {
       setExpanded(false);
+      setForceOpenDismissed(true);
+      onForceOpenClose?.();
       return;
     }
 
+    setForceOpenDismissed(false);
     setExpanded(true);
 
     if (hasEmbeddedDetail(trip)) {
@@ -426,23 +464,33 @@ export default function JourneyFeedCard({
 
     if (detail || detailLoading) return;
 
+    const currentTripId = trip._id;
+    const requestId = ++detailRequestIdRef.current;
+
     try {
       setDetailLoading(true);
       setDetailError("");
 
-      const res = await tripApi.getDetail(trip._id);
+      const res = await tripApi.getDetail(currentTripId);
+      if (detailRequestIdRef.current !== requestId) return;
+
       setDetail(res.data);
     } catch (error) {
+      if (detailRequestIdRef.current !== requestId) return;
+
       if (isTripUnavailableError(error)) {
         closeOverlayWithUnavailableToast(error);
         return;
       }
 
       setDetailError(
-        error?.response?.data?.message || "Không tải được chi tiết journey.",
+        error?.response?.data?.message ||
+          "Không tải được chi tiết journey.",
       );
     } finally {
-      setDetailLoading(false);
+      if (detailRequestIdRef.current === requestId) {
+        setDetailLoading(false);
+      }
     }
   }
 
@@ -518,11 +566,47 @@ export default function JourneyFeedCard({
     }
   }
 
-  function handleSaveTrip() {
-    showToast(
-      "Menu lưu bài viết đã có, bước tiếp theo mới nối logic lưu.",
-      "warning",
-    );
+  async function handleSaveTrip() {
+    if (!tripId || saveLoading) return;
+
+    const prevSaved = saved;
+    const nextSaved = !prevSaved;
+
+    try {
+      setSaveLoading(true);
+      setSaved(nextSaved);
+
+      const res = nextSaved
+        ? await tripApi.saveTrip(tripId)
+        : await tripApi.unsaveTrip(tripId);
+
+      setSaved(!!res.data?.saved);
+      onTripSavedChange?.(tripId, !!res.data?.saved, trip);
+
+      showToast(
+        res.data?.saved
+          ? "Đã lưu journey vào kho lưu trữ."
+          : "Đã gỡ journey khỏi danh sách đã lưu.",
+        "success",
+      );
+    } catch (error) {
+      setSaved(prevSaved);
+
+      if (isTripUnavailableError(error)) {
+        showToast(getTripUnavailableMessage(error), "warning");
+        return;
+      }
+
+      showToast(
+        error?.response?.data?.message ||
+          (nextSaved
+            ? "Không lưu journey được."
+            : "Không gỡ journey khỏi danh sách đã lưu được."),
+        "error",
+      );
+    } finally {
+      setSaveLoading(false);
+    }
   }
 
   function handleEditTrip() {
@@ -607,13 +691,40 @@ export default function JourneyFeedCard({
     }
   }
 
-  function handleMoveTripToTrash() {
-    if (!isOwnerTrip) return;
+  async function handleMoveTripToTrash() {
+    if (!isOwnerTrip || !tripId) return;
 
-    showToast(
-      "Menu chuyển vào thùng rác đã có, bước tiếp theo mới nối API xóa mềm.",
-      "warning",
-    );
+    try {
+      const res = await tripApi.moveToTrash(tripId);
+
+      if (isPinned) {
+        setUser((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            pinnedTripId: null,
+          };
+        });
+      }
+
+      setExpanded(false);
+
+      showToast("Đã chuyển journey vào thùng rác.", "success");
+      onTripTrashed?.(tripId, res.data?.trip || null);
+    } catch (error) {
+      const status = Number(error?.response?.status || 0);
+
+      if (status === 404) {
+        showToast("Journey này không còn khả dụng.", "warning");
+        return;
+      }
+
+      showToast(
+        error?.response?.data?.message ||
+          "Không chuyển journey vào thùng rác được.",
+        "error",
+      );
+    }
   }
 
   function handleReportTrip() {
@@ -667,6 +778,7 @@ export default function JourneyFeedCard({
             }}
             onClose={() => {
               setExpanded(false);
+              setForceOpenDismissed(true);
               onForceOpenClose?.();
             }}
           />
@@ -726,6 +838,7 @@ export default function JourneyFeedCard({
                 variant={isOwnerTrip ? "owner" : "visitor"}
                 privacyLabel={privacyLabel}
                 isPinned={isPinned}
+                isSaved={saved}
                 onPin={handlePinTrip}
                 onSave={handleSaveTrip}
                 onEdit={handleEditTrip}

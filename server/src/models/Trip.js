@@ -49,6 +49,11 @@ const TripSchema = new mongoose.Schema(
       hasMoreMedia: { type: Boolean, default: false },
       previewMedia: { type: [FeedPreviewMediaSchema], default: [] },
     },
+
+    deletedAt: { type: Date, default: null, index: true },
+    scheduledDeletionAt: { type: Date, default: null, index: true },
+    deletionProcessingAt: { type: Date, default: null, index: true },
+    deletionAttempts: { type: Number, default: 0 },
   },
   { timestamps: true },
 );

@@ -238,7 +238,7 @@ export default function JourneyAudienceModal({
                 type="button"
                 onClick={onClose}
                 disabled={isSaving}
-                className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-[14px] font-semibold text-[#6b7df2] transition hover:bg-[#eef2ff] disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-[14px] font-semibold text-[#6b7df2] transition hover:bg-[#eef2ff] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
               >
                 Hủy
               </button>
@@ -247,7 +247,7 @@ export default function JourneyAudienceModal({
                 type="button"
                 onClick={onConfirm}
                 disabled={isSaving}
-                className="inline-flex h-10 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#5d72f6_0%,#6f63f6_45%,#7d5cf1_100%)] px-5 text-[14px] font-semibold text-white shadow-[0_14px_30px_rgba(93,114,246,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(93,114,246,0.3)] disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex h-10 items-center justify-center rounded-xl bg-[linear-gradient(135deg,#5d72f6_0%,#6f63f6_45%,#7d5cf1_100%)] px-5 text-[14px] font-semibold text-white shadow-[0_14px_30px_rgba(93,114,246,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(93,114,246,0.3)] disabled:cursor-not-allowed disabled:opacity-70 cursor-pointer"
               >
                 {isSaving ? "Đang lưu..." : "Xong"}
               </button>
