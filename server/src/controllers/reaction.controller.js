@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import Reaction from "../models/Reaction.js";
+import Comment from "../models/Comment.js";
 import Trip from "../models/Trip.js";
 import { getTripAccessContext } from "../utils/tripVisibility.js";
 
@@ -136,6 +137,106 @@ export async function getTripHeartSummary(req, res, next) {
       hearted,
     });
   } catch (err) {
+    next(err);
+  }
+}
+
+export async function toggleCommentLike(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const commentId = req.params.commentId;
+
+    if (!mongoose.isValidObjectId(commentId)) {
+      return res.status(400).json({ message: "Invalid comment id" });
+    }
+
+    const comment = await Comment.findById(commentId)
+      .select("_id targetType targetId counts.reactions")
+      .lean();
+
+    if (!comment || comment.targetType !== "trip") {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    const { trip, canView } = await getTripAccessContext({
+      tripId: comment.targetId,
+      viewerId: userId,
+      select: "_id ownerId privacy",
+    });
+
+    if (!trip || !canView) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    const existed = await Reaction.findOne({
+      targetType: "comment",
+      targetId: commentId,
+      userId,
+    })
+      .select("_id")
+      .lean();
+
+    let liked = false;
+
+    if (existed) {
+      await Reaction.deleteOne({ _id: existed._id });
+      await Comment.updateOne(
+        { _id: commentId },
+        { $inc: { "counts.reactions": -1 } },
+      );
+      liked = false;
+    } else {
+      await Reaction.create({
+        targetType: "comment",
+        targetId: commentId,
+        userId,
+      });
+
+      await Comment.updateOne(
+        { _id: commentId },
+        { $inc: { "counts.reactions": 1 } },
+      );
+      liked = true;
+    }
+
+    const latestComment = await Comment.findById(commentId)
+      .select("counts.reactions")
+      .lean();
+
+    res.json({
+      liked,
+      count: Math.max(0, latestComment?.counts?.reactions || 0),
+    });
+  } catch (err) {
+    if (err?.code === 11000) {
+      const commentId = req.params.commentId;
+      const userId = req.user.userId;
+
+      try {
+        const [comment, mine] = await Promise.all([
+          Comment.findById(commentId).select("counts.reactions").lean(),
+          Reaction.findOne({
+            targetType: "comment",
+            targetId: commentId,
+            userId,
+          })
+            .select("_id")
+            .lean(),
+        ]);
+
+        if (!comment) {
+          return res.status(404).json({ message: "Comment not found" });
+        }
+
+        return res.status(200).json({
+          liked: !!mine,
+          count: Math.max(0, comment?.counts?.reactions || 0),
+        });
+      } catch {
+        return res.status(409).json({ message: "Duplicate reaction" });
+      }
+    }
+
     next(err);
   }
 }

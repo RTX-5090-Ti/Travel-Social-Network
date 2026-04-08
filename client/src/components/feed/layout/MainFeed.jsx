@@ -17,15 +17,15 @@ export default function MainFeed({
   onTripHidden,
 }) {
   return (
-    <main className="feed-main-scroll min-w-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,250,251,0.96))] px-5 py-6 sm:px-7 sm:py-8 lg:h-full lg:overflow-y-auto lg:overflow-x-hidden lg:border-r border-zinc-200/80 lg:px-9 xl:px-10">
+    <main className="feed-main-scroll min-w-0 bg-white px-4 pb-28 pt-5 sm:px-6 sm:py-7 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,250,251,0.96))] md:px-7 md:py-8 lg:h-full lg:overflow-y-auto lg:overflow-x-hidden lg:border-r border-zinc-200/80 lg:px-9 xl:px-10">
       <div className="mx-auto w-full max-w-[860px]">
         <FeedHeroBar onOpenComposer={onOpenComposer} />
 
-        <section className="mt-8">
+        <section className="mt-6 sm:mt-8">
           <SectionHeader title="Stories" actionLabel="Watch all" />
 
-          <div className="mt-5 rounded-[28px] border border-white/70 bg-white/80 p-4 shadow-[0_16px_40px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
-            <div className="flex gap-4 pb-1 overflow-x-auto">
+          <div className="mt-4 rounded-[24px] border border-white/70 bg-white/80 p-3 shadow-[0_12px_28px_rgba(15,23,42,0.045)] ring-1 ring-zinc-200/60 backdrop-blur sm:mt-5 sm:rounded-[28px] sm:p-4 sm:shadow-[0_16px_40px_rgba(15,23,42,0.05)]">
+            <div className="flex gap-3 overflow-x-auto sm:gap-4 sm:pb-1">
               <AddStory />
               {stories.map((story) => (
                 <StoryBubble key={story.id} story={story} />
@@ -34,15 +34,17 @@ export default function MainFeed({
           </div>
         </section>
 
-        <section className="mt-9">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <SectionHeader title="Journeys from the community" />
+        <section className="mt-7 sm:mt-9">
+          <div className="flex items-end justify-between gap-3 lg:gap-4">
+            <div className="min-w-0 flex-1">
+              <SectionHeader title="Journeys from the community" />
+            </div>
 
-            <div className="inline-flex w-fit rounded-[18px] border border-white/70 bg-white/85 p-1.5 shadow-[0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
-              <button className="rounded-[14px] bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-5 py-2.5 text-[13px] font-semibold text-white shadow-[0_10px_20px_rgba(102,126,234,0.26)]">
+            <div className="inline-flex w-fit shrink-0 rounded-[15px] border border-white/70 bg-white/85 p-1 shadow-[0_8px_18px_rgba(15,23,42,0.045)] ring-1 ring-zinc-200/60 backdrop-blur sm:rounded-[18px] sm:p-1.5 sm:shadow-[0_10px_24px_rgba(15,23,42,0.05)]">
+              <button className="rounded-[11px] bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-4 py-2 text-[12px] font-semibold text-white shadow-[0_8px_18px_rgba(102,126,234,0.22)] sm:rounded-[14px] sm:px-5 sm:py-2.5 sm:text-[13px] sm:shadow-[0_10px_20px_rgba(102,126,234,0.26)]">
                 Trending
               </button>
-              <button className="rounded-[14px] px-5 py-2.5 text-[13px] font-semibold text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-900">
+              <button className="rounded-[11px] px-4 py-2 text-[12px] font-semibold text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-900 sm:rounded-[14px] sm:px-5 sm:py-2.5 sm:text-[13px]">
                 Latest
               </button>
             </div>

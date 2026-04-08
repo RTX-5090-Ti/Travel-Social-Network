@@ -60,7 +60,7 @@ function RememberCheckbox({ checked, onChange }) {
 function SocialLoginSection({ loading, onSocialLogin }) {
   return (
     <>
-      <div className="flex items-center gap-4 my-8">
+      <div className="my-6 flex items-center gap-3 sm:my-8 sm:gap-4">
         <div className="relative flex-1 h-px overflow-hidden bg-slate-300/70">
           <motion.div
             animate={{ x: ["-100%", "100%"] }}
@@ -68,7 +68,7 @@ function SocialLoginSection({ loading, onSocialLogin }) {
             className="absolute inset-y-0 w-full bg-gradient-to-r from-transparent via-indigo-500 to-transparent"
           />
         </div>
-        <span className="text-xs font-semibold tracking-[0.18em] text-slate-400">
+        <span className="text-[10px] font-semibold tracking-[0.16em] text-slate-400 sm:text-xs sm:tracking-[0.18em]">
           OR CONTINUE WITH
         </span>
         <div className="relative flex-1 h-px overflow-hidden bg-slate-300/70">
@@ -80,12 +80,12 @@ function SocialLoginSection({ loading, onSocialLogin }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
         <button
           type="button"
           onClick={() => onSocialLogin("Facebook")}
           disabled={loading}
-          className="group relative flex items-center justify-center gap-3 overflow-hidden rounded-2xl border border-white/40 bg-white/80 px-4 py-3 text-slate-700 transition hover:-translate-y-0.5 hover:scale-[1.05] hover:bg-white hover:shadow-lg disabled:pointer-events-none disabled:opacity-60 cursor-pointer"
+          className="group relative flex items-center justify-center gap-3 overflow-hidden rounded-2xl border border-white/40 bg-white/80 px-4 py-3 text-[14px] text-slate-700 transition hover:-translate-y-0.5 hover:scale-[1.05] hover:bg-white hover:shadow-lg disabled:pointer-events-none disabled:opacity-60 cursor-pointer"
         >
           <span className="absolute inset-0 left-[-100%] bg-[linear-gradient(135deg,currentColor,transparent)] opacity-10 transition-all duration-500 group-hover:left-0" />
           <div className="relative z-10 flex h-10 w-10 items-center justify-center rounded-xl bg-[#1877f2]/10 text-[#1877f2]">
@@ -98,7 +98,7 @@ function SocialLoginSection({ loading, onSocialLogin }) {
           type="button"
           onClick={() => onSocialLogin("Google")}
           disabled={loading}
-          className="group relative flex items-center justify-center gap-3 overflow-hidden rounded-2xl border border-white/40 bg-white/80 px-4 py-3 text-slate-700 transition hover:-translate-y-0.5 hover:scale-[1.05] hover:bg-white hover:shadow-lg disabled:pointer-events-none disabled:opacity-60 cursor-pointer"
+          className="group relative flex items-center justify-center gap-3 overflow-hidden rounded-2xl border border-white/40 bg-white/80 px-4 py-3 text-[14px] text-slate-700 transition hover:-translate-y-0.5 hover:scale-[1.05] hover:bg-white hover:shadow-lg disabled:pointer-events-none disabled:opacity-60 cursor-pointer"
         >
           <span className="absolute inset-0 left-[-100%] bg-[linear-gradient(135deg,currentColor,transparent)] opacity-10 transition-all duration-500 group-hover:left-0" />
           <div className="relative z-10 flex items-center justify-center w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500">
@@ -168,8 +168,8 @@ export default function AuthCard({
     </div>
   ) : (
     <>
-      <div className="mb-10 text-center">
-        <div className="relative flex items-center justify-center w-20 h-20 mx-auto mb-6">
+      <div className="mb-7 text-center sm:mb-10">
+        <div className="relative mx-auto mb-5 flex h-16 w-16 items-center justify-center sm:mb-6 sm:h-20 sm:w-20">
           <motion.div
             animate={{ rotate: 360, scale: [1, 1.08, 1] }}
             transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
@@ -197,17 +197,17 @@ export default function AuthCard({
           />
         </div>
 
-        <h2 className="mb-2 bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] bg-clip-text text-[2.25rem] font-bold text-transparent">
+        <h2 className="mb-2 bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] bg-clip-text text-[1.9rem] font-bold text-transparent sm:text-[2.25rem]">
           {mode === "login" ? "Welcome" : "Create account"}
         </h2>
-        <p className="text-base italic text-slate-500">
+        <p className="text-[14px] italic leading-6 text-slate-500 sm:text-base">
           {mode === "login"
             ? "Sign in to continue your journey"
             : "Create your account to start your journey"}
         </p>
       </div>
 
-      <form onSubmit={onSubmit} noValidate className="space-y-7">
+      <form onSubmit={onSubmit} noValidate className="space-y-5 sm:space-y-7">
         {mode === "login" ? (
           <>
             <AuthInput
@@ -228,7 +228,7 @@ export default function AuthCard({
               {...commonProps("loginPassword")}
             />
 
-            <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
               <RememberCheckbox
                 checked={remember}
                 onChange={(e) => setRemember(e.target.checked)}
@@ -308,7 +308,7 @@ export default function AuthCard({
         <SocialLoginSection loading={loading} onSocialLogin={onSocialLogin} />
       )}
 
-      <div className="mt-8 text-sm text-center text-slate-500">
+      <div className="mt-6 text-center text-[13px] text-slate-500 sm:mt-8 sm:text-sm">
         {mode === "login" ? (
           <p>
             New to our platform?{" "}

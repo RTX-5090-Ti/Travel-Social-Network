@@ -40,6 +40,16 @@ function getUserAvatar(user) {
   );
 }
 
+function countReplyNodes(replies = []) {
+  return replies.reduce(
+    (total, reply) =>
+      total +
+      1 +
+      countReplyNodes(Array.isArray(reply?.replies) ? reply.replies : []),
+    0,
+  );
+}
+
 export default function JourneyDetailOverlay({
   trip,
   detail,
@@ -47,6 +57,7 @@ export default function JourneyDetailOverlay({
   detailError,
   commentCount: _commentCount,
   onCommentCreated,
+  onCommentDeleted,
   onClose,
 }) {
   const ownerName = trip.ownerId?.name || "Traveler";
@@ -57,8 +68,7 @@ export default function JourneyDetailOverlay({
 
   const { user } = useAuth();
   const { showToast } = useToast();
-  const currentUserId =
-    user?._id?.toString?.() || user?.id?.toString?.() || "";
+  const currentUserId = user?._id?.toString?.() || user?.id?.toString?.() || "";
   const [commentText, setCommentText] = useState("");
   const [commentItems, setCommentItems] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
@@ -68,6 +78,12 @@ export default function JourneyDetailOverlay({
   const [replyTarget, setReplyTarget] = useState(null);
   const [replyText, setReplyText] = useState("");
   const [replySubmittingCommentId, setReplySubmittingCommentId] = useState("");
+  const [editingCommentId, setEditingCommentId] = useState("");
+  const [editingText, setEditingText] = useState("");
+  const [editSubmittingCommentId, setEditSubmittingCommentId] = useState("");
+  const [likingCommentId, setLikingCommentId] = useState("");
+  const [deletingCommentId, setDeletingCommentId] = useState("");
+  const [deleteConfirmComment, setDeleteConfirmComment] = useState(null);
   const [expandedReplyThreads, setExpandedReplyThreads] = useState({});
   const [visibleReplyCounts, setVisibleReplyCounts] = useState({});
   const [commentsCursor, setCommentsCursor] = useState(null);
@@ -76,6 +92,8 @@ export default function JourneyDetailOverlay({
   const commentTextareaRef = useRef(null);
   const commentListEndRef = useRef(null);
   const shouldScrollToNewestCommentRef = useRef(false);
+  const onCloseRef = useRef(onClose);
+  const showToastRef = useRef(showToast);
 
   const currentUserName =
     user?.name || user?.fullName || user?.username || "You";
@@ -90,6 +108,14 @@ export default function JourneyDetailOverlay({
     "";
   const [lightboxMedia, setLightboxMedia] = useState([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
+  useEffect(() => {
+    showToastRef.current = showToast;
+  }, [showToast]);
 
   function resizeCommentTextarea() {
     const node = commentTextareaRef.current;
@@ -132,12 +158,12 @@ export default function JourneyDetailOverlay({
 
   const handleTripUnavailable = useCallback((error) => {
     setCommentsError("");
-    showToast(
+    showToastRef.current?.(
       getTripUnavailableMessage(error, "Không tải được comment lúc này."),
       "warning",
     );
-    onClose?.();
-  }, [onClose, showToast]);
+    onCloseRef.current?.();
+  }, []);
 
   function getSafeListKey(item, index, prefix = "item") {
     const rawId =
@@ -172,6 +198,12 @@ export default function JourneyDetailOverlay({
     setReplyTarget(null);
     setReplyText("");
     setReplySubmittingCommentId("");
+    setEditingCommentId("");
+    setEditingText("");
+    setEditSubmittingCommentId("");
+    setLikingCommentId("");
+    setDeletingCommentId("");
+    setDeleteConfirmComment(null);
     setExpandedReplyThreads({});
     setVisibleReplyCounts({});
   }, [trip?._id]);
@@ -424,7 +456,9 @@ export default function JourneyDetailOverlay({
         };
       }
 
-      const existingReplies = Array.isArray(comment?.replies) ? comment.replies : [];
+      const existingReplies = Array.isArray(comment?.replies)
+        ? comment.replies
+        : [];
       if (!existingReplies.length) {
         return comment;
       }
@@ -445,6 +479,136 @@ export default function JourneyDetailOverlay({
         ...comment,
         replies: nextReplies,
         replyCount: Number(comment?.replyCount || 0) + 1,
+      };
+    });
+
+    return didChange ? nextItems : items;
+  }
+
+  function updateCommentInTree(items, updatedComment) {
+    const updatedCommentId = getCommentId(updatedComment);
+    let didChange = false;
+
+    const nextItems = items.map((comment) => {
+      const currentId = getCommentId(comment);
+
+      if (currentId === updatedCommentId) {
+        didChange = true;
+        return {
+          ...comment,
+          ...updatedComment,
+          replies: Array.isArray(comment?.replies) ? comment.replies : [],
+          replyCount: Number.isFinite(comment?.replyCount)
+            ? comment.replyCount
+            : Array.isArray(comment?.replies)
+              ? comment.replies.length
+              : 0,
+        };
+      }
+
+      const existingReplies = Array.isArray(comment?.replies)
+        ? comment.replies
+        : [];
+      if (!existingReplies.length) {
+        return comment;
+      }
+
+      const nextReplies = updateCommentInTree(existingReplies, updatedComment);
+
+      if (nextReplies === existingReplies) {
+        return comment;
+      }
+
+      didChange = true;
+
+      return {
+        ...comment,
+        replies: nextReplies,
+      };
+    });
+
+    return didChange ? nextItems : items;
+  }
+
+  function removeCommentFromTree(items, targetCommentId) {
+    let removedCount = 0;
+
+    function walk(list) {
+      const nextItems = [];
+
+      list.forEach((comment) => {
+        const commentId = getCommentId(comment);
+        const childReplies = Array.isArray(comment?.replies)
+          ? comment.replies
+          : [];
+
+        if (commentId === targetCommentId) {
+          removedCount += 1 + countReplyNodes(childReplies);
+          return;
+        }
+
+        const nextReplies = childReplies.length
+          ? walk(childReplies)
+          : childReplies;
+
+        nextItems.push({
+          ...comment,
+          replies: nextReplies,
+          replyCount: countReplyNodes(nextReplies),
+        });
+      });
+
+      return nextItems;
+    }
+
+    return {
+      items: walk(items),
+      removedCount,
+    };
+  }
+
+  function updateCommentLikeInTree(
+    items,
+    targetCommentId,
+    nextLiked,
+    nextCount,
+  ) {
+    let didChange = false;
+
+    const nextItems = items.map((comment) => {
+      const commentId = getCommentId(comment);
+
+      if (commentId === targetCommentId) {
+        didChange = true;
+        return {
+          ...comment,
+          liked: nextLiked,
+          likeCount: Math.max(0, Number(nextCount || 0)),
+        };
+      }
+
+      const childReplies = Array.isArray(comment?.replies)
+        ? comment.replies
+        : [];
+      if (!childReplies.length) {
+        return comment;
+      }
+
+      const nextReplies = updateCommentLikeInTree(
+        childReplies,
+        targetCommentId,
+        nextLiked,
+        nextCount,
+      );
+
+      if (nextReplies === childReplies) {
+        return comment;
+      }
+
+      didChange = true;
+      return {
+        ...comment,
+        replies: nextReplies,
       };
     });
 
@@ -474,6 +638,120 @@ export default function JourneyDetailOverlay({
     setReplyingToCommentId(commentId);
     setReplyTarget(nextTarget);
     setReplyText("");
+    setEditingCommentId("");
+    setEditingText("");
+  }
+
+  function handleStartEditing(targetComment = null) {
+    const commentId = getCommentId(targetComment);
+    if (!commentId) return;
+
+    const nextContent =
+      typeof targetComment?.content === "string" ? targetComment.content : "";
+
+    setEditingCommentId(commentId);
+    setEditingText(nextContent);
+    setReplyingToCommentId("");
+    setReplyTarget(null);
+    setReplyText("");
+  }
+
+  function handleCancelEditing() {
+    setEditingCommentId("");
+    setEditingText("");
+  }
+
+  function handleRequestDelete(targetComment = null) {
+    const commentId = getCommentId(targetComment);
+    if (!commentId) return;
+
+    setReplyingToCommentId("");
+    setReplyTarget(null);
+    setReplyText("");
+    setEditingCommentId("");
+    setEditingText("");
+    setDeleteConfirmComment(targetComment);
+  }
+
+  function handleCancelDelete() {
+    if (deletingCommentId) return;
+    setDeleteConfirmComment(null);
+  }
+
+  async function handleToggleCommentLike(targetComment = null) {
+    const commentId = getCommentId(targetComment);
+    if (!commentId || likingCommentId) {
+      return;
+    }
+
+    try {
+      setLikingCommentId(commentId);
+      setCommentsError("");
+
+      const res = await tripApi.toggleCommentReaction(commentId);
+      const nextLiked = !!res.data?.liked;
+      const nextCount = Math.max(0, Number(res.data?.count || 0));
+
+      setCommentItems((prev) =>
+        updateCommentLikeInTree(prev, commentId, nextLiked, nextCount),
+      );
+    } catch (err) {
+      if (isTripUnavailableError(err)) {
+        handleTripUnavailable(err);
+        return;
+      }
+
+      const nextMessage =
+        err?.response?.data?.message ||
+        "Cập nhật lượt thích bình luận thất bại.";
+
+      setCommentsError(nextMessage);
+      showToastRef.current?.(nextMessage, "error");
+    } finally {
+      setLikingCommentId("");
+    }
+  }
+
+  async function handleEditSubmit(event) {
+    event.preventDefault();
+
+    const commentId = editingCommentId;
+    const content = editingText.trim();
+
+    if (!commentId || !content || editSubmittingCommentId) {
+      return;
+    }
+
+    try {
+      setEditSubmittingCommentId(commentId);
+      setCommentsError("");
+
+      const res = await tripApi.updateComment(commentId, { content });
+      const updatedComment = res.data?.comment;
+
+      if (!updatedComment) {
+        throw new Error("Missing updated comment");
+      }
+
+      setCommentItems((prev) => updateCommentInTree(prev, updatedComment));
+      setEditingCommentId("");
+      setEditingText("");
+      showToast("Đã cập nhật bình luận.", "success");
+    } catch (err) {
+      if (isTripUnavailableError(err)) {
+        handleTripUnavailable(err);
+        return;
+      }
+
+      const nextMessage =
+        err?.response?.data?.message ||
+        "Cập nhật bình luận thất bại. Thử lại nhé.";
+
+      setCommentsError(nextMessage);
+      showToast(nextMessage, "error");
+    } finally {
+      setEditSubmittingCommentId("");
+    }
   }
 
   async function handleSubmitReply(commentId) {
@@ -498,7 +776,9 @@ export default function JourneyDetailOverlay({
         throw new Error("Missing created reply");
       }
 
-      setCommentItems((prev) => appendReplyToTree(prev, commentId, createdReply));
+      setCommentItems((prev) =>
+        appendReplyToTree(prev, commentId, createdReply),
+      );
 
       setReplyText("");
       setReplyingToCommentId("");
@@ -518,9 +798,82 @@ export default function JourneyDetailOverlay({
     }
   }
 
+  async function handleConfirmDelete() {
+    const commentId = getCommentId(deleteConfirmComment);
+    if (!commentId || deletingCommentId) {
+      return;
+    }
+
+    try {
+      setDeletingCommentId(commentId);
+      setCommentsError("");
+
+      const res = await tripApi.deleteComment(commentId);
+      const deletedCommentId = res.data?.deletedCommentId || commentId;
+      const deletedCount = Number(res.data?.deletedCount || 0);
+
+      setCommentItems((prev) => {
+        const nextState = removeCommentFromTree(prev, deletedCommentId);
+
+        if (nextState.removedCount > 0) {
+          return nextState.items;
+        }
+
+        return prev;
+      });
+
+      setExpandedReplyThreads((prev) => {
+        if (!Object.keys(prev).length) return prev;
+        const next = { ...prev };
+        delete next[deletedCommentId];
+        return next;
+      });
+
+      setVisibleReplyCounts((prev) => {
+        if (!Object.keys(prev).length) return prev;
+        const next = { ...prev };
+        delete next[deletedCommentId];
+        return next;
+      });
+
+      if (replyingToCommentId && replyingToCommentId === deletedCommentId) {
+        setReplyingToCommentId("");
+        setReplyTarget(null);
+        setReplyText("");
+      }
+
+      if (editingCommentId && editingCommentId === deletedCommentId) {
+        setEditingCommentId("");
+        setEditingText("");
+      }
+
+      setDeleteConfirmComment(null);
+      onCommentDeleted?.(deletedCount || 1);
+      showToastRef.current?.(
+        deletedCount > 1
+          ? "Đã xoá bình luận và các phản hồi."
+          : "Đã xoá bình luận.",
+        "success",
+      );
+    } catch (err) {
+      if (isTripUnavailableError(err)) {
+        handleTripUnavailable(err);
+        return;
+      }
+
+      const nextMessage =
+        err?.response?.data?.message || "Xoá bình luận thất bại. Thử lại nhé.";
+
+      setCommentsError(nextMessage);
+      showToastRef.current?.(nextMessage, "error");
+    } finally {
+      setDeletingCommentId("");
+    }
+  }
+
   return createPortal(
     <motion.div
-      className="fixed inset-0 z-[120] flex min-h-screen items-center justify-center p-4 sm:p-6"
+      className="fixed inset-0 z-[120] flex min-h-screen items-stretch justify-center p-0 sm:items-center sm:p-6"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -529,7 +882,7 @@ export default function JourneyDetailOverlay({
         type="button"
         aria-label="Close overlay"
         onClick={onClose}
-        className="absolute inset-0 h-full w-full bg-zinc-950/45 backdrop-blur-[6px] cursor-pointer"
+        className="absolute inset-0 h-full w-full cursor-pointer bg-transparent sm:bg-zinc-950/45 sm:backdrop-blur-[6px]"
       />
 
       <motion.div
@@ -537,28 +890,28 @@ export default function JourneyDetailOverlay({
         animate={{ opacity: 1, y: 0, scale: 1 }}
         exit={{ opacity: 0, y: 12, scale: 0.985 }}
         transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-[1] flex max-h-[95vh] w-full max-w-5xl flex-col overflow-hidden rounded-[32px] border border-white/70 bg-[linear-gradient(180deg,#ffffff,#fbfbff)] shadow-[0_30px_80px_rgba(15,23,42,0.28)]"
+        className="relative z-[1] flex h-screen max-h-screen w-full max-w-none flex-col overflow-hidden rounded-none border-0 bg-[linear-gradient(180deg,#ffffff,#fbfbff)] shadow-none sm:h-auto sm:max-h-[95vh] sm:max-w-5xl sm:rounded-[32px] sm:border sm:border-white/70 sm:shadow-[0_30px_80px_rgba(15,23,42,0.28)]"
       >
-        <div className="px-5 py-4 border-b border-zinc-100 sm:px-6">
+        <div className="px-4 py-3 border-b border-zinc-100 sm:px-6 sm:py-4">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center min-w-0 gap-3">
               {ownerAvatar ? (
                 <img
                   src={ownerAvatar}
                   alt={ownerName}
-                  className="h-12 w-12 rounded-full object-cover shadow-[0_10px_24px_rgba(102,126,234,0.18)] ring-1 ring-white/70"
+                  className="h-10 w-10 rounded-full object-cover shadow-[0_8px_18px_rgba(102,126,234,0.16)] ring-1 ring-white/70 sm:h-12 sm:w-12 sm:shadow-[0_10px_24px_rgba(102,126,234,0.18)]"
                 />
               ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-sm font-semibold text-white shadow-[0_10px_24px_rgba(102,126,234,0.35)]">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-[13px] font-semibold text-white shadow-[0_8px_18px_rgba(102,126,234,0.28)] sm:h-12 sm:w-12 sm:text-sm sm:shadow-[0_10px_24px_rgba(102,126,234,0.35)]">
                   {initials}
                 </div>
               )}
 
               <div className="min-w-0">
-                <p className="truncate text-[16px] font-semibold text-zinc-900">
+                <p className="truncate text-[15px] font-semibold text-zinc-900 sm:text-[16px]">
                   {ownerName}
                 </p>
-                <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[13px] text-zinc-400">
+                <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-zinc-400 sm:gap-2 sm:text-[13px]">
                   <span>{formatFeedTime(trip.createdAt)}</span>
                   <span className="w-1 h-1 rounded-full bg-zinc-300" />
                   <span className="capitalize">{privacyLabel}</span>
@@ -568,38 +921,38 @@ export default function JourneyDetailOverlay({
 
             <button
               onClick={onClose}
-              className="inline-flex items-center justify-center transition bg-white border cursor-pointer h-11 w-11 rounded-2xl border-zinc-200 text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-[18px] border border-zinc-200 bg-white text-zinc-500 transition hover:bg-zinc-50 hover:text-zinc-900 sm:h-11 sm:w-11 sm:rounded-2xl"
             >
               ✕
             </button>
           </div>
 
-          <div className="mt-4 rounded-[24px] border border-zinc-200/80 bg-[linear-gradient(180deg,#ffffff,#fafafb)] px-4 py-4 sm:px-5">
+          <div className="mt-3 rounded-[20px] border border-zinc-200/80 bg-[linear-gradient(180deg,#ffffff,#fafafb)] px-3.5 py-3 sm:mt-4 sm:rounded-[24px] sm:px-5 sm:py-4">
             <div className="flex flex-wrap items-center gap-2">
-              <h3 className="text-[24px] font-semibold tracking-tight text-zinc-900">
+              <h3 className="text-[20px] font-semibold tracking-tight text-zinc-900 sm:text-[24px]">
                 {trip.title}
               </h3>
-              <span className="rounded-full bg-violet-50 px-3 py-1 text-[12px] font-semibold text-violet-600">
+              <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-600 sm:px-3 sm:text-[12px]">
                 Journey
               </span>
               <JourneyMetaChip text={privacyLabel} tone="soft" />
             </div>
 
             {caption ? (
-              <p className="mt-3 whitespace-pre-line text-[14px] leading-7 text-zinc-600">
+              <p className="mt-2.5 whitespace-pre-line text-[13px] leading-6 text-zinc-600 sm:mt-3 sm:text-[14px] sm:leading-7">
                 {caption}
               </p>
             ) : (
-              <p className="mt-3 text-[14px] italic leading-7 text-zinc-400">
+              <p className="mt-2.5 text-[13px] italic leading-6 text-zinc-400 sm:mt-3 sm:text-[14px] sm:leading-7">
                 Chưa có phần intro cho journey này.
               </p>
             )}
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 px-5 py-5 overflow-y-auto sm:px-6 sm:py-6">
+        <div className="flex-1 min-h-0 px-4 py-4 overflow-y-auto sm:px-6 sm:py-6">
           {detailLoading ? (
-            <div className="rounded-[24px] border border-zinc-200 bg-[linear-gradient(180deg,#fafafa,#ffffff)] p-5">
+            <div className="rounded-[20px] border border-zinc-200 bg-[linear-gradient(180deg,#fafafa,#ffffff)] p-4 sm:rounded-[24px] sm:p-5">
               <div className="space-y-3 animate-pulse">
                 <div className="w-40 h-4 rounded bg-zinc-200" />
                 <div className="h-24 rounded-2xl bg-zinc-100" />
@@ -617,27 +970,27 @@ export default function JourneyDetailOverlay({
           {detail ? (
             <>
               {detail.generalItems?.length > 0 ? (
-                <section className="mb-6 rounded-[26px] border border-zinc-200 bg-[linear-gradient(180deg,#fdfdff,#f7f9ff)] p-5">
+                <section className="mb-5 rounded-[22px] border border-zinc-200 bg-[linear-gradient(180deg,#fdfdff,#f7f9ff)] p-4 sm:mb-5 sm:rounded-[26px] sm:p-5">
                   <JourneySectionTitle
                     eyebrow="Trip overview"
                     title="General highlights"
                     description="Những ghi chú tổng quát cho cả chuyến đi."
                   />
 
-                  <div className="mt-4 space-y-4">
+                  <div className="mt-3.5 space-y-3.5 sm:mt-4 sm:space-y-4">
                     {detail.generalItems.map((item, index) => (
                       <div
                         key={getSafeListKey(item, index, "general-item")}
-                        className="rounded-[22px] border border-white/80 bg-white p-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)]"
+                        className="rounded-[18px] border border-white/80 bg-white p-3.5 shadow-[0_8px_20px_rgba(15,23,42,0.04)] sm:rounded-[22px] sm:p-4"
                       >
                         {item.content ? (
-                          <p className="whitespace-pre-line text-[14px] leading-7 text-zinc-700">
+                          <p className="whitespace-pre-line text-[13px] leading-6 text-zinc-700 sm:text-[14px] sm:leading-7">
                             {item.content}
                           </p>
                         ) : null}
 
                         {item.media?.length > 0 ? (
-                          <div className="mt-4">
+                          <div className="mt-3.5 sm:mt-4">
                             <JourneyMediaGrid
                               media={item.media}
                               onOpenLightbox={openLightbox}
@@ -658,7 +1011,7 @@ export default function JourneyDetailOverlay({
                 />
 
                 {detail.milestones?.length > 0 ? (
-                  <div className="mt-5 space-y-5">
+                  <div className="mt-3.5 space-y-4 sm:mt-4 sm:space-y-5">
                     {detail.milestones.map((milestone, index) => (
                       <div
                         key={getSafeListKey(milestone, index, "milestone")}
@@ -808,20 +1161,34 @@ export default function JourneyDetailOverlay({
                           currentUserInitials={currentUserInitials}
                           currentUserName={currentUserName}
                           onReplyToggle={handleToggleReply}
+                          onToggleLike={handleToggleCommentLike}
+                          likingCommentId={likingCommentId}
                           onExpandReplies={handleExpandReplies}
                           onLoadMoreReplies={handleLoadMoreReplies}
+                          onEdit={handleStartEditing}
+                          onDelete={handleRequestDelete}
+                          editingCommentId={editingCommentId}
+                          editingText={editingText}
+                          editSubmitting={
+                            !!editingCommentId &&
+                            editSubmittingCommentId === editingCommentId
+                          }
                           onReplyTextChange={setReplyText}
                           onReplySubmit={(event) => {
                             event.preventDefault();
                             handleSubmitReply(replyingToCommentId);
                           }}
+                          onEditTextChange={setEditingText}
+                          onEditCancel={handleCancelEditing}
+                          onEditSubmit={handleEditSubmit}
                         />
                       ))}
                       <div ref={commentListEndRef} />
                     </div>
                   ) : (
                     <div className="rounded-[20px] border border-dashed border-zinc-200 bg-zinc-50 px-4 py-4 text-sm text-zinc-400">
-                      Chưa có comment nào. Hãy là người đầu tiên bắt đầu cuộc trò chuyện.
+                      Chưa có comment nào. Hãy là người đầu tiên bắt đầu cuộc
+                      trò chuyện.
                       <div ref={commentListEndRef} />
                     </div>
                   )}
@@ -909,6 +1276,60 @@ export default function JourneyDetailOverlay({
               onPrev={showPrevLightboxItem}
               onNext={showNextLightboxItem}
             />
+          ) : null}
+        </AnimatePresence>
+
+        <AnimatePresence>
+          {deleteConfirmComment ? (
+            <motion.div
+              className="absolute inset-0 z-[3] flex items-center justify-center bg-zinc-950/20 backdrop-blur-[2px]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                transition={{ duration: 0.18 }}
+                className="mx-4 w-full max-w-sm rounded-[26px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(249,245,255,0.98))] p-5 shadow-[0_24px_56px_rgba(76,29,149,0.18)]"
+              >
+                <p className="text-[18px] font-semibold text-zinc-900">
+                  Xoá bình luận?
+                </p>
+                <p className="mt-2 text-[14px] leading-6 text-zinc-600">
+                  Bình luận này sẽ bị xoá khỏi cuộc trò chuyện.
+                  {Array.isArray(deleteConfirmComment?.replies) &&
+                  deleteConfirmComment.replies.length
+                    ? " Các phản hồi bên trong cũng sẽ bị xoá theo."
+                    : ""}
+                </p>
+
+                <div className="flex items-center justify-end gap-3 mt-5">
+                  <button
+                    type="button"
+                    onClick={handleCancelDelete}
+                    disabled={!!deletingCommentId}
+                    className="inline-flex cursor-pointer items-center justify-center rounded-full border border-zinc-200 bg-white px-4 py-2 text-[13px] font-semibold text-zinc-600 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Huỷ
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleConfirmDelete}
+                    disabled={!!deletingCommentId}
+                    className="inline-flex min-w-[112px] cursor-pointer items-center justify-center rounded-full bg-[linear-gradient(135deg,#fb7185_0%,#f43f5e_55%,#e11d48_100%)] px-4 py-2 text-[13px] font-semibold text-white shadow-[0_14px_28px_rgba(244,63,94,0.24)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-70"
+                  >
+                    {deletingCommentId ? (
+                      <span className="h-[14px] w-[14px] animate-spin rounded-full border-2 border-white/80 border-t-transparent" />
+                    ) : (
+                      "Xoá"
+                    )}
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
           ) : null}
         </AnimatePresence>
       </motion.div>

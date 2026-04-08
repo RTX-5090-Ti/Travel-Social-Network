@@ -30,6 +30,10 @@ const CommentSchema = new mongoose.Schema(
       index: true,
     },
 
+    counts: {
+      reactions: { type: Number, default: 0 },
+    },
+
     content: { type: String, required: true, trim: true, maxlength: 1000 },
   },
   { timestamps: true },

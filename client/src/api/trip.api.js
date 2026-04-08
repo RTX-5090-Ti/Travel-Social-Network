@@ -84,4 +84,16 @@ export const tripApi = {
   createComment(id, payload) {
     return api.post(`/api/trips/${id}/comments`, payload);
   },
+
+  updateComment(commentId, payload) {
+    return api.patch(`/api/comments/${commentId}`, payload);
+  },
+
+  deleteComment(commentId) {
+    return api.delete(`/api/comments/${commentId}`);
+  },
+
+  toggleCommentReaction(commentId) {
+    return api.put(`/api/comments/${commentId}/reaction`);
+  },
 };

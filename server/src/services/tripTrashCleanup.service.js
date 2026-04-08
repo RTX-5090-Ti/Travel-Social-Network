@@ -94,6 +94,10 @@ async function hardDeleteTrip(tripId, now) {
   const items = await TripItem.find({ tripId })
     .select("media.publicId media.type")
     .lean();
+  const tripComments = await Comment.find({ targetType: "trip", targetId: tripId })
+    .select("_id")
+    .lean();
+  const commentIds = tripComments.map((comment) => comment._id);
 
   const mediaFiles = items.flatMap((item) =>
     Array.isArray(item?.media)
@@ -112,6 +116,9 @@ async function hardDeleteTrip(tripId, now) {
     Comment.deleteMany({ targetType: "trip", targetId: tripId }),
     HiddenTrip.deleteMany({ tripId }),
     Reaction.deleteMany({ targetType: "trip", targetId: tripId }),
+    commentIds.length
+      ? Reaction.deleteMany({ targetType: "comment", targetId: { $in: commentIds } })
+      : Promise.resolve(),
     SavedTrip.deleteMany({ tripId }),
     Milestone.deleteMany({ tripId }),
     TripItem.deleteMany({ tripId }),

@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 import Comment from "../models/Comment.js";
+import Reaction from "../models/Reaction.js";
 import Trip from "../models/Trip.js";
 import { getTripAccessContext } from "../utils/tripVisibility.js";
 
@@ -18,9 +19,16 @@ function countDescendants(replies = []) {
 }
 
 function normalizeCommentPayload(comment, replies = []) {
+  const likeCount = Math.max(
+    0,
+    Number(comment?.likeCount ?? comment?.counts?.reactions ?? 0),
+  );
+
   return {
     ...comment,
     replyToUser: comment?.replyToUserId || null,
+    liked: !!comment?.liked,
+    likeCount,
     replyCount: countDescendants(replies),
     replies,
   };
@@ -36,6 +44,57 @@ function buildReplyTree(parentId, repliesByParentId) {
       buildReplyTree(reply?._id, repliesByParentId),
     ),
   );
+}
+
+function collectCommentIds(items = [], collector = []) {
+  items.forEach((comment) => {
+    const currentId = toIdString(comment?._id);
+    if (currentId) {
+      collector.push(currentId);
+    }
+
+    if (Array.isArray(comment?.replies) && comment.replies.length) {
+      collectCommentIds(comment.replies, collector);
+    }
+  });
+
+  return collector;
+}
+
+function decorateCommentTreeWithLikes(items = [], likedSet = new Set()) {
+  return items.map((comment) => ({
+    ...comment,
+    liked: likedSet.has(toIdString(comment?._id)),
+    likeCount: Math.max(0, Number(comment?.counts?.reactions ?? comment?.likeCount ?? 0)),
+    replies: Array.isArray(comment?.replies)
+      ? decorateCommentTreeWithLikes(comment.replies, likedSet)
+      : [],
+  }));
+}
+
+async function collectCommentSubtreeIds(rootCommentId) {
+  const collectedIds = [];
+  const queue = [toIdString(rootCommentId)];
+
+  while (queue.length) {
+    const currentId = queue.shift();
+    if (!currentId) continue;
+
+    collectedIds.push(currentId);
+
+    const children = await Comment.find({ parentCommentId: currentId })
+      .select("_id")
+      .lean();
+
+    children.forEach((child) => {
+      const childId = toIdString(child?._id);
+      if (childId) {
+        queue.push(childId);
+      }
+    });
+  }
+
+  return collectedIds;
 }
 
 // POST /api/trips/:id/comments
@@ -223,9 +282,144 @@ export async function listTripComments(req, res, next) {
       )
       .reverse();
 
+    const commentIds = collectCommentIds(items);
+    const likedSet = new Set(
+      commentIds.length
+        ? (
+            await Reaction.find({
+              targetType: "comment",
+              userId: viewerId,
+              targetId: { $in: commentIds },
+            })
+              .select("targetId")
+              .lean()
+          ).map((item) => toIdString(item.targetId))
+        : [],
+    );
+
     res.json({
-      comments: items,
+      comments: decorateCommentTreeWithLikes(items, likedSet),
       page: { limit, hasMore, nextCursor },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PATCH /api/comments/:commentId
+export async function updateComment(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const commentId = req.params.commentId;
+    const content = req.body?.content?.trim();
+
+    if (!mongoose.isValidObjectId(commentId)) {
+      return res.status(400).json({ message: "Invalid comment id" });
+    }
+
+    if (!content) {
+      return res.status(400).json({ message: "Content is required" });
+    }
+
+    const existingComment = await Comment.findById(commentId)
+      .select("_id userId targetType targetId")
+      .lean();
+
+    if (!existingComment || existingComment.targetType !== "trip") {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    if (toIdString(existingComment.userId) !== toIdString(userId)) {
+      return res.status(403).json({ message: "You can only edit your own comment" });
+    }
+
+    const { trip, canView } = await getTripAccessContext({
+      tripId: existingComment.targetId,
+      viewerId: userId,
+    });
+
+    if (!trip || !canView) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+
+    const updatedComment = await Comment.findOneAndUpdate(
+      { _id: commentId, userId },
+      { $set: { content } },
+      { returnDocument: "after" },
+    )
+      .populate("userId", "name avatarUrl")
+      .populate("replyToUserId", "name avatarUrl")
+      .lean();
+
+    if (!updatedComment) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    res.json({
+      comment: normalizeCommentPayload(updatedComment, []),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// DELETE /api/comments/:commentId
+export async function deleteComment(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const commentId = req.params.commentId;
+
+    if (!mongoose.isValidObjectId(commentId)) {
+      return res.status(400).json({ message: "Invalid comment id" });
+    }
+
+    const existingComment = await Comment.findById(commentId)
+      .select("_id userId targetType targetId")
+      .lean();
+
+    if (!existingComment || existingComment.targetType !== "trip") {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    if (toIdString(existingComment.userId) !== toIdString(userId)) {
+      return res.status(403).json({ message: "You can only delete your own comment" });
+    }
+
+    const { trip, canView } = await getTripAccessContext({
+      tripId: existingComment.targetId,
+      viewerId: userId,
+    });
+
+    if (!trip || !canView) {
+      return res.status(404).json({ message: "Trip not found" });
+    }
+
+    const subtreeIds = await collectCommentSubtreeIds(existingComment._id);
+    const deleteCount = subtreeIds.length;
+
+    if (!deleteCount) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    await Comment.deleteMany({
+      _id: { $in: subtreeIds },
+      targetType: "trip",
+      targetId: existingComment.targetId,
+    });
+
+    await Reaction.deleteMany({
+      targetType: "comment",
+      targetId: { $in: subtreeIds },
+    });
+
+    await Trip.updateOne(
+      { _id: existingComment.targetId },
+      { $inc: { "counts.comments": -deleteCount } },
+    );
+
+    res.json({
+      deletedCommentId: toIdString(existingComment._id),
+      deletedCount: deleteCount,
     });
   } catch (err) {
     next(err);

@@ -386,8 +386,7 @@ export default function JourneyFeedCard({
         }
 
         setDetailError(
-          e?.response?.data?.message ||
-            "Không tải được chi tiết journey.",
+          e?.response?.data?.message || "Không tải được chi tiết journey.",
         );
       } finally {
         if (detailRequestIdRef.current === requestId) {
@@ -491,8 +490,7 @@ export default function JourneyFeedCard({
       }
 
       setDetailError(
-        error?.response?.data?.message ||
-          "Không tải được chi tiết journey.",
+        error?.response?.data?.message || "Không tải được chi tiết journey.",
       );
     } finally {
       if (detailRequestIdRef.current === requestId) {
@@ -625,7 +623,9 @@ export default function JourneyFeedCard({
       if (hasEmbeddedDetail(trip)) {
         return {
           trip,
-          generalItems: Array.isArray(trip?.generalItems) ? trip.generalItems : [],
+          generalItems: Array.isArray(trip?.generalItems)
+            ? trip.generalItems
+            : [],
           milestones: Array.isArray(trip?.milestones) ? trip.milestones : [],
         };
       }
@@ -654,7 +654,8 @@ export default function JourneyFeedCard({
         }
 
         showToast(
-          error?.response?.data?.message || "Không tải được dữ liệu để chỉnh sửa.",
+          error?.response?.data?.message ||
+            "Không tải được dữ liệu để chỉnh sửa.",
           "error",
         );
       } finally {
@@ -865,6 +866,9 @@ export default function JourneyFeedCard({
             onCommentCreated={() => {
               setCommentCount((prev) => prev + 1);
             }}
+            onCommentDeleted={(deletedCount = 1) => {
+              setCommentCount((prev) => Math.max(prev - deletedCount, 0));
+            }}
             onClose={() => {
               setExpanded(false);
               setForceOpenDismissed(true);
@@ -877,9 +881,9 @@ export default function JourneyFeedCard({
       {!overlayOnly ? (
         <article
           ref={cardRef}
-          className="overflow-hidden rounded-[30px] border border-white/70 bg-white shadow-[0_18px_50px_rgba(17,24,39,0.06)] ring-1 ring-zinc-200/60"
+          className="-mx-4 overflow-hidden bg-white sm:mx-0 sm:rounded-[30px] sm:border sm:border-white/70 sm:shadow-[0_18px_50px_rgba(17,24,39,0.06)] sm:ring-1 sm:ring-zinc-200/60"
         >
-          <div className="px-5 pt-5 sm:px-6 sm:pt-6">
+          <div className="px-4 pt-4 sm:px-6 sm:pt-6">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-center min-w-0 gap-3">
                 <div className="relative">
@@ -887,10 +891,10 @@ export default function JourneyFeedCard({
                     <img
                       src={ownerAvatar}
                       alt={ownerName}
-                      className="h-12 w-12 rounded-full object-cover shadow-[0_10px_24px_rgba(102,126,234,0.18)] ring-1 ring-white/70"
+                      className="h-10 w-10 rounded-full object-cover shadow-[0_8px_18px_rgba(102,126,234,0.16)] ring-1 ring-white/70 sm:h-12 sm:w-12 sm:shadow-[0_10px_24px_rgba(102,126,234,0.18)]"
                     />
                   ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-sm font-semibold text-white shadow-[0_10px_24px_rgba(102,126,234,0.35)]">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-[13px] font-semibold text-white shadow-[0_8px_18px_rgba(102,126,234,0.28)] sm:h-12 sm:w-12 sm:text-sm sm:shadow-[0_10px_24px_rgba(102,126,234,0.35)]">
                       {initials}
                     </div>
                   )}
@@ -900,11 +904,11 @@ export default function JourneyFeedCard({
                   <button
                     type="button"
                     onClick={() => onPreviewUser?.(trip.ownerId)}
-                    className="block max-w-full cursor-pointer truncate text-left text-[16px] font-semibold text-zinc-900 transition hover:text-[#5b6ee1] "
+                    className="block max-w-full cursor-pointer truncate text-left text-[15px] font-semibold text-zinc-900 transition hover:text-[#5b6ee1] sm:text-[16px]"
                   >
                     {ownerName}
                   </button>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-2 text-[13px] text-zinc-400">
+                  <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[12px] text-zinc-400 sm:gap-2 sm:text-[13px]">
                     <span>{formatFeedTime(trip.createdAt)}</span>
 
                     {isPinned ? (
@@ -939,8 +943,8 @@ export default function JourneyFeedCard({
             </div>
           </div>
 
-          <div className="px-5 pt-5 sm:px-6">
-            <div className="group relative h-[260px] overflow-hidden rounded-[24px] bg-zinc-100 sm:h-[340px]">
+          <div className="pt-4 sm:px-6 sm:pt-5">
+            <div className="group relative h-[220px] overflow-hidden bg-zinc-100 sm:h-[340px] sm:rounded-[24px]">
               {previewItems.length > 0 ? (
                 <>
                   {previewItems.map((item, idx) => {
@@ -1021,7 +1025,7 @@ export default function JourneyFeedCard({
 
               <div className="absolute inset-x-0 bottom-0 pointer-events-none h-28 bg-gradient-to-t from-black/35 via-black/8 to-transparent" />
 
-              <div className="absolute flex flex-wrap gap-2 left-4 top-4">
+              <div className="absolute left-3 top-3 flex flex-wrap gap-1.5 sm:left-4 sm:top-4 sm:gap-2">
                 {isPinned ? (
                   <JourneyMetaChip text="Pinned" tone="blue" />
                 ) : null}
@@ -1038,38 +1042,38 @@ export default function JourneyFeedCard({
               </div>
 
               {previewItems.length > 1 && !expanded ? (
-                <div className="absolute bottom-4 right-4 rounded-full bg-black/40 px-3 py-1 text-[12px] font-semibold text-white backdrop-blur">
+                <div className="absolute bottom-3 right-3 rounded-full bg-black/40 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur sm:bottom-4 sm:right-4 sm:px-3 sm:text-[12px]">
                   {previewIndex + 1} / {previewItems.length}
                 </div>
               ) : null}
             </div>
           </div>
 
-          <div className="px-5 pt-5 pb-5 sm:px-6 sm:pb-6">
+          <div className="px-4 pt-4 pb-4 sm:px-6 sm:pb-6 sm:pt-5">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h4 className="text-[22px] font-semibold tracking-tight text-zinc-900">
+                  <h4 className="text-[19px] font-semibold tracking-tight text-zinc-900 sm:text-[22px]">
                     {trip.title}
                   </h4>
-                  <span className="rounded-full bg-violet-50 px-3 py-1 text-[12px] font-semibold text-violet-600">
+                  <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-600 sm:px-3 sm:text-[12px]">
                     Journey
                   </span>
                 </div>
 
                 {caption ? (
-                  <p className="mt-3 text-[14px] leading-7 text-zinc-600 whitespace-pre-line">
+                  <p className="mt-2.5 whitespace-pre-line text-[13px] leading-6 text-zinc-600 sm:mt-3 sm:text-[14px] sm:leading-7">
                     {expanded ? caption : previewCaption}
                   </p>
                 ) : (
-                  <p className="mt-3 text-[14px] italic leading-7 text-zinc-400">
+                  <p className="mt-2.5 text-[13px] italic leading-6 text-zinc-400 sm:mt-3 sm:text-[14px] sm:leading-7">
                     Chưa có phần intro cho journey này.
                   </p>
                 )}
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 mt-5">
+            <div className="mt-4 flex flex-wrap gap-1.5 sm:mt-5 sm:gap-2">
               <JourneyMetaChip
                 text={`${likeCount} ${likeCount === 1 ? "like" : "likes"}`}
                 tone="soft"
@@ -1089,13 +1093,13 @@ export default function JourneyFeedCard({
               ) : null}
             </div>
 
-            <div className="flex flex-col gap-3 pt-5 mt-6 border-t border-zinc-100 sm:flex-row sm:items-center sm:justify-between">
-              <div className="grid grid-cols-3 gap-2 pt-2 mt-3 border-zinc-200/80">
+            <div className="flex flex-col gap-3 pt-4 mt-5 border-t border-zinc-100 sm:mt-6 sm:pt-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="mt-2 grid grid-cols-3 gap-1.5 pt-1 sm:mt-3 sm:gap-2 sm:pt-2 border-zinc-200/80">
                 <button
                   type="button"
                   onClick={handleToggleLike}
                   disabled={likeLoading}
-                  className={`inline-flex h-11 items-center justify-center gap-2 rounded-xl text-[15px] font-medium transition active:scale-[0.98] ${
+                  className={`inline-flex h-10 items-center justify-center gap-1.5 rounded-xl text-[13px] font-medium transition active:scale-[0.98] sm:h-11 sm:gap-2 sm:text-[15px] ${
                     liked
                       ? "bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-600"
                       : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
@@ -1103,7 +1107,7 @@ export default function JourneyFeedCard({
                 >
                   <HeartIcon
                     filled={liked}
-                    className={`h-[20px] w-[20px] transition ${
+                    className={`h-[18px] w-[18px] transition sm:h-[20px] sm:w-[20px] ${
                       liked ? "scale-110" : ""
                     }`}
                   />
@@ -1114,17 +1118,17 @@ export default function JourneyFeedCard({
                   type="button"
                   onClick={handleToggleShow}
                   disabled={detailLoading}
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl text-[15px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 active:scale-[0.98] px-10 cursor-pointer"
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl px-6 text-[13px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 active:scale-[0.98] sm:h-11 sm:gap-2 sm:px-10 sm:text-[15px] cursor-pointer"
                 >
-                  <CommentIcon className="h-[20px] w-[20px]" />
+                  <CommentIcon className="h-[18px] w-[18px] sm:h-[20px] sm:w-[20px]" />
                   <span>Comment</span>
                 </button>
 
                 <button
                   type="button"
-                  className="inline-flex h-11 items-center justify-center gap-2 rounded-xl text-[15px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 active:scale-[0.98] cursor-pointer"
+                  className="inline-flex h-10 items-center justify-center gap-1.5 rounded-xl text-[13px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 active:scale-[0.98] sm:h-11 sm:gap-2 sm:text-[15px] cursor-pointer"
                 >
-                  <ShareIcon className="h-[20px] w-[20px]" />
+                  <ShareIcon className="h-[18px] w-[18px] sm:h-[20px] sm:w-[20px]" />
                   <span>Share</span>
                 </button>
               </div>
@@ -1132,7 +1136,7 @@ export default function JourneyFeedCard({
               <button
                 onClick={handleToggleShow}
                 disabled={detailLoading}
-                className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-5 py-3 text-sm font-semibold text-white shadow-[0_14px_32px_rgba(102,126,234,0.28)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(102,126,234,0.38)]"
+                className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-4 py-2.5 text-[13px] font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(102,126,234,0.38)] sm:px-5 sm:py-3 sm:text-sm sm:shadow-[0_14px_32px_rgba(102,126,234,0.28)]"
               >
                 {expanded ? (
                   <>

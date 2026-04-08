@@ -4,11 +4,11 @@ import { Eye, EyeOff } from "lucide-react";
 import Sparkles from "./Sparkles";
 
 const inputBase =
-  "peer w-full rounded-xl border-2 bg-white/90 px-5 pb-2 pt-5 text-[16px] text-slate-800 outline-none transition-all duration-300 placeholder-transparent backdrop-blur-md";
+  "peer w-full rounded-xl border-2 bg-white/90 px-4 pb-2 pt-4.5 text-[15px] text-slate-800 outline-none transition-all duration-300 placeholder-transparent backdrop-blur-md sm:px-5 sm:pb-2 sm:pt-5 sm:text-[16px]";
 const inputState =
   "border-white/30 focus:-translate-y-0.5 focus:border-transparent focus:bg-white focus:shadow-[0_10px_30px_rgba(102,126,234,0.20)]";
 const labelBase =
-  "pointer-events-none absolute left-5 top-5 origin-left rounded bg-white/90 px-2 text-[16px] font-medium text-slate-500 transition-all duration-300";
+  "pointer-events-none absolute left-4 top-4.5 origin-left rounded bg-white/90 px-2 text-[15px] font-medium text-slate-500 transition-all duration-300 sm:left-5 sm:top-5 sm:text-[16px]";
 const floatedLabelClass =
   "-translate-y-9 translate-x-2 scale-[0.85] font-semibold text-indigo-500";
 
@@ -89,7 +89,7 @@ export default function AuthInput({
             onFocus={onFocus}
             onBlur={onBlur}
             className={`${inputBase} ${inputState} ${
-              isPassword ? "pr-14" : ""
+              isPassword ? "pr-12 sm:pr-14" : ""
             } ${
               error
                 ? "border-red-400 bg-red-50/70 [animation:shake_0.5s_ease-in-out]"
@@ -112,7 +112,7 @@ export default function AuthInput({
             aria-label="Toggle password visibility"
             onClick={onTogglePassword}
             whileTap={{ scale: 1.2 }}
-            className="absolute z-10 p-2 transition -translate-y-1/2 rounded-lg right-5 top-1/2 text-slate-500 hover:scale-110 hover:bg-indigo-500/10 hover:text-indigo-500"
+            className="absolute z-10 rounded-lg p-2 text-slate-500 transition right-3 top-1/2 -translate-y-1/2 hover:scale-110 hover:bg-indigo-500/10 hover:text-indigo-500 sm:right-5"
           >
             {passwordVisible ? (
               <EyeOff className="w-5 h-5" />
@@ -163,7 +163,7 @@ export default function AuthInput({
       </div>
 
       <p
-        className={`ml-2 mt-2 rounded-lg border-l-4 border-red-500 bg-red-500/10 px-3 py-1.5 text-sm text-red-500 transition-all duration-300 ${
+        className={`ml-2 mt-2 rounded-lg border-l-4 border-red-500 bg-red-500/10 px-3 py-1.5 text-[13px] leading-5 text-red-500 transition-all duration-300 sm:text-sm ${
           error ? "translate-y-0 opacity-100" : "-translate-y-2 opacity-0"
         }`}
       >

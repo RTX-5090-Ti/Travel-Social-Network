@@ -1,3 +1,5 @@
+import { useEffect, useRef, useState } from "react";
+
 import { SendIcon } from "../feed.icons";
 import { formatFeedTime, getInitials } from "../feed.utils";
 import CommentComposerAvatar from "./CommentComposerAvatar";
@@ -86,6 +88,30 @@ function getReplyToName(comment) {
   );
 }
 
+function CommentHeartIcon({ filled = false }) {
+  if (filled) {
+    return (
+      <svg viewBox="0 0 24 24" fill="currentColor" className="h-[15px] w-[15px]">
+        <path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35Z" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-[15px] w-[15px]"
+    >
+      <path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35Z" />
+    </svg>
+  );
+}
+
 function treeContainsComment(comment, targetId) {
   if (!targetId) return false;
   if (getCommentId(comment) === targetId) return true;
@@ -98,7 +124,19 @@ function CommentBubble({
   comment,
   showConnector = false,
   onReply,
+  onToggleLike,
   currentUserId = "",
+  onEdit,
+  onDelete,
+  editing = false,
+  editText = "",
+  editSubmitting = false,
+  currentUserAvatar = "",
+  currentUserInitials = "Y",
+  currentUserName = "You",
+  onEditTextChange,
+  onEditCancel,
+  onEditSubmit,
 }) {
   const authorName = getCommentAuthorName(comment);
   const authorId = getCommentAuthorId(comment);
@@ -107,8 +145,36 @@ function CommentBubble({
   const replyToName = getReplyToName(comment);
   const content =
     typeof comment?.content === "string" ? comment.content.trim() : "";
+  const liked = !!comment?.liked;
+  const likeCount = Math.max(0, Number(comment?.likeCount || 0));
   const isOwnComment =
     Boolean(currentUserId) && Boolean(authorId) && currentUserId === authorId;
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRootRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+
+    function handleClickOutside(event) {
+      const target = event.target;
+      if (menuRootRef.current?.contains(target)) return;
+      setMenuOpen(false);
+    }
+
+    function handleEscape(event) {
+      if (event.key === "Escape") {
+        setMenuOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [menuOpen]);
 
   return (
     <div className="relative flex items-start gap-3">
@@ -146,22 +212,57 @@ function CommentBubble({
           </div>
 
           {isOwnComment ? (
-            <button
-              type="button"
-              aria-label="Comment actions"
-              className="absolute left-full top-1/2 ml-2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(245,241,255,0.96))] text-[#8b5cf6] opacity-0 shadow-[0_8px_18px_rgba(76,29,149,0.08)] ring-1 ring-zinc-200/70 transition duration-200 group-hover/comment:pointer-events-auto group-hover/comment:opacity-100 hover:-translate-y-1/2 hover:scale-[1.04] hover:border-violet-200 hover:bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(243,232,255,0.98))] hover:text-[#7c3aed] hover:shadow-[0_12px_24px_rgba(124,58,237,0.14)] cursor-pointer pointer-events-none"
+            <div
+              ref={menuRootRef}
+              className="absolute left-full top-1/2 ml-2 -translate-y-1/2"
             >
-              <svg
-                viewBox="0 0 24 24"
-                fill="currentColor"
-                className="h-[18px] w-[18px]"
-                aria-hidden="true"
+              <button
+                type="button"
+                aria-label="Comment actions"
+                onClick={() => setMenuOpen((prev) => !prev)}
+                className={`inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(245,241,255,0.96))] text-[#8b5cf6] shadow-[0_8px_18px_rgba(76,29,149,0.08)] ring-1 ring-zinc-200/70 transition duration-200 hover:scale-[1.04] hover:border-violet-200 hover:bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(243,232,255,0.98))] hover:text-[#7c3aed] hover:shadow-[0_12px_24px_rgba(124,58,237,0.14)] ${
+                  menuOpen
+                    ? "pointer-events-auto opacity-100"
+                    : "pointer-events-none opacity-0 group-hover/comment:pointer-events-auto group-hover/comment:opacity-100"
+                } cursor-pointer`}
               >
-                <circle cx="5" cy="12" r="1.8" />
-                <circle cx="12" cy="12" r="1.8" />
-                <circle cx="19" cy="12" r="1.8" />
-              </svg>
-            </button>
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="currentColor"
+                  className="h-[18px] w-[18px]"
+                  aria-hidden="true"
+                >
+                  <circle cx="5" cy="12" r="1.8" />
+                  <circle cx="12" cy="12" r="1.8" />
+                  <circle cx="19" cy="12" r="1.8" />
+                </svg>
+              </button>
+
+              {menuOpen ? (
+                <div className="absolute left-full top-1/2 ml-2 w-36 -translate-y-1/2 overflow-hidden rounded-[18px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,242,255,0.98))] p-1.5 shadow-[0_18px_40px_rgba(76,29,149,0.16)] ring-1 ring-zinc-200/70">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onEdit?.(comment);
+                    }}
+                    className="flex w-full cursor-pointer items-center rounded-[14px] px-3 py-2 text-left text-[13px] font-semibold text-zinc-700 transition hover:bg-white/80 hover:text-[#7c3aed]"
+                  >
+                    Chỉnh sửa
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      onDelete?.(comment);
+                    }}
+                    className="flex w-full cursor-pointer items-center rounded-[14px] px-3 py-2 text-left text-[13px] font-semibold text-rose-500 transition hover:bg-rose-50 hover:text-rose-600"
+                  >
+                    Xoá
+                  </button>
+                </div>
+              ) : null}
+            </div>
           ) : null}
         </div>
 
@@ -170,9 +271,15 @@ function CommentBubble({
 
           <button
             type="button"
-            className="transition cursor-pointer hover:text-zinc-700"
+            onClick={() => onToggleLike?.(comment)}
+            className={`transition cursor-pointer hover:text-zinc-700 ${
+              liked ? "text-rose-500 hover:text-rose-600" : ""
+            }`}
           >
-            Like
+            <span className="inline-flex items-center gap-1.5">
+              <CommentHeartIcon filled={liked} />
+              {likeCount ? <span>{likeCount}</span> : null}
+            </span>
           </button>
 
           {onReply ? (
@@ -185,6 +292,56 @@ function CommentBubble({
             </button>
           ) : null}
         </div>
+
+        {editing ? (
+          <form onSubmit={onEditSubmit} className="mt-3 pl-2.5">
+            <div className="flex items-end gap-3">
+              <CommentComposerAvatar
+                src={currentUserAvatar}
+                initials={currentUserInitials}
+                name={currentUserName}
+              />
+
+              <div className="min-w-0 flex-1 rounded-[21px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.95),rgba(250,247,255,0.96))] px-3 py-1.5 shadow-[0_8px_18px_rgba(99,102,241,0.08)] ring-1 ring-zinc-200/70">
+                <textarea
+                  value={editText}
+                  onChange={(event) =>
+                    onEditTextChange?.(event.target.value)
+                  }
+                  rows={1}
+                  placeholder="Edit your comment..."
+                  className="min-h-[28px] w-full resize-none overflow-y-hidden border-0 bg-transparent text-[12px] leading-5 text-zinc-700 outline-none placeholder:text-zinc-400"
+                />
+
+                <div className="mt-1 flex items-center justify-between gap-3">
+                  <button
+                    type="button"
+                    onClick={onEditCancel}
+                    className="text-[11px] font-semibold text-zinc-400 transition hover:text-zinc-700"
+                  >
+                    Cancel
+                  </button>
+
+                  <button
+                    type="submit"
+                    disabled={!editText.trim() || editSubmitting}
+                    className={`inline-flex h-8.5 w-8.5 items-center justify-center rounded-full transition ${
+                      editText.trim()
+                        ? "cursor-pointer bg-[linear-gradient(135deg,#667eea_0%,#8b5cf6_48%,#7c3aed_100%)] text-white shadow-[0_12px_24px_rgba(124,58,237,0.22)] hover:-translate-y-0.5"
+                        : "cursor-not-allowed bg-white/80 text-zinc-300 ring-1 ring-zinc-200/80"
+                    }`}
+                  >
+                    {editSubmitting ? (
+                      <span className="h-[13px] w-[13px] animate-spin rounded-full border-2 border-white/80 border-t-transparent" />
+                    ) : (
+                      <SendIcon className="h-[14px] w-[14px]" />
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </form>
+        ) : null}
       </div>
     </div>
   );
@@ -206,10 +363,20 @@ function CommentThread({
   currentUserInitials = "Y",
   currentUserName = "You",
   onReplyToggle,
+  onToggleLike,
+  likingCommentId = "",
   onExpandReplies,
   onLoadMoreReplies,
+  onEdit,
+  onDelete,
+  editingCommentId = "",
+  editingText = "",
+  editSubmitting = false,
   onReplyTextChange,
   onReplySubmit,
+  onEditTextChange,
+  onEditCancel,
+  onEditSubmit,
 }) {
   const rawReplies = Array.isArray(comment?.replies) ? comment.replies : [];
   const commentId = getCommentId(comment);
@@ -222,6 +389,8 @@ function CommentThread({
   const expandDescendants = isExpanded || forceExpanded;
   const repliesExpanded = expandDescendants || isActivePath;
   const replyingHere = activeReplyId === commentId;
+  const editingHere = editingCommentId === commentId;
+  const likeSubmitting = likingCommentId === commentId;
   const shouldIndentChildren = depth < 2;
   const childWrapperClass = shouldIndentChildren
     ? "relative ml-[18px] mt-3 pl-8"
@@ -251,13 +420,82 @@ function CommentThread({
         comment={comment}
         showConnector={depth > 0}
         onReply={() => onReplyToggle?.(comment)}
+        onToggleLike={likeSubmitting ? null : onToggleLike}
         currentUserId={currentUserId}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        editing={editingHere}
+        editText={editingText}
+        editSubmitting={editSubmitting}
+        currentUserAvatar={currentUserAvatar}
+        currentUserInitials={currentUserInitials}
+        currentUserName={currentUserName}
+        onEditTextChange={onEditTextChange}
+        onEditCancel={onEditCancel}
+        onEditSubmit={onEditSubmit}
       />
 
       {hasReplies || replyingHere ? (
         <div className={childWrapperClass}>
           {shouldIndentChildren ? (
             <span className="absolute top-0 left-0 w-px rounded-full bottom-2 bg-gradient-to-b from-violet-300 via-fuchsia-300 to-transparent" />
+          ) : null}
+
+          {replyingHere ? (
+            <form onSubmit={onReplySubmit} className="mt-3 mb-4">
+              <div className="relative">
+                <span className="absolute left-[-24px] top-5 h-px w-5 rounded-full bg-gradient-to-r from-violet-300 to-fuchsia-300" />
+                <div className="flex items-end gap-3">
+                  <CommentComposerAvatar
+                    src={currentUserAvatar}
+                    initials={currentUserInitials}
+                    name={currentUserName}
+                  />
+
+                  <div className="min-w-0 flex-1 rounded-[21px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.95),rgba(250,247,255,0.96))] px-3 py-1.5 shadow-[0_8px_18px_rgba(99,102,241,0.08)] ring-1 ring-zinc-200/70">
+                    <textarea
+                      value={replyText}
+                      onChange={(event) =>
+                        onReplyTextChange?.(event.target.value)
+                      }
+                      rows={1}
+                      placeholder={
+                        replyTargetName
+                          ? `Reply to ${replyTargetName}...`
+                          : "Write a reply..."
+                      }
+                      className="min-h-[28px] w-full resize-none overflow-y-hidden border-0 bg-transparent text-[12px] leading-5 text-zinc-700 outline-none placeholder:text-zinc-400"
+                    />
+
+                    <div className="mt-1 flex items-center justify-between gap-3">
+                      <button
+                        type="button"
+                        onClick={() => onReplyToggle?.(comment)}
+                        className="text-[11px] font-semibold text-zinc-400 transition hover:text-zinc-700"
+                      >
+                        Cancel
+                      </button>
+
+                      <button
+                        type="submit"
+                        disabled={!replyText.trim() || replySubmitting}
+                        className={`inline-flex h-8.5 w-8.5 items-center justify-center rounded-full transition ${
+                          replyText.trim()
+                            ? "cursor-pointer bg-[linear-gradient(135deg,#667eea_0%,#8b5cf6_48%,#7c3aed_100%)] text-white shadow-[0_12px_24px_rgba(124,58,237,0.22)] hover:-translate-y-0.5"
+                            : "cursor-not-allowed bg-white/80 text-zinc-300 ring-1 ring-zinc-200/80"
+                        }`}
+                      >
+                        {replySubmitting ? (
+                          <span className="h-[13px] w-[13px] animate-spin rounded-full border-2 border-white/80 border-t-transparent" />
+                        ) : (
+                          <SendIcon className="h-[14px] w-[14px]" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
           ) : null}
 
           {hasReplies ? (
@@ -293,10 +531,20 @@ function CommentThread({
                       currentUserInitials={currentUserInitials}
                       currentUserName={currentUserName}
                       onReplyToggle={onReplyToggle}
+                      onToggleLike={onToggleLike}
+                      likingCommentId={likingCommentId}
                       onExpandReplies={onExpandReplies}
                       onLoadMoreReplies={onLoadMoreReplies}
+                      onEdit={onEdit}
+                      onDelete={onDelete}
+                      editingCommentId={editingCommentId}
+                      editingText={editingText}
+                      editSubmitting={editSubmitting}
                       onReplyTextChange={onReplyTextChange}
                       onReplySubmit={onReplySubmit}
+                      onEditTextChange={onEditTextChange}
+                      onEditCancel={onEditCancel}
+                      onEditSubmit={onEditSubmit}
                     />
                   ))}
 
@@ -318,63 +566,6 @@ function CommentThread({
                 </div>
               ) : null}
             </div>
-          ) : null}
-
-          {replyingHere ? (
-            <form onSubmit={onReplySubmit} className="mt-3">
-              <div className="relative">
-                <span className="absolute left-[-24px] top-5 h-px w-5 rounded-full bg-gradient-to-r from-violet-300 to-fuchsia-300" />
-                <div className="flex items-end gap-3">
-                  <CommentComposerAvatar
-                    src={currentUserAvatar}
-                    initials={currentUserInitials}
-                    name={currentUserName}
-                  />
-
-                  <div className="min-w-0 flex-1 rounded-[21px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.95),rgba(250,247,255,0.96))] px-3 py-1.5 shadow-[0_8px_18px_rgba(99,102,241,0.08)] ring-1 ring-zinc-200/70">
-                    <textarea
-                      value={replyText}
-                      onChange={(event) =>
-                        onReplyTextChange?.(event.target.value)
-                      }
-                      rows={1}
-                      placeholder={
-                        replyTargetName
-                          ? `Reply to ${replyTargetName}...`
-                          : "Write a reply..."
-                      }
-                      className="min-h-[28px] w-full resize-none overflow-y-hidden border-0 bg-transparent text-[12px] leading-5 text-zinc-700 outline-none placeholder:text-zinc-400"
-                    />
-
-                    <div className="flex items-center justify-between gap-3 mt-1">
-                      <button
-                        type="button"
-                        onClick={() => onReplyToggle?.(comment)}
-                        className="text-[11px] font-semibold text-zinc-400 transition hover:text-zinc-700"
-                      >
-                        Cancel
-                      </button>
-
-                      <button
-                        type="submit"
-                        disabled={!replyText.trim() || replySubmitting}
-                        className={`inline-flex h-8.5 w-8.5 items-center justify-center rounded-full transition ${
-                          replyText.trim()
-                            ? "cursor-pointer bg-[linear-gradient(135deg,#667eea_0%,#8b5cf6_48%,#7c3aed_100%)] text-white shadow-[0_12px_24px_rgba(124,58,237,0.22)] hover:-translate-y-0.5"
-                            : "cursor-not-allowed bg-white/80 text-zinc-300 ring-1 ring-zinc-200/80"
-                        }`}
-                      >
-                        {replySubmitting ? (
-                          <span className="h-[13px] w-[13px] animate-spin rounded-full border-2 border-white/80 border-t-transparent" />
-                        ) : (
-                          <SendIcon className="h-[14px] w-[14px]" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </form>
           ) : null}
         </div>
       ) : null}

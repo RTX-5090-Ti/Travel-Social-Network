@@ -143,7 +143,7 @@ function MenuActionButton({
     <button
       type="button"
       onClick={onClick}
-      className={`group flex w-full cursor-pointer items-center gap-2.5 rounded-[18px] px-2.5 py-2.5 text-left transition ${
+      className={`group flex w-full cursor-pointer items-center gap-2 rounded-[15px] px-2 py-2 text-left transition sm:gap-2.5 sm:rounded-[18px] sm:px-2.5 sm:py-2.5 ${
         isDanger
           ? "hover:bg-[linear-gradient(135deg,rgba(255,241,242,0.9),rgba(255,247,248,0.95))]"
           : isWarning
@@ -152,7 +152,7 @@ function MenuActionButton({
       }`}
     >
       <span
-        className={`mt-0.5 flex h-9.5 w-9.5 shrink-0 items-center justify-center rounded-[16px] border shadow-sm transition ${
+        className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-[13px] border shadow-sm transition sm:h-9.5 sm:w-9.5 sm:rounded-[16px] ${
           isDanger
             ? "border-rose-200/70 bg-[linear-gradient(135deg,rgba(255,241,242,0.95),rgba(255,255,255,0.96))] text-rose-500 group-hover:border-rose-300"
             : isWarning
@@ -160,12 +160,12 @@ function MenuActionButton({
               : "border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(242,246,255,0.94),rgba(248,244,255,0.96))] text-[#667eea] group-hover:border-violet-200/70 group-hover:text-[#5b6ee1]"
         }`}
       >
-        <Icon className="h-[18px] w-[18px]" />
+        <Icon className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
       </span>
 
       <span className="flex-1 min-w-0">
         <span
-          className={`block text-[14px] font-semibold leading-5 ${
+          className={`block text-[13px] font-semibold leading-5 sm:text-[14px] ${
             isDanger
               ? "text-rose-600"
               : isWarning
@@ -177,7 +177,7 @@ function MenuActionButton({
         </span>
         {description ? (
           <span
-            className={`mt-0.5 block text-[12px] leading-[18px] ${
+            className={`mt-0.5 block text-[11px] leading-4 sm:text-[12px] sm:leading-[18px] ${
               isDanger
                 ? "text-rose-400"
                 : isWarning
@@ -331,13 +331,13 @@ export default function JourneyCardActionsMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((prev) => !prev)}
-        className={`inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-full transition ${
+        className={`inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full transition sm:h-9 sm:w-9 ${
           open
             ? "bg-[linear-gradient(135deg,rgba(238,242,255,0.95),rgba(245,240,255,0.98))] text-[#5b6ee1] shadow-[0_10px_22px_rgba(102,126,234,0.16)]"
             : "text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
         }`}
       >
-        <DotsIcon className="w-4 h-4" />
+        <DotsIcon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
       </button>
 
       <AnimatePresence>
@@ -347,7 +347,7 @@ export default function JourneyCardActionsMenu({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.985 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute right-0 top-[calc(100%+8px)] z-30 w-[280px] overflow-hidden rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,248,255,0.98),rgba(250,246,255,0.98))] p-2 shadow-[0_22px_64px_rgba(76,81,191,0.16)] ring-1 ring-violet-200/40 backdrop-blur-xl"
+            className="absolute right-0 top-[calc(100%+8px)] z-30 w-[244px] overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,248,255,0.98),rgba(250,246,255,0.98))] p-1.5 shadow-[0_18px_44px_rgba(76,81,191,0.14)] ring-1 ring-violet-200/40 backdrop-blur-xl sm:w-[280px] sm:rounded-[24px] sm:p-2 sm:shadow-[0_22px_64px_rgba(76,81,191,0.16)]"
           >
             <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(132,94,247,0.28),transparent)]" />
 
@@ -365,7 +365,7 @@ export default function JourneyCardActionsMenu({
                 ))}
 
                 {sectionIndex < sections.length - 1 ? (
-                  <div className="mx-2.5 my-1 h-px bg-[linear-gradient(90deg,transparent,rgba(161,161,170,0.22),transparent)]" />
+                  <div className="mx-2 my-1 h-px bg-[linear-gradient(90deg,transparent,rgba(161,161,170,0.22),transparent)] sm:mx-2.5" />
                 ) : null}
               </div>
             ))}

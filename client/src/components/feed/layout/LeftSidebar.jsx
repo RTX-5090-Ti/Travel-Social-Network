@@ -1,5 +1,7 @@
+import { useMemo } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../../auth/useAuth";
 import { requests, navItems } from "../page/feed.constants";
 import { CheckIcon } from "../page/feed.icons";
 import Divider from "./Divider";
@@ -14,6 +16,31 @@ function getPreviewAvatar(user) {
   );
 }
 
+function MenuLinesIcon({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <path
+        d="M4 7h16"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4 12h16"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4 17h16"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export default function LeftSidebar({
   previewUser = null,
   previewStats = null,
@@ -22,6 +49,7 @@ export default function LeftSidebar({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { logout } = useAuth();
 
   const displayUser = previewUser || null;
   const previewAvatar = getPreviewAvatar(displayUser);
@@ -58,6 +86,21 @@ export default function LeftSidebar({
     return { ...item, active: false };
   });
 
+  const mobileNavItems = useMemo(
+    () => [
+      ...sidebarNavItems.filter((item) =>
+        ["Feed", "Home", "Archive", "Settings"].includes(item.label),
+      ),
+      {
+        id: "sidebar-menu",
+        label: "Menu",
+        active: false,
+        icon: MenuLinesIcon,
+      },
+    ],
+    [sidebarNavItems],
+  );
+
   function handleSidebarNavigate(item) {
     if (item.label === "Feed") {
       navigate("/");
@@ -85,8 +128,37 @@ export default function LeftSidebar({
     });
   }
 
+  async function handleLogout() {
+    await logout();
+    onClearPreview?.();
+    navigate("/login", { replace: true });
+  }
+
   return (
-    <aside className="hidden border-r border-zinc-200/80 bg-white/80 px-6 py-7 backdrop-blur lg:block lg:self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:rounded-l-[34px] feed-side-scroll">
+    <>
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200/80 bg-white/96 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] pt-2 shadow-[0_-14px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
+        <div className="mx-auto flex w-full max-w-[560px] items-center justify-between gap-1.5">
+          {mobileNavItems.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[18px] px-2 py-2.5 transition ${
+                  item.active
+                    ? "bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-white shadow-[0_10px_22px_rgba(102,126,234,0.22)]"
+                    : "text-zinc-500"
+                }`}
+              >
+                <Icon className="h-[20px] w-[20px]" />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <aside className="hidden border-r border-zinc-200/80 bg-white/80 px-6 py-7 backdrop-blur lg:block lg:self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:rounded-l-[34px] feed-side-scroll">
       <div>
         <div className="flex items-center justify-center gap-3">
           <div className="relative flex items-center justify-center w-16 h-16 shrink-0">
@@ -349,19 +421,44 @@ export default function LeftSidebar({
             {sidebarNavItems.map((item) => {
               const Icon = item.icon;
               return (
-                <motion.button
-                  layout="position"
-                  key={item.id}
-                  onClick={() => handleSidebarNavigate(item)}
-                  className={`cursor-pointer flex w-full items-center gap-3 rounded-[18px] px-4 py-3 text-left text-[15px] font-medium transition ${
-                    item.active
-                      ? "bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-white shadow-[0_14px_30px_rgba(102,126,234,0.24)]"
-                      : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                </motion.button>
+                <div key={item.id} className="space-y-2">
+                  <motion.button
+                    layout="position"
+                    onClick={() => handleSidebarNavigate(item)}
+                    className={`cursor-pointer flex w-full items-center gap-3 rounded-[18px] px-4 py-3 text-left text-[15px] font-medium transition ${
+                      item.active
+                        ? "bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-white shadow-[0_14px_30px_rgba(102,126,234,0.24)]"
+                        : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span>{item.label}</span>
+                  </motion.button>
+
+                  {item.label === "Settings" ? (
+                    <motion.button
+                      layout="position"
+                      type="button"
+                      onClick={handleLogout}
+                      className="flex w-full cursor-pointer items-center gap-3 rounded-[18px] px-4 py-3 text-left text-[15px] font-medium text-rose-500 transition hover:bg-rose-50 hover:text-rose-600"
+                    >
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="1.9"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-5 w-5"
+                      >
+                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                        <path d="M16 17l5-5-5-5" />
+                        <path d="M21 12H9" />
+                      </svg>
+                      <span>Log out</span>
+                    </motion.button>
+                  ) : null}
+                </div>
               );
             })}
           </motion.nav>
@@ -413,6 +510,7 @@ export default function LeftSidebar({
           </motion.div>
         </LayoutGroup>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

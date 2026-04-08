@@ -307,17 +307,17 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-5 py-6 font-sans">
-      <div className="absolute inset-0 pointer-events-none">
+    <div className="relative min-h-screen overflow-hidden bg-white font-sans md:bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] md:px-5 md:py-6 lg:px-6 lg:py-8">
+      <div className="pointer-events-none absolute inset-0 hidden md:block">
         <FloatingShape
-          className="left-[10%] top-[10%] h-20 w-20"
+          className="left-[10%] top-[8%] h-16 w-16 sm:h-20 sm:w-20"
           style={shapeStyles[0]}
         >
           <div className="h-full w-full rounded-full bg-[linear-gradient(45deg,rgba(255,107,107,0.3),rgba(255,142,83,0.3))]" />
         </FloatingShape>
 
         <FloatingShape
-          className="right-[15%] top-[20%] h-[120px] w-[120px]"
+          className="right-[10%] top-[16%] h-[90px] w-[90px] sm:right-[15%] sm:top-[20%] sm:h-[120px] sm:w-[120px]"
           style={shapeStyles[1]}
         >
           <div className="h-full w-full rounded-full bg-[linear-gradient(45deg,rgba(72,187,120,0.3),rgba(56,178,172,0.3))]" />
@@ -331,22 +331,22 @@ export default function LoginPage() {
         </FloatingShape>
 
         <FloatingShape
-          className="bottom-[10%] right-[10%] h-[100px] w-[100px]"
+          className="bottom-[12%] right-[4%] h-[76px] w-[76px] sm:bottom-[10%] sm:right-[10%] sm:h-[100px] sm:w-[100px]"
           style={shapeStyles[3]}
         >
           <div className="h-full w-full rounded-full bg-[linear-gradient(45deg,rgba(236,72,153,0.3),rgba(219,39,119,0.3))]" />
         </FloatingShape>
 
         <FloatingShape
-          className="left-[5%] top-1/2 h-[140px] w-[140px]"
+          className="left-[-4%] top-[48%] h-[96px] w-[96px] sm:left-[5%] sm:top-1/2 sm:h-[140px] sm:w-[140px]"
           style={shapeStyles[4]}
         >
           <div className="h-full w-full rounded-full bg-[linear-gradient(45deg,rgba(251,191,36,0.3),rgba(245,158,11,0.3))]" />
         </FloatingShape>
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-[calc(100vh-48px)] max-w-[1500px] items-center justify-center">
-        <div className="grid w-full grid-cols-1 items-center gap-10 lg:grid-cols-[1.15fr_0.85fr]">
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-[1500px] items-start justify-center md:min-h-[calc(100vh-48px)] md:items-center">
+        <div className="grid w-full grid-cols-1 items-start lg:grid-cols-[1.15fr_0.85fr] lg:items-center lg:gap-10">
           <div className="items-center justify-center hidden lg:flex">
             <div className="flex w-full max-w-[980px] flex-col">
               <div className="flex gap-2 px-2 mb-5">
@@ -397,7 +397,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-center">
+          <div className="flex min-h-screen items-start justify-center md:min-h-0 md:items-center">
             <motion.div
               ref={cardRef}
               onMouseEnter={() => setCardHovered(true)}
@@ -418,15 +418,15 @@ export default function LoginPage() {
                 scale: { duration: 0.25 },
               }}
               style={{ transformStyle: "preserve-3d" }}
-              className={`relative w-full max-w-[450px] overflow-hidden rounded-[24px] border border-white/30 bg-white/95 p-8 backdrop-blur-[20px] transition-shadow duration-500 sm:p-10 ${
+              className={`relative min-h-screen w-full max-w-none overflow-hidden border-0 bg-white p-5 transition-shadow duration-500 sm:p-8 md:min-h-0 md:max-w-[450px] md:rounded-[24px] md:border md:border-white/30 md:bg-white/95 md:p-10 md:backdrop-blur-[20px] ${
                 shakeCard
-                  ? "shadow-[0_25px_50px_rgba(229,62,62,0.30),0_0_0_1px_rgba(229,62,62,0.2)]"
+                  ? "shadow-none md:shadow-[0_25px_50px_rgba(229,62,62,0.30),0_0_0_1px_rgba(229,62,62,0.2)]"
                   : cardHovered
-                    ? "shadow-[0_35px_70px_rgba(0,0,0,0.3),0_0_0_1px_rgba(255,255,255,0.2)]"
-                    : "shadow-[0_25px_50px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.1)]"
+                    ? "shadow-none md:shadow-[0_35px_70px_rgba(0,0,0,0.3),0_0_0_1px_rgba(255,255,255,0.2)]"
+                    : "shadow-none md:shadow-[0_25px_50px_rgba(0,0,0,0.2),0_0_0_1px_rgba(255,255,255,0.1)]"
               }`}
             >
-              <div className="absolute inset-x-0 top-0 h-[6px] overflow-hidden">
+              <div className="absolute inset-x-0 top-0 hidden h-[6px] overflow-hidden md:block">
                 <motion.div
                   className="absolute top-0 h-[2px] w-full bg-gradient-to-r from-transparent via-[#ff6b6b] to-transparent"
                   animate={{ x: ["-100%", "100%"] }}

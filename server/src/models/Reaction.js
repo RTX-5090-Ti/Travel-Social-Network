@@ -2,7 +2,12 @@ import mongoose from "mongoose";
 
 const ReactionSchema = new mongoose.Schema(
   {
-    targetType: { type: String, enum: ["trip"], required: true, index: true },
+    targetType: {
+      type: String,
+      enum: ["trip", "comment"],
+      required: true,
+      index: true,
+    },
     targetId: {
       type: mongoose.Schema.Types.ObjectId,
       required: true,

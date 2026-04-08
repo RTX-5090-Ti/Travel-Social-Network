@@ -13,7 +13,7 @@ export default function ProfileLeftSidebar({
 }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const displayUser = profileUser || user;
 
   const fallbackProfile = {
@@ -69,6 +69,11 @@ export default function ProfileLeftSidebar({
     if (item.label === "Archive") {
       navigate("/archive");
     }
+  }
+
+  async function handleLogout() {
+    await logout();
+    navigate("/login", { replace: true });
   }
 
   return (
@@ -186,18 +191,42 @@ export default function ProfileLeftSidebar({
           {sidebarNavItems.map((item) => {
             const Icon = item.icon;
             return (
-              <button
-                key={item.id}
-                onClick={() => handleSidebarNavigate(item)}
-                className={`cursor-pointer flex w-full items-center gap-3 rounded-[18px] px-4 py-3 text-left text-[15px] font-medium transition ${
-                  item.active
-                    ? "bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-white shadow-[0_14px_30px_rgba(102,126,234,0.24)]"
-                    : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
-                }`}
-              >
-                <Icon className="w-5 h-5" />
-                <span>{item.label}</span>
-              </button>
+              <div key={item.id} className="space-y-2">
+                <button
+                  onClick={() => handleSidebarNavigate(item)}
+                  className={`cursor-pointer flex w-full items-center gap-3 rounded-[18px] px-4 py-3 text-left text-[15px] font-medium transition ${
+                    item.active
+                      ? "bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-white shadow-[0_14px_30px_rgba(102,126,234,0.24)]"
+                      : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+                  }`}
+                >
+                  <Icon className="w-5 h-5" />
+                  <span>{item.label}</span>
+                </button>
+
+                {item.label === "Settings" ? (
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex w-full cursor-pointer items-center gap-3 rounded-[18px] px-4 py-3 text-left text-[15px] font-medium text-rose-500 transition hover:bg-rose-50 hover:text-rose-600"
+                  >
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.9"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-5 w-5"
+                    >
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <path d="M16 17l5-5-5-5" />
+                      <path d="M21 12H9" />
+                    </svg>
+                    <span>Log out</span>
+                  </button>
+                ) : null}
+              </div>
             );
           })}
         </nav>

@@ -732,7 +732,7 @@ export default function ShareJourneyModal({
           <>
             <motion.div
               key="share-journey-backdrop"
-              className="fixed inset-0 z-[90] bg-slate-950/40 backdrop-blur-md"
+              className="fixed inset-0 z-[90] bg-transparent sm:bg-slate-950/40 sm:backdrop-blur-md"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -742,7 +742,7 @@ export default function ShareJourneyModal({
 
             <motion.div
               key="share-journey-modal"
-              className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-5"
+              className="fixed inset-0 z-[100] flex items-stretch justify-center p-0 sm:items-center sm:p-5"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -752,22 +752,22 @@ export default function ShareJourneyModal({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 14, scale: 0.98 }}
                 transition={{ duration: 0.24, ease: "easeOut" }}
-                className="relative flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-[32px] border border-white/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.96))] shadow-[0_40px_120px_rgba(15,23,42,0.28)]"
+                className="relative flex h-screen max-h-screen w-full max-w-none flex-col overflow-hidden rounded-none border-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] shadow-none sm:h-auto sm:max-h-[92vh] sm:max-w-6xl sm:rounded-[32px] sm:border sm:border-white/60 sm:bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.96))] sm:shadow-[0_40px_120px_rgba(15,23,42,0.28)]"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="sticky top-0 z-20 px-5 py-4 border-b border-zinc-200/80 bg-white/75 backdrop-blur-xl sm:px-7">
+                <div className="sticky top-0 z-20 border-b border-zinc-200/80 bg-white/75 px-4 py-3 backdrop-blur-xl sm:px-7 sm:py-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <div className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-semibold text-[#3d68ff]">
-                        <span className="h-2 w-2 rounded-full bg-[#4f7cff]" />
+                      <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-[#3d68ff] sm:gap-2 sm:px-3 sm:text-xs">
+                        <span className="h-1.5 w-1.5 rounded-full bg-[#4f7cff] sm:h-2 sm:w-2" />
                         Travel Social
                       </div>
 
-                      <h2 className="mt-3 text-[24px] font-semibold text-zinc-900 sm:text-[28px]">
+                      <h2 className="mt-2.5 text-[20px] font-semibold text-zinc-900 sm:mt-3 sm:text-[28px]">
                         {isEditMode ? "Chỉnh sửa journey" : "Share Journey"}
                       </h2>
 
-                      <p className="max-w-2xl mt-1 text-sm leading-6 text-zinc-500">
+                      <p className="mt-1 max-w-2xl text-[13px] leading-5 text-zinc-500 sm:text-sm sm:leading-6">
                         Chia sẻ chuyến đi theo từng cột mốc, thêm cảm nhận cá
                         nhân và media cho từng chặng để bài post sinh động hơn.
                       </p>
@@ -777,9 +777,9 @@ export default function ShareJourneyModal({
                       type="button"
                       onClick={handleCloseModal}
                       disabled={submitting}
-                      className="cursor-pointer inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-500 transition hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="cursor-pointer inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-500 transition hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:w-11"
                     >
-                      <XIcon className="w-5 h-5 " />
+                      <XIcon className="h-4 w-4 sm:h-5 sm:w-5" />
                     </button>
                   </div>
                 </div>
@@ -787,10 +787,10 @@ export default function ShareJourneyModal({
                 <form
                   id="share-journey-form"
                   onSubmit={handleSubmit}
-                  className="flex-1 px-5 py-5 overflow-y-auto sm:px-7 sm:py-6"
+                  className="flex-1 overflow-y-auto px-4 py-4 sm:px-7 sm:py-6"
                 >
-                  <div className="grid gap-6 xl:grid-cols-[1.02fr_1.34fr]">
-                    <section className="rounded-[28px] border border-zinc-200/80 bg-white/90 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)] sm:p-6">
+                  <div className="grid gap-4 sm:gap-6 xl:grid-cols-[1.02fr_1.34fr]">
+                    <section className="rounded-[22px] border border-zinc-200/80 bg-white/90 p-4 shadow-[0_8px_22px_rgba(15,23,42,0.045)] sm:rounded-[28px] sm:p-6 sm:shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">
@@ -807,7 +807,7 @@ export default function ShareJourneyModal({
                         </div>
                       </div>
 
-                      <div className="mt-5 space-y-5">
+                      <div className="mt-4 space-y-4 sm:mt-5 sm:space-y-5">
                         <Field label="Trip title">
                           <input
                             value={tripTitle}
@@ -836,21 +836,21 @@ export default function ShareJourneyModal({
                           />
                         </Field>
 
-                        <div className="grid grid-cols-2 gap-3">
-                          <div className="px-4 py-3 border rounded-2xl border-zinc-200 bg-zinc-50/70">
-                            <p className="text-xs font-medium text-zinc-400">
+                        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
+                          <div className="rounded-[18px] border border-zinc-200 bg-zinc-50/70 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
+                            <p className="text-[11px] font-medium text-zinc-400 sm:text-xs">
                               Milestones
                             </p>
-                            <p className="mt-1 text-lg font-semibold text-zinc-900">
+                            <p className="mt-0.5 text-[17px] font-semibold text-zinc-900 sm:mt-1 sm:text-lg">
                               {milestones.length}
                             </p>
                           </div>
 
-                          <div className="px-4 py-3 border rounded-2xl border-zinc-200 bg-zinc-50/70">
-                            <p className="text-xs font-medium text-zinc-400">
+                          <div className="rounded-[18px] border border-zinc-200 bg-zinc-50/70 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
+                            <p className="text-[11px] font-medium text-zinc-400 sm:text-xs">
                               Media selected
                             </p>
-                            <p className="mt-1 text-lg font-semibold text-zinc-900">
+                            <p className="mt-0.5 text-[17px] font-semibold text-zinc-900 sm:mt-1 sm:text-lg">
                               {totalFiles}
                             </p>
                           </div>
@@ -858,7 +858,7 @@ export default function ShareJourneyModal({
                       </div>
                     </section>
 
-                    <section className="rounded-[28px] border border-zinc-200/80 bg-white/90 p-5 shadow-[0_10px_30px_rgba(15,23,42,0.05)] sm:p-6">
+                    <section className="rounded-[22px] border border-zinc-200/80 bg-white/90 p-4 shadow-[0_8px_22px_rgba(15,23,42,0.045)] sm:rounded-[28px] sm:p-6 sm:shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">
@@ -979,7 +979,7 @@ export default function ShareJourneyModal({
                                     handleDragLeave(item.id, e)
                                   }
                                   onDrop={(e) => handleDropFiles(item.id, e)}
-                                  className={`group relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[24px] border border-dashed px-4 py-9 text-center transition duration-200 ${
+                                  className={`group relative flex cursor-pointer flex-col items-center justify-center overflow-hidden rounded-[20px] border border-dashed px-4 py-6 text-center transition duration-200 sm:rounded-[24px] sm:py-9 ${
                                     draggingMilestoneId === item.id
                                       ? "border-[#4f7cff] bg-blue-50/70 shadow-[0_18px_40px_rgba(79,124,255,0.14)] ring-4 ring-blue-100"
                                       : "border-zinc-300 bg-[linear-gradient(180deg,#ffffff,#f8fbff)] hover:border-[#4f7cff] hover:bg-blue-50/40"
@@ -990,27 +990,27 @@ export default function ShareJourneyModal({
                                   )}
 
                                   <div
-                                    className={`relative z-[1] inline-flex h-14 w-14 items-center justify-center rounded-[20px] border border-white/70 text-[#4f7cff] shadow-[0_12px_28px_rgba(79,124,255,0.14)] transition duration-200 ${
+                                    className={`relative z-[1] inline-flex h-11 w-11 items-center justify-center rounded-[16px] border border-white/70 text-[#4f7cff] shadow-[0_10px_22px_rgba(79,124,255,0.12)] transition duration-200 sm:h-14 sm:w-14 sm:rounded-[20px] sm:shadow-[0_12px_28px_rgba(79,124,255,0.14)] ${
                                       draggingMilestoneId === item.id
                                         ? "scale-105 bg-blue-100"
                                         : "bg-[linear-gradient(135deg,#eff6ff,#eef2ff)] group-hover:scale-[1.04]"
                                     }`}
                                   >
-                                    <UploadIcon className="w-6 h-6" />
+                                    <UploadIcon className="h-5 w-5 sm:h-6 sm:w-6" />
                                   </div>
 
-                                  <span className="relative z-[1] mt-4 text-sm font-semibold text-zinc-800">
+                                  <span className="relative z-[1] mt-3 text-[13px] font-semibold text-zinc-800 sm:mt-4 sm:text-sm">
                                     {draggingMilestoneId === item.id
                                       ? "Drop media here"
                                       : "Upload media for this milestone"}
                                   </span>
 
-                                  <span className="relative z-[1] mt-1 text-xs leading-5 text-zinc-500">
+                                  <span className="relative z-[1] mt-1 text-[11px] leading-4.5 text-zinc-500 sm:text-xs sm:leading-5">
                                     Kéo & thả ảnh/video vào đây hoặc click để
                                     chọn thêm
                                   </span>
 
-                                  <span className="relative z-[1] mt-1 text-[11px] font-medium text-zinc-400">
+                                  <span className="relative z-[1] mt-1 text-[10px] font-medium text-zinc-400 sm:text-[11px]">
                                     Up to {MAX_FILES_PER_MILESTONE} files per
                                     milestone
                                   </span>
@@ -1079,7 +1079,7 @@ export default function ShareJourneyModal({
                       ) : null}
                     </div>
 
-                    <div className="flex gap-3">
+                    <div className="ml-auto flex justify-end gap-3">
                       <button
                         type="button"
                         onClick={handleCloseModal}
@@ -1348,42 +1348,42 @@ function PrivacySelect({ value, onChange, options }) {
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className={`cursor-pointer group relative flex min-h-[72px] w-full items-center justify-between gap-4 overflow-hidden rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,248,250,0.96))] px-4 py-4 text-left shadow-[0_14px_40px_rgba(15,23,42,0.06)] ring-1 ring-zinc-200/60 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_18px_48px_rgba(15,23,42,0.10)] focus:outline-none focus:ring-4 focus:ring-[#d7c3a3]/25 ${
+        className={`cursor-pointer group relative flex min-h-[60px] w-full items-center justify-between gap-3 overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,248,250,0.96))] px-3 py-3 text-left shadow-[0_10px_26px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_18px_48px_rgba(15,23,42,0.10)] focus:outline-none focus:ring-4 focus:ring-[#d7c3a3]/25 sm:min-h-[72px] sm:gap-4 sm:rounded-[24px] sm:px-4 sm:py-4 sm:shadow-[0_14px_40px_rgba(15,23,42,0.06)] ${
           open ? "border-[#d7c3a3]/70 ring-[#d7c3a3]/40" : ""
         }`}
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(212,175,122,0.75),transparent)]" />
 
-        <div className="flex items-center min-w-0 gap-3">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] border border-white/70 bg-[linear-gradient(135deg,#fff7ed,#f5ecff)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
+        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[15px] border border-white/70 bg-[linear-gradient(135deg,#fff7ed,#f5ecff)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:h-12 sm:w-12 sm:rounded-[18px]">
             <PrivacyOptionIcon
               value={selected.value}
-              className="w-5 h-5 text-zinc-700"
+              className="h-4 w-4 text-zinc-700 sm:h-5 sm:w-5"
             />
           </div>
 
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="truncate text-[15px] font-semibold tracking-[0.01em] text-zinc-900">
+              <p className="truncate text-[14px] font-semibold tracking-[0.01em] text-zinc-900 sm:text-[15px]">
                 {selected.label}
               </p>
 
               <span
-                className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold tracking-[0.08em] uppercase ${selected.tone}`}
+                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-[0.08em] uppercase sm:px-2.5 sm:py-1 sm:text-[11px] ${selected.tone}`}
               >
                 Selected
               </span>
             </div>
 
-            <p className="mt-1 line-clamp-2 text-[13px] leading-5 text-zinc-500">
+            <p className="mt-0.5 line-clamp-2 text-[12px] leading-4.5 text-zinc-500 sm:mt-1 sm:text-[13px] sm:leading-5">
               {selected.description}
             </p>
           </div>
         </div>
 
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-200/80 bg-white/80 shadow-[0_6px_16px_rgba(15,23,42,0.05)]">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-200/80 bg-white/80 shadow-[0_6px_16px_rgba(15,23,42,0.05)] sm:h-10 sm:w-10">
           <ChevronDownIcon
-            className={`h-4.5 w-4.5 text-zinc-500 transition duration-200 ${
+            className={`h-4 w-4 text-zinc-500 transition duration-200 sm:h-4.5 sm:w-4.5 ${
               open ? "rotate-180 text-zinc-800" : "group-hover:text-zinc-700"
             }`}
           />
@@ -1413,23 +1413,23 @@ function PrivacySelect({ value, onChange, options }) {
                       onChange(item.value);
                       setOpen(false);
                     }}
-                    className={`cursor-pointer group flex w-full items-start gap-3 rounded-[20px] px-3 py-3.5 text-left transition ${
+                    className={`cursor-pointer group flex w-full items-start gap-2.5 rounded-[16px] px-2.5 py-2.5 text-left transition sm:gap-3 sm:rounded-[20px] sm:px-3 sm:py-3.5 ${
                       active
                         ? "bg-[linear-gradient(135deg,rgba(255,247,237,0.95),rgba(245,236,255,0.92))] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
                         : "hover:bg-white/90"
                     }`}
                   >
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[16px] border border-white/70 bg-white/90 shadow-[0_8px_20px_rgba(15,23,42,0.05)]">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] border border-white/70 bg-white/90 shadow-[0_8px_20px_rgba(15,23,42,0.05)] sm:h-11 sm:w-11 sm:rounded-[16px]">
                       <PrivacyOptionIcon
                         value={item.value}
-                        className="w-5 h-5 text-zinc-700"
+                        className="h-4 w-4 text-zinc-700 sm:h-5 sm:w-5"
                       />
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <p
-                          className={`text-[14px] font-semibold ${
+                          className={`text-[13px] font-semibold sm:text-[14px] ${
                             active ? "text-zinc-950" : "text-zinc-800"
                           }`}
                         >
@@ -1437,24 +1437,24 @@ function PrivacySelect({ value, onChange, options }) {
                         </p>
 
                         <span
-                          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-semibold tracking-[0.08em] uppercase ${item.tone}`}
+                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold tracking-[0.08em] uppercase sm:px-2.5 sm:py-1 sm:text-[10px] ${item.tone}`}
                         >
                           {item.value}
                         </span>
                       </div>
 
-                      <p className="mt-1 text-[12.5px] leading-5 text-zinc-500">
+                      <p className="mt-0.5 text-[11.5px] leading-4.5 text-zinc-500 sm:mt-1 sm:text-[12.5px] sm:leading-5">
                         {item.description}
                       </p>
                     </div>
 
-                    <div className="flex items-center justify-center w-8 h-8 shrink-0">
+                    <div className="flex h-7 w-7 shrink-0 items-center justify-center sm:h-8 sm:w-8">
                       {active ? (
-                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[linear-gradient(135deg,#caa56c,#b689ff)] text-white shadow-[0_8px_18px_rgba(202,165,108,0.28)]">
-                          <CheckIcon className="h-3.5 w-3.5" />
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[linear-gradient(135deg,#caa56c,#b689ff)] text-white shadow-[0_8px_18px_rgba(202,165,108,0.28)] sm:h-7 sm:w-7">
+                          <CheckIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
                         </div>
                       ) : (
-                        <div className="h-2.5 w-2.5 rounded-full bg-zinc-300 transition group-hover:bg-zinc-400" />
+                        <div className="h-2 w-2 rounded-full bg-zinc-300 transition group-hover:bg-zinc-400 sm:h-2.5 sm:w-2.5" />
                       )}
                     </div>
                   </button>
