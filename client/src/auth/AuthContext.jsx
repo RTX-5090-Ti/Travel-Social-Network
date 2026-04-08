@@ -38,6 +38,12 @@ export function AuthProvider({ children }) {
     return res;
   }
 
+  async function reactivateAccount(payload) {
+    const res = await authApi.reactivateAccount(payload);
+    setUser(res.data.user || null);
+    return res;
+  }
+
   async function logout() {
     try {
       await authApi.logout();
@@ -61,6 +67,7 @@ export function AuthProvider({ children }) {
       isAuthenticated: !!user,
       login,
       register,
+      reactivateAccount,
       logout,
     }),
     [user, bootstrapping, clearAuth],

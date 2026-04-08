@@ -8,6 +8,7 @@ const LoginPage = lazy(() => import("../../pages/LoginPage"));
 const FeedPage = lazy(() => import("../../pages/FeedPage"));
 const ProfilePage = lazy(() => import("../../pages/ProfilePage"));
 const ArchivePage = lazy(() => import("../../pages/ArchivePage"));
+const SettingsPage = lazy(() => import("../../pages/SettingsPage"));
 
 export default function AppRoutes() {
   return (
@@ -54,6 +55,15 @@ export default function AppRoutes() {
           element={
             <ProtectedRoute>
               <ArchivePage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <SettingsPage />
             </ProtectedRoute>
           }
         />

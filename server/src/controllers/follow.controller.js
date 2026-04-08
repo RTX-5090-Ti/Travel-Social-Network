@@ -30,8 +30,31 @@ function parsePagination(query) {
 }
 
 async function ensureUserExists(userId) {
-  const exists = await User.exists({ _id: userId });
+  const exists = await User.exists({ _id: userId, isActive: { $ne: false } });
   return !!exists;
+}
+
+async function countActiveFollowUsers({ matchField, targetUserId, joinField }) {
+  const results = await Follow.aggregate([
+    {
+      $match: {
+        [matchField]: new mongoose.Types.ObjectId(targetUserId),
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: joinField,
+        foreignField: "_id",
+        as: "relatedUser",
+      },
+    },
+    { $unwind: "$relatedUser" },
+    { $match: { "relatedUser.isActive": { $ne: false } } },
+    { $count: "total" },
+  ]);
+
+  return results[0]?.total || 0;
 }
 
 async function validateTargetUser(userId, res) {
@@ -66,17 +89,22 @@ async function listFollowUsers({
 
   const [docs, total] = await Promise.all([
     Follow.find(baseFilter)
-      .populate(populatePath, "_id name email avatarUrl")
+      .populate(populatePath, "_id name email avatarUrl isActive")
       .sort({ createdAt: -1, _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
       .lean(),
-    Follow.countDocuments(baseFilter),
+    countActiveFollowUsers({
+      matchField: isFollowersMode ? "followingId" : "followerId",
+      targetUserId,
+      joinField: isFollowersMode ? "followerId" : "followingId",
+    }),
   ]);
 
   const users = docs
     .map((doc) => doc?.[populatePath])
     .filter(Boolean)
+    .filter((user) => user?.isActive !== false)
     .filter((user) => user?._id?.toString() !== targetUserId);
 
   const relatedUserIds = users.map((user) => user._id);
@@ -183,8 +211,16 @@ export async function getFollowSummary(req, res, next) {
     const userId = req.user.userId;
 
     const [followersCount, followingCount] = await Promise.all([
-      Follow.countDocuments({ followingId: userId }),
-      Follow.countDocuments({ followerId: userId }),
+      countActiveFollowUsers({
+        matchField: "followingId",
+        targetUserId: userId,
+        joinField: "followerId",
+      }),
+      countActiveFollowUsers({
+        matchField: "followerId",
+        targetUserId: userId,
+        joinField: "followingId",
+      }),
     ]);
 
     res.json({

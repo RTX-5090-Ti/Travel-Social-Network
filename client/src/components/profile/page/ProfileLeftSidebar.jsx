@@ -2,8 +2,7 @@ import { motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../../auth/useAuth";
-import { requests, navItems } from "../../feed/page/feed.constants";
-import { CheckIcon } from "../../feed/page/feed.icons";
+import { navItems } from "../../feed/page/feed.constants";
 import ProfileDivider from "./ProfileDivider";
 
 export default function ProfileLeftSidebar({
@@ -52,6 +51,10 @@ export default function ProfileLeftSidebar({
       return { ...item, active: location.pathname === "/archive" };
     }
 
+    if (item.label === "Settings") {
+      return { ...item, active: location.pathname === "/settings" };
+    }
+
     return { ...item, active: false };
   });
 
@@ -68,6 +71,11 @@ export default function ProfileLeftSidebar({
 
     if (item.label === "Archive") {
       navigate("/archive");
+      return;
+    }
+
+    if (item.label === "Settings") {
+      navigate("/settings");
     }
   }
 
@@ -233,39 +241,6 @@ export default function ProfileLeftSidebar({
 
         <ProfileDivider />
 
-        <div>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-[15px] font-semibold text-zinc-900">
-              Friend requests
-            </h3>
-            <button className="text-[13px] font-medium text-[#4f7cff]">
-              See all
-            </button>
-          </div>
-
-          <div className="space-y-4">
-            {requests.map((request) => (
-              <div
-                key={request.id}
-                className="flex items-center justify-between gap-3 rounded-[18px] bg-white px-3 py-3 shadow-[0_8px_20px_rgba(15,23,42,0.03)] ring-1 ring-zinc-200/60"
-              >
-                <div className="flex items-center min-w-0 gap-3">
-                  <img
-                    src={request.avatar}
-                    alt={request.name}
-                    className="object-cover rounded-full h-11 w-11"
-                  />
-                  <p className="truncate text-[14px] font-medium text-zinc-800">
-                    {request.name}
-                  </p>
-                </div>
-                <button className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 text-[#4f7cff] transition hover:bg-blue-100">
-                  <CheckIcon />
-                </button>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </aside>
   );

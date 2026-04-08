@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { Check, UserX } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
 import AuthCard from "../components/auth/login/AuthCard";
@@ -19,7 +20,7 @@ import {
 
 export default function LoginPage() {
   const nav = useNavigate();
-  const { login, register } = useAuth();
+  const { login, register, reactivateAccount } = useAuth();
   const { showToast } = useToast();
   const [currentSlide, setCurrentSlide] = useState(0);
   const [mode, setMode] = useState("login");
@@ -30,6 +31,11 @@ export default function LoginPage() {
   const [errors, setErrors] = useState(initialErrors);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isReactivatePromptOpen, setIsReactivatePromptOpen] = useState(false);
+  const [reactivatePromptVariant, setReactivatePromptVariant] =
+    useState("deactivated");
+  const [pendingDeletionLabel, setPendingDeletionLabel] = useState("");
+  const [reactivateLoading, setReactivateLoading] = useState(false);
   const [shakeCard, setShakeCard] = useState(false);
   const [mouse, setMouse] = useState({ x: 0, y: 0 });
   const [cardTilt, setCardTilt] = useState({ rotateX: 0, rotateY: 0 });
@@ -279,6 +285,24 @@ export default function LoginPage() {
           ? "Đăng nhập thất bại"
           : "Đăng ký tài khoản thất bại");
 
+      const code = err?.response?.data?.code;
+
+      if (
+        mode === "login" &&
+        (code === "ACCOUNT_DEACTIVATED" || code === "ACCOUNT_PENDING_DELETION")
+      ) {
+        setReactivatePromptVariant(
+          code === "ACCOUNT_PENDING_DELETION"
+            ? "pendingDeletion"
+            : "deactivated",
+        );
+        setPendingDeletionLabel(err?.response?.data?.remainingLabel || "");
+        setIsReactivatePromptOpen(true);
+        setErrors(initialErrors);
+        triggerFailure();
+        return;
+      }
+
       setErrors(initialErrors);
 
       if (mode === "login") {
@@ -306,9 +330,49 @@ export default function LoginPage() {
     showToast(`Đăng nhập bằng ${platform} sẽ được cập nhật sau.`, "warning");
   };
 
+  const handleCloseReactivatePrompt = () => {
+    if (reactivateLoading) return;
+    setIsReactivatePromptOpen(false);
+    setReactivatePromptVariant("deactivated");
+    setPendingDeletionLabel("");
+  };
+
+  const handleReactivateAccount = async () => {
+    try {
+      setReactivateLoading(true);
+
+      await reactivateAccount({
+        email: form.loginEmail,
+        password: form.loginPassword,
+      });
+
+      setIsReactivatePromptOpen(false);
+      setSuccess(true);
+      showToast("Mở lại tài khoản thành công", "success");
+
+      setTimeout(() => {
+        nav("/");
+      }, 800);
+    } catch (err) {
+      const message =
+        err?.response?.data?.message ||
+        "KhÃ´ng má»Ÿ láº¡i tÃ i khoáº£n Ä‘Æ°á»£c.";
+
+      setErrors((prev) => ({
+        ...prev,
+        loginEmail: message,
+        loginPassword: message,
+      }));
+      triggerFailure();
+      showToast(message, "error");
+    } finally {
+      setReactivateLoading(false);
+    }
+  };
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-white font-sans md:bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] md:px-5 md:py-6 lg:px-6 lg:py-8">
-      <div className="pointer-events-none absolute inset-0 hidden md:block">
+      <div className="absolute inset-0 hidden pointer-events-none md:block">
         <FloatingShape
           className="left-[10%] top-[8%] h-16 w-16 sm:h-20 sm:w-20"
           style={shapeStyles[0]}
@@ -397,7 +461,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="flex min-h-screen items-start justify-center md:min-h-0 md:items-center">
+          <div className="flex items-start justify-center min-h-screen md:min-h-0 md:items-center">
             <motion.div
               ref={cardRef}
               onMouseEnter={() => setCardHovered(true)}
@@ -481,6 +545,78 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {isReactivatePromptOpen ? (
+          <motion.div
+            className="fixed inset-0 z-[220] flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <button
+              type="button"
+              aria-label="Close reactivate account prompt"
+              onClick={handleCloseReactivatePrompt}
+              className="absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.40),rgba(15,23,42,0.48))] backdrop-blur-[6px]"
+            />
+
+            <motion.div
+              initial={{ opacity: 0, y: 20, scale: 0.985 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.985 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              className="relative z-[1] w-full max-w-[450px] overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(247,248,255,0.98),rgba(255,255,255,0.99))] p-6 shadow-[0_28px_64px_rgba(15,23,42,0.22)] ring-1 ring-white/70"
+            >
+              <div className="flex justify-center">
+                <div className="inline-flex h-12 w-12 items-center justify-center rounded-[18px] bg-violet-100/90 text-violet-600 shadow-[0_10px_24px_rgba(102,126,234,0.12)]">
+                  <UserX className="w-5 h-5 " />
+                </div>
+              </div>
+
+              <h3 className="mt-5 text-[24px] font-semibold tracking-tight text-zinc-900">
+                Tài khoản đang bị vô hiệu hoá
+              </h3>
+
+              <p className="mt-3 text-[14px] leading-7 text-zinc-500">
+                Bạn có muốn mở lại tài khoản để tiếp tục đăng nhập không?
+              </p>
+
+              {reactivatePromptVariant === "pendingDeletion" ? (
+                <div className="mt-4 rounded-[18px] border border-rose-100/80 bg-rose-50/70 px-4 py-3 text-left">
+                  <p className="text-[13px] font-semibold text-zinc-800">
+                    Tài khoản đang chờ xoá vĩnh viễn
+                  </p>
+                  <p className="mt-1 text-[13px] leading-6 text-zinc-500">
+                    {pendingDeletionLabel || "7 days remaining"}. Bạn có thể mở
+                    lại tài khoản bằng cách đăng nhập ngay bây giờ.
+                  </p>
+                </div>
+              ) : null}
+
+              <div className="flex items-center justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={handleCloseReactivatePrompt}
+                  disabled={reactivateLoading}
+                  className="inline-flex items-center justify-center h-10 px-5 text-sm font-semibold transition bg-white border cursor-pointer rounded-2xl border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-70"
+                >
+                  Huỷ
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleReactivateAccount}
+                  disabled={reactivateLoading}
+                  className="inline-flex h-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-80 cursor-pointer"
+                >
+                  {reactivateLoading ? "Đang mở lại..." : "Mở lại tài khoản"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

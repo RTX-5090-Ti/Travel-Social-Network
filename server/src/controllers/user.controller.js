@@ -53,6 +53,29 @@ function buildUserPayload(user) {
   return payload;
 }
 
+async function countActiveFollowRelations({ matchField, targetUserId, joinField }) {
+  const results = await Follow.aggregate([
+    {
+      $match: {
+        [matchField]: new mongoose.Types.ObjectId(targetUserId),
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: joinField,
+        foreignField: "_id",
+        as: "relatedUser",
+      },
+    },
+    { $unwind: "$relatedUser" },
+    { $match: { "relatedUser.isActive": { $ne: false } } },
+    { $count: "total" },
+  ]);
+
+  return results[0]?.total || 0;
+}
+
 export async function uploadAvatarController(req, res, next) {
   try {
     if (!req.file) {
@@ -120,7 +143,11 @@ async function buildProfileTrips({
     .select(
       "ownerId title caption privacy coverUrl counts createdAt feedPreview",
     )
-    .populate("ownerId", "name email avatarUrl")
+    .populate({
+      path: "ownerId",
+      select: "name email avatarUrl",
+      match: { isActive: { $ne: false } },
+    })
     .sort({ createdAt: -1 })
     .limit(limit)
     .lean();
@@ -208,12 +235,14 @@ async function buildProfileTrips({
     }
   }
 
-  return trips.map((trip) => ({
-    ...trip,
-    hearted: heartedSet.has(trip._id.toString()),
-    saved: savedSet.has(trip._id.toString()),
-    profileMedia: mediaByTripId.get(trip._id.toString()) || [],
-  }));
+  return trips
+    .filter((trip) => trip?.ownerId?._id)
+    .map((trip) => ({
+      ...trip,
+      hearted: heartedSet.has(trip._id.toString()),
+      saved: savedSet.has(trip._id.toString()),
+      profileMedia: mediaByTripId.get(trip._id.toString()) || [],
+    }));
 }
 
 export async function getMyTripsController(req, res, next) {
@@ -271,7 +300,7 @@ export async function getUserProfileController(req, res, next) {
       await Promise.all([
         User.findById(profileUserId)
           .select(
-            "_id name email avatarUrl coverUrl bio location travelStyle pinnedTripId",
+            "_id name email avatarUrl coverUrl bio location travelStyle pinnedTripId isActive",
           )
           .lean(),
         viewerId && viewerId !== profileUserId
@@ -282,11 +311,19 @@ export async function getUserProfileController(req, res, next) {
               .select("_id")
               .lean()
           : null,
-        Follow.countDocuments({ followingId: profileUserId }),
-        Follow.countDocuments({ followerId: profileUserId }),
+        countActiveFollowRelations({
+          matchField: "followingId",
+          targetUserId: profileUserId,
+          joinField: "followerId",
+        }),
+        countActiveFollowRelations({
+          matchField: "followerId",
+          targetUserId: profileUserId,
+          joinField: "followingId",
+        }),
       ]);
 
-    if (!profileUser) {
+    if (!profileUser || profileUser.isActive === false) {
       return res.status(404).json({ message: "User not found" });
     }
 
@@ -339,7 +376,7 @@ export async function getUserSummaryController(req, res, next) {
       await Promise.all([
         User.findById(profileUserId)
           .select(
-            "_id name email avatarUrl coverUrl bio location travelStyle pinnedTripId",
+            "_id name email avatarUrl coverUrl bio location travelStyle pinnedTripId isActive",
           )
           .lean(),
         viewerId && viewerId !== profileUserId
@@ -350,11 +387,19 @@ export async function getUserSummaryController(req, res, next) {
               .select("_id")
               .lean()
           : null,
-        Follow.countDocuments({ followingId: profileUserId }),
-        Follow.countDocuments({ followerId: profileUserId }),
+        countActiveFollowRelations({
+          matchField: "followingId",
+          targetUserId: profileUserId,
+          joinField: "followerId",
+        }),
+        countActiveFollowRelations({
+          matchField: "followerId",
+          targetUserId: profileUserId,
+          joinField: "followingId",
+        }),
       ]);
 
-    if (!profileUser) {
+    if (!profileUser || profileUser.isActive === false) {
       return res.status(404).json({ message: "User not found" });
     }
 

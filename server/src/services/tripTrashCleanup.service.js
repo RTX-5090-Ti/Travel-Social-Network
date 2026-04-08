@@ -81,7 +81,7 @@ async function claimExpiredTrip(now) {
   ).lean();
 }
 
-async function hardDeleteTrip(tripId, now) {
+export async function hardDeleteTripById(tripId, now) {
   const trip = await Trip.findById(tripId).select(
     "_id ownerId deletedAt scheduledDeletionAt deletionProcessingAt",
   );
@@ -141,7 +141,7 @@ export async function cleanupExpiredTrips() {
       if (!claimedTrip?._id) break;
 
       try {
-        await hardDeleteTrip(claimedTrip._id, now);
+        await hardDeleteTripById(claimedTrip._id, now);
       } catch (error) {
         await Trip.updateOne(
           { _id: claimedTrip._id },

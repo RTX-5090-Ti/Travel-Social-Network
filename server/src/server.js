@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import "dotenv/config";
 import app from "./app.js";
 import connectDB from "./config/db.js";
+import { startAccountDeletionCleanupJob } from "./services/accountDeletionCleanup.service.js";
 import { startHiddenTripCleanupJob } from "./services/hiddenTripCleanup.service.js";
 import { startTripTrashCleanupJob } from "./services/tripTrashCleanup.service.js";
 
@@ -14,6 +15,7 @@ async function bootstrap() {
     await connectDB();
     startTripTrashCleanupJob();
     startHiddenTripCleanupJob();
+    startAccountDeletionCleanupJob();
 
     app.listen(PORT, () => {
       console.log(`✅ Server running on port ${PORT}`);

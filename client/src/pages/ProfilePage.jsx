@@ -302,7 +302,9 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  {highlightTrips.length ? (
+                  {loading ? (
+                    <ProfileHighlightSkeletonGrid />
+                  ) : highlightTrips.length ? (
                     <div className="grid grid-cols-2 gap-4 mt-5">
                       {highlightTrips.map((trip, index) => {
                         const tripId = getTripId(trip);
@@ -340,6 +342,7 @@ export default function ProfilePage() {
                     captures={recentCaptures}
                     onOpenCapture={openMediaLightbox}
                     onShareJourney={handleOpenShareJourney}
+                    loading={loading}
                   />
                 </div>
               </section>
@@ -565,6 +568,34 @@ export default function ProfilePage() {
         onClose={() => setOpenComposer(false)}
         onPosted={handleProfileJourneyPosted}
       />
+    </div>
+  );
+}
+
+function ProfileHighlightSkeletonGrid() {
+  return (
+    <div className="mt-5 grid grid-cols-2 gap-4">
+      {Array.from({ length: 2 }).map((_, index) => (
+        <div
+          key={index}
+          className="overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,#ffffff,#fbfbff)] shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60"
+        >
+          <div className="animate-pulse p-0">
+            <div className="h-[220px] bg-[linear-gradient(135deg,rgba(102,126,234,0.14),rgba(118,75,162,0.10),rgba(255,255,255,0.55))]" />
+
+            <div className="p-4">
+              <div className="h-5 w-3/4 rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.88),rgba(226,232,240,0.92),rgba(255,255,255,0.88))]" />
+              <div className="mt-3 h-3.5 w-full rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.88),rgba(226,232,240,0.92),rgba(255,255,255,0.88))]" />
+              <div className="mt-2 h-3.5 w-4/5 rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.88),rgba(226,232,240,0.92),rgba(255,255,255,0.88))]" />
+
+              <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3">
+                <div className="h-3.5 w-12 rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.88),rgba(226,232,240,0.92),rgba(255,255,255,0.88))]" />
+                <div className="h-3.5 w-12 rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.88),rgba(226,232,240,0.92),rgba(255,255,255,0.88))]" />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

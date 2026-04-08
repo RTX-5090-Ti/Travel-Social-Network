@@ -57,6 +57,10 @@ function getCommentAuthor(comment) {
   return comment?.userId || comment?.user || null;
 }
 
+function isCommentAuthorUnavailable(comment) {
+  return !!getCommentAuthor(comment)?.unavailable;
+}
+
 function getCommentAuthorName(comment) {
   return getCommentAuthor(comment)?.name?.trim?.() || "Traveler";
 }
@@ -142,6 +146,7 @@ function CommentBubble({
   const authorId = getCommentAuthorId(comment);
   const initials = getInitials(authorName);
   const authorAvatar = getCommentAvatar(comment);
+  const authorUnavailable = isCommentAuthorUnavailable(comment);
   const replyToName = getReplyToName(comment);
   const content =
     typeof comment?.content === "string" ? comment.content.trim() : "";
@@ -182,12 +187,23 @@ function CommentBubble({
         <span className="absolute left-[-24px] top-5 h-px w-5 rounded-full bg-gradient-to-r from-violet-300 to-fuchsia-300" />
       ) : null}
 
-      {authorAvatar ? (
+      {authorAvatar && !authorUnavailable ? (
         <img
           src={authorAvatar}
           alt={authorName}
           className="h-8.5 w-8.5 shrink-0 rounded-full object-cover ring-1 ring-white/70"
         />
+      ) : authorUnavailable ? (
+        <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(180deg,#d4d4d8,#a1a1aa)] text-white ring-1 ring-white/70">
+          <svg
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            className="h-4.5 w-4.5 opacity-95"
+            aria-hidden="true"
+          >
+            <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5Zm0 2c-4.418 0-8 2.239-8 5v1h16v-1c0-2.761-3.582-5-8-5Z" />
+          </svg>
+        </div>
       ) : (
         <div className="flex h-8.5 w-8.5 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#667eea_0%,#8b5cf6_55%,#764ba2_100%)] text-[10px] font-semibold text-white">
           {initials}

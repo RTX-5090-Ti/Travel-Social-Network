@@ -18,15 +18,41 @@ function countDescendants(replies = []) {
   );
 }
 
+function normalizeCommentUser(user) {
+  if (!user || user?.scheduledDeletionAt || user?.isDeletedUser) {
+    return {
+      _id: null,
+      name: "Unavailable user",
+      avatarUrl: "",
+      unavailable: true,
+      isDeletedUser: true,
+    };
+  }
+
+  return {
+    ...user,
+    unavailable: false,
+    isDeletedUser: false,
+  };
+}
+
 function normalizeCommentPayload(comment, replies = []) {
   const likeCount = Math.max(
     0,
     Number(comment?.likeCount ?? comment?.counts?.reactions ?? 0),
   );
 
+  const normalizedAuthor = normalizeCommentUser(comment?.userId || comment?.user);
+  const normalizedReplyToUser = normalizeCommentUser(
+    comment?.replyToUser || comment?.replyToUserId,
+  );
+
   return {
     ...comment,
-    replyToUser: comment?.replyToUserId || null,
+    userId: normalizedAuthor,
+    user: normalizedAuthor,
+    replyToUserId: comment?.replyToUserId ? normalizedReplyToUser : null,
+    replyToUser: comment?.replyToUserId ? normalizedReplyToUser : null,
     liked: !!comment?.liked,
     likeCount,
     replyCount: countDescendants(replies),
@@ -157,8 +183,8 @@ export async function createTripComment(req, res, next) {
     await Trip.updateOne({ _id: tripId }, { $inc: { "counts.comments": 1 } });
 
     const comment = await Comment.findById(created._id)
-      .populate("userId", "name avatarUrl")
-      .populate("replyToUserId", "name avatarUrl")
+      .populate("userId", "name avatarUrl scheduledDeletionAt")
+      .populate("replyToUserId", "name avatarUrl scheduledDeletionAt")
       .lean();
 
     res.status(201).json({
@@ -208,8 +234,8 @@ export async function listTripComments(req, res, next) {
     const docs = await Comment.find(filter)
       .sort({ createdAt: -1 })
       .limit(limit + 1)
-      .populate("userId", "name avatarUrl")
-      .populate("replyToUserId", "name avatarUrl")
+      .populate("userId", "name avatarUrl scheduledDeletionAt")
+      .populate("replyToUserId", "name avatarUrl scheduledDeletionAt")
       .lean();
 
     const hasMore = docs.length > limit;
@@ -223,8 +249,8 @@ export async function listTripComments(req, res, next) {
           parentCommentId: { $ne: null },
         })
           .sort({ createdAt: 1 })
-          .populate("userId", "name avatarUrl")
-          .populate("replyToUserId", "name avatarUrl")
+          .populate("userId", "name avatarUrl scheduledDeletionAt")
+          .populate("replyToUserId", "name avatarUrl scheduledDeletionAt")
           .lean()
       : [];
 
@@ -347,8 +373,8 @@ export async function updateComment(req, res, next) {
       { $set: { content } },
       { returnDocument: "after" },
     )
-      .populate("userId", "name avatarUrl")
-      .populate("replyToUserId", "name avatarUrl")
+      .populate("userId", "name avatarUrl scheduledDeletionAt")
+      .populate("replyToUserId", "name avatarUrl scheduledDeletionAt")
       .lean();
 
     if (!updatedComment) {

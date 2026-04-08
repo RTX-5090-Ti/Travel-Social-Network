@@ -26,6 +26,8 @@ const userSchema = new mongoose.Schema(
     //  phân luồng sẵn từ đầu
     role: { type: String, enum: ["user", "admin"], default: "user" },
     isActive: { type: Boolean, default: true },
+    deletionRequestedAt: { type: Date, default: null, index: true },
+    scheduledDeletionAt: { type: Date, default: null, index: true },
 
     avatarUrl: {
       type: String,

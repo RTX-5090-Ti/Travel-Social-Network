@@ -18,3 +18,22 @@ export const loginSchema = Joi.object({
   query: Joi.object(),
   params: Joi.object(),
 });
+
+export const changePasswordSchema = Joi.object({
+  body: Joi.object({
+    currentPassword: Joi.string().required(),
+    newPassword: Joi.string().min(6).required(),
+    confirmPassword: Joi.string().min(6).required(),
+  }),
+  query: Joi.object(),
+  params: Joi.object(),
+});
+
+export const reactivateAccountSchema = Joi.object({
+  body: Joi.object({
+    email: Joi.string().trim().lowercase().email().required(),
+    password: Joi.string().required(),
+  }),
+  query: Joi.object(),
+  params: Joi.object(),
+});

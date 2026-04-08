@@ -29,7 +29,11 @@ function buildFeedQuery(filter) {
     .select(
       "ownerId title caption privacy coverUrl counts createdAt feedPreview",
     )
-    .populate("ownerId", "name email avatarUrl")
+    .populate({
+      path: "ownerId",
+      select: "name email avatarUrl",
+      match: { isActive: { $ne: false } },
+    })
     .sort({ createdAt: -1 });
 }
 
@@ -99,7 +103,9 @@ export async function getFeed(req, res, next) {
     ]);
 
     const items = dedupeAndSortTrips(
-      [...ownTrips, ...followingTrips, ...communityTrips],
+      [...ownTrips, ...followingTrips, ...communityTrips].filter(
+        (item) => item?.ownerId?._id,
+      ),
       limit,
     );
 

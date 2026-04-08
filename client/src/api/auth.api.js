@@ -6,6 +6,10 @@ export const authApi = {
   me: (config = {}) => api.get("/api/auth/me", config),
   refresh: () => api.post("/api/auth/refresh"),
   logout: () => api.post("/api/auth/logout"),
+  reactivateAccount: (payload) => api.post("/api/auth/reactivate", payload),
+  deactivateAccount: () => api.patch("/api/auth/deactivate"),
+  deleteAccount: () => api.patch("/api/auth/delete-account"),
+  changePassword: (payload) => api.patch("/api/auth/change-password", payload),
 
   async bootstrapSession() {
     try {

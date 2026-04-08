@@ -840,7 +840,11 @@ export async function listSavedTrips(req, res, next) {
           .select(
             "ownerId title caption privacy coverUrl counts createdAt updatedAt feedPreview deletedAt",
           )
-          .populate("ownerId", "name email avatarUrl")
+          .populate({
+            path: "ownerId",
+            select: "name email avatarUrl",
+            match: { isActive: { $ne: false } },
+          })
           .lean()
       : [];
 

@@ -1,5 +1,6 @@
 import Follow from "../models/Follow.js";
 import Trip from "../models/Trip.js";
+import User from "../models/User.js";
 
 function normalizePrivacy(privacy) {
   if (["public", "followers", "private"].includes(privacy)) {
@@ -30,6 +31,10 @@ export function canViewerAccessTrip({
   const privacy = normalizePrivacy(trip.privacy);
   const ownerId = extractOwnerId(trip.ownerId);
   const viewerIdString = viewerId ? viewerId.toString() : null;
+
+  if (!ownerId) {
+    return false;
+  }
 
   if (ownerId && viewerIdString && ownerId === viewerIdString) {
     return true;
@@ -74,6 +79,27 @@ export async function getTripAccessContext({
 
   const ownerId = extractOwnerId(trip.ownerId);
   const viewerIdString = viewerId ? viewerId.toString() : null;
+
+  if (!ownerId) {
+    return {
+      trip,
+      isFollowingOwner: false,
+      canView: false,
+    };
+  }
+
+  const ownerIsActive = await User.exists({
+    _id: ownerId,
+    isActive: { $ne: false },
+  });
+
+  if (!ownerIsActive) {
+    return {
+      trip,
+      isFollowingOwner: false,
+      canView: false,
+    };
+  }
 
   let isFollowingOwner = false;
 
