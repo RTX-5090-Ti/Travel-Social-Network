@@ -4,194 +4,20 @@ import { AnimatePresence, motion } from "framer-motion";
 import { tripApi } from "../../api/trip.api";
 import { uploadApi } from "../../api/upload.api";
 import { useToast } from "../../toast/useToast";
-
-function makeMilestone(overrides = {}) {
-  return {
-    id: crypto.randomUUID(),
-    title: "",
-    time: "",
-    note: "",
-    files: [],
-    ...overrides,
-  };
-}
-
-function getFileKind(file) {
-  if (file?.type?.startsWith("image/")) return "image";
-  if (file?.type?.startsWith("video/")) return "video";
-  return "file";
-}
-
-function pickAcceptedFiles(fileList) {
-  return Array.from(fileList || []).filter((file) => {
-    return file?.type?.startsWith("image/") || file?.type?.startsWith("video/");
-  });
-}
-
-function createFileEntry(file) {
-  const kind = getFileKind(file);
-
-  return {
-    id: crypto.randomUUID(),
-    file,
-    name: file.name,
-    size: file.size,
-    type: file.type,
-    lastModified: file.lastModified,
-    kind,
-    previewUrl:
-      kind === "image" || kind === "video" ? URL.createObjectURL(file) : "",
-    revokePreview: kind === "image" || kind === "video",
-    existingMedia: null,
-  };
-}
-
-function revokeFileEntry(entry) {
-  if (entry?.revokePreview && entry?.previewUrl) {
-    URL.revokeObjectURL(entry.previewUrl);
-  }
-}
-
-function revokeFileEntries(entries = []) {
-  entries.forEach(revokeFileEntry);
-}
-
-function getFileSignature(entryOrFile) {
-  return [
-    entryOrFile?.name,
-    entryOrFile?.size,
-    entryOrFile?.type,
-    entryOrFile?.lastModified,
-  ].join("__");
-}
-
-function getMediaKind(type) {
-  return type === "video" ? "video" : "image";
-}
-
-function createExistingMediaEntry(media = {}, index = 0) {
-  const kind = getMediaKind(media?.type);
-  const publicId =
-    typeof media?.publicId === "string" ? media.publicId.trim() : "";
-  const fallbackName =
-    publicId.split("/").pop() || `${kind}-${String(index + 1).padStart(2, "0")}`;
-
-  return {
-    id: crypto.randomUUID(),
-    file: null,
-    name: fallbackName,
-    size: Number(media?.bytes || 0),
-    type: kind,
-    lastModified: 0,
-    kind,
-    previewUrl: typeof media?.url === "string" ? media.url.trim() : "",
-    revokePreview: false,
-    existingMedia: {
-      type: kind,
-      url: typeof media?.url === "string" ? media.url.trim() : "",
-      publicId,
-      width: media?.width ?? null,
-      height: media?.height ?? null,
-      duration: media?.duration ?? null,
-      bytes: media?.bytes ?? null,
-    },
-  };
-}
-
-function formatDateTimeLocal(value) {
-  if (!value) return "";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
-
-function normalizeTripDetail(detail) {
-  if (!detail) return null;
-
-  if (detail?.trip || Array.isArray(detail?.milestones) || Array.isArray(detail?.generalItems)) {
-    return detail;
-  }
-
-  return {
-    trip: detail,
-    generalItems: Array.isArray(detail?.generalItems) ? detail.generalItems : [],
-    milestones: Array.isArray(detail?.milestones) ? detail.milestones : [],
-  };
-}
-
-function buildMilestoneNote(items = []) {
-  return items
-    .map((item) => (typeof item?.content === "string" ? item.content.trim() : ""))
-    .filter(Boolean)
-    .join("\n\n");
-}
-
-function buildMilestoneFiles(items = []) {
-  const files = [];
-
-  items.forEach((item) => {
-    (item?.media || []).forEach((media) => {
-      files.push(createExistingMediaEntry(media, files.length));
-    });
-  });
-
-  return files;
-}
-
-function buildEmptyFormState() {
-  return {
-    tripTitle: "",
-    tripCaption: "",
-    privacy: "public",
-    milestones: [makeMilestone()],
-  };
-}
-
-function buildEditFormState(detail) {
-  const normalized = normalizeTripDetail(detail);
-  if (!normalized) {
-    return buildEmptyFormState();
-  }
-
-  const trip = normalized?.trip || normalized;
-
-  const milestoneEntries = Array.isArray(normalized?.milestones)
-    ? normalized.milestones.map((item) =>
-        makeMilestone({
-          id: item?._id || crypto.randomUUID(),
-          title: item?.title || "",
-          time: formatDateTimeLocal(item?.time),
-          note: buildMilestoneNote(item?.items || []),
-          files: buildMilestoneFiles(item?.items || []),
-        }),
-      )
-    : [];
-
-  if (milestoneEntries.length === 0 && Array.isArray(normalized?.generalItems) && normalized.generalItems.length > 0) {
-    milestoneEntries.push(
-      makeMilestone({
-        title: trip?.title || "",
-        note: buildMilestoneNote(normalized.generalItems),
-        files: buildMilestoneFiles(normalized.generalItems),
-      }),
-    );
-  }
-
-  return {
-    tripTitle: typeof trip?.title === "string" ? trip.title : "",
-    tripCaption: typeof trip?.caption === "string" ? trip.caption : "",
-    privacy: trip?.privacy || "public",
-    milestones: milestoneEntries.length > 0 ? milestoneEntries : [makeMilestone()],
-  };
-}
+import ShareJourneyMediaPreviewCard from "./share-journey/ShareJourneyMediaPreviewCard";
+import ShareJourneyMediaLightbox from "./share-journey/ShareJourneyMediaLightbox";
+import ShareJourneyPrivacySelect from "./share-journey/ShareJourneyPrivacySelect";
+import ShareJourneyField from "./share-journey/ShareJourneyField";
+import {
+  buildEditFormState,
+  buildEmptyFormState,
+  createFileEntry,
+  getFileSignature,
+  makeMilestone,
+  pickAcceptedFiles,
+  revokeFileEntries,
+  revokeFileEntry,
+} from "./share-journey/shareJourneyModal.utils";
 
 const privacyOptions = [
   {
@@ -699,7 +525,8 @@ export default function ShareJourneyModal({
             content: item.note,
             media: item.files
               .map(
-                (entry) => entry.existingMedia || uploadedEntryMap.get(entry.id),
+                (entry) =>
+                  entry.existingMedia || uploadedEntryMap.get(entry.id),
               )
               .filter(Boolean),
             order: 0,
@@ -755,7 +582,7 @@ export default function ShareJourneyModal({
                 className="relative flex h-screen max-h-screen w-full max-w-none flex-col overflow-hidden rounded-none border-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] shadow-none sm:h-auto sm:max-h-[92vh] sm:max-w-6xl sm:rounded-[32px] sm:border sm:border-white/60 sm:bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.96))] sm:shadow-[0_40px_120px_rgba(15,23,42,0.28)]"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="sticky top-0 z-20 border-b border-zinc-200/80 bg-white/75 px-4 py-3 backdrop-blur-xl sm:px-7 sm:py-4">
+                <div className="sticky top-0 z-20 px-4 py-3 border-b border-zinc-200/80 bg-white/75 backdrop-blur-xl sm:px-7 sm:py-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                       <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[10px] font-semibold text-[#3d68ff] sm:gap-2 sm:px-3 sm:text-xs">
@@ -779,7 +606,7 @@ export default function ShareJourneyModal({
                       disabled={submitting}
                       className="cursor-pointer inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-500 transition hover:-translate-y-0.5 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 disabled:cursor-not-allowed disabled:opacity-50 sm:h-11 sm:w-11"
                     >
-                      <XIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+                      <XIcon className="w-4 h-4 sm:h-5 sm:w-5" />
                     </button>
                   </div>
                 </div>
@@ -787,7 +614,7 @@ export default function ShareJourneyModal({
                 <form
                   id="share-journey-form"
                   onSubmit={handleSubmit}
-                  className="flex-1 overflow-y-auto px-4 py-4 sm:px-7 sm:py-6"
+                  className="flex-1 px-4 py-4 overflow-y-auto sm:px-7 sm:py-6"
                 >
                   <div className="grid gap-4 sm:gap-6 xl:grid-cols-[1.02fr_1.34fr]">
                     <section className="rounded-[22px] border border-zinc-200/80 bg-white/90 p-4 shadow-[0_8px_22px_rgba(15,23,42,0.045)] sm:rounded-[28px] sm:p-6 sm:shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
@@ -808,7 +635,7 @@ export default function ShareJourneyModal({
                       </div>
 
                       <div className="mt-4 space-y-4 sm:mt-5 sm:space-y-5">
-                        <Field label="Trip title">
+                        <ShareJourneyField label="Trip title">
                           <input
                             value={tripTitle}
                             onChange={(e) => setTripTitle(e.target.value)}
@@ -816,9 +643,9 @@ export default function ShareJourneyModal({
                             placeholder="Ví dụ: Đà Lạt 2N1Đ cùng hội bạn"
                             className="h-12 w-full rounded-2xl border border-zinc-200 bg-zinc-50/70 px-4 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition focus:border-[#4f7cff] focus:bg-white focus:ring-4 focus:ring-blue-100"
                           />
-                        </Field>
+                        </ShareJourneyField>
 
-                        <Field label="Trip intro">
+                        <ShareJourneyField label="Trip intro">
                           <textarea
                             value={tripCaption}
                             onChange={(e) => setTripCaption(e.target.value)}
@@ -826,15 +653,15 @@ export default function ShareJourneyModal({
                             placeholder="Viết mô tả ngắn cho toàn bộ chuyến đi..."
                             className="w-full resize-none rounded-2xl border border-zinc-200 bg-zinc-50/70 px-4 py-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition focus:border-[#4f7cff] focus:bg-white focus:ring-4 focus:ring-blue-100"
                           />
-                        </Field>
+                        </ShareJourneyField>
 
-                        <Field label="Privacy">
-                          <PrivacySelect
+                        <ShareJourneyField label="Privacy">
+                          <ShareJourneyPrivacySelect
                             value={privacy}
                             onChange={setPrivacy}
                             options={privacyOptions}
                           />
-                        </Field>
+                        </ShareJourneyField>
 
                         <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
                           <div className="rounded-[18px] border border-zinc-200 bg-zinc-50/70 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
@@ -918,7 +745,7 @@ export default function ShareJourneyModal({
 
                             <div className="px-4 py-4 space-y-5 sm:px-5 sm:py-5">
                               <div className="grid gap-4 md:grid-cols-[1fr_220px]">
-                                <Field label="Milestone title">
+                                <ShareJourneyField label="Milestone title">
                                   <input
                                     value={item.title}
                                     onChange={(e) =>
@@ -932,9 +759,9 @@ export default function ShareJourneyModal({
                                     placeholder="Ví dụ: Săn mây Đà Lạt"
                                     className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition focus:border-[#4f7cff] focus:ring-4 focus:ring-blue-100"
                                   />
-                                </Field>
+                                </ShareJourneyField>
 
-                                <Field label="Time">
+                                <ShareJourneyField label="Time">
                                   <input
                                     value={item.time}
                                     onChange={(e) =>
@@ -947,10 +774,10 @@ export default function ShareJourneyModal({
                                     type="datetime-local"
                                     className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-sm text-zinc-900 outline-none transition focus:border-[#4f7cff] focus:ring-4 focus:ring-blue-100"
                                   />
-                                </Field>
+                                </ShareJourneyField>
                               </div>
 
-                              <Field label="Your feeling">
+                              <ShareJourneyField label="Your feeling">
                                 <textarea
                                   value={item.note}
                                   onChange={(e) =>
@@ -964,9 +791,9 @@ export default function ShareJourneyModal({
                                   placeholder="Ghi lại cảm nhận cá nhân ở cột mốc này..."
                                   className="w-full resize-none rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition focus:border-[#4f7cff] focus:ring-4 focus:ring-blue-100"
                                 />
-                              </Field>
+                              </ShareJourneyField>
 
-                              <Field
+                              <ShareJourneyField
                                 label="Photos / Videos"
                                 hint={`${item.files.length}/${MAX_FILES_PER_MILESTONE} files selected`}
                               >
@@ -996,7 +823,7 @@ export default function ShareJourneyModal({
                                         : "bg-[linear-gradient(135deg,#eff6ff,#eef2ff)] group-hover:scale-[1.04]"
                                     }`}
                                   >
-                                    <UploadIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                                    <UploadIcon className="w-5 h-5 sm:h-6 sm:w-6" />
                                   </div>
 
                                   <span className="relative z-[1] mt-3 text-[13px] font-semibold text-zinc-800 sm:mt-4 sm:text-sm">
@@ -1034,7 +861,7 @@ export default function ShareJourneyModal({
                                 {item.files.length > 0 && (
                                   <div className="grid grid-cols-2 gap-3 mt-4 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                                     {item.files.map((file) => (
-                                      <MediaPreviewCard
+                                      <ShareJourneyMediaPreviewCard
                                         key={file.id}
                                         file={file}
                                         onPreview={() => openPreview(file)}
@@ -1049,7 +876,7 @@ export default function ShareJourneyModal({
                                     ))}
                                   </div>
                                 )}
-                              </Field>
+                              </ShareJourneyField>
                             </div>
                           </div>
                         ))}
@@ -1079,7 +906,7 @@ export default function ShareJourneyModal({
                       ) : null}
                     </div>
 
-                    <div className="ml-auto flex justify-end gap-3">
+                    <div className="flex justify-end gap-3 ml-auto">
                       <button
                         type="button"
                         onClick={handleCloseModal}
@@ -1114,357 +941,13 @@ export default function ShareJourneyModal({
       </AnimatePresence>
       <AnimatePresence>
         {previewMedia && (
-          <MediaLightbox media={previewMedia} onClose={closePreview} />
-        )}
-      </AnimatePresence>
-    </>
-  );
-}
-
-function MediaPreviewCard({ file, onPreview, onRemove, disabled }) {
-  const isPreviewable = file.kind === "image" || file.kind === "video";
-
-  const kindLabel =
-    file.kind === "image" ? "Photo" : file.kind === "video" ? "Video" : "File";
-
-  const extension = file.name?.split(".")?.pop()?.toUpperCase() || "FILE";
-
-  return (
-    <div className="group relative overflow-visible rounded-[24px]">
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          onRemove();
-        }}
-        disabled={disabled}
-        className="cursor-pointer absolute -right-2.5 -top-2.5 z-20 inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/70 bg-black/65 text-white shadow-[0_10px_24px_rgba(15,23,42,0.24)] backdrop-blur-md transition duration-200 hover:scale-105 hover:bg-black/80 disabled:cursor-not-allowed disabled:opacity-50 sm:opacity-0 sm:group-hover:opacity-100"
-      >
-        <XIcon className="w-4 h-4" />
-      </button>
-
-      {isPreviewable ? (
-        <button
-          type="button"
-          onClick={onPreview}
-          className="block w-full overflow-hidden rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] text-left shadow-[0_14px_36px_rgba(15,23,42,0.08)] ring-1 ring-zinc-200/70 transition duration-200 hover:-translate-y-1 hover:shadow-[0_22px_44px_rgba(15,23,42,0.12)] focus:outline-none focus:ring-4 focus:ring-blue-100"
-        >
-          <div className="relative aspect-[5/7] overflow-hidden bg-zinc-100">
-            {file.kind === "image" ? (
-              <img
-                src={file.previewUrl}
-                alt={file.name}
-                className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.035]"
-              />
-            ) : (
-              <>
-                <video
-                  src={file.previewUrl}
-                  className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
-                  muted
-                  playsInline
-                  preload="metadata"
-                />
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                  <div className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-white/50 bg-black/45 text-white shadow-[0_12px_30px_rgba(15,23,42,0.28)] backdrop-blur-md">
-                    <PlayIcon className="w-5 h-5" />
-                  </div>
-                </div>
-              </>
-            )}
-
-            <div className="absolute inset-x-0 top-0 h-20 pointer-events-none bg-gradient-to-b from-black/45 via-black/10 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 pointer-events-none h-28 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
-
-            <div className="absolute left-3 top-3 z-10 inline-flex items-center rounded-full border border-white/30 bg-white/18 px-2.5 py-[3] text-[11px] font-semibold uppercase tracking-[0.08em] text-white backdrop-blur-md">
-              {kindLabel}
-            </div>
-
-            <div className="absolute inset-x-0 bottom-0 z-10 p-3">
-              <div className="flex flex-col items-center justify-between gap-1 text-[11px] text-white/90">
-                <span className="inline-flex items-center rounded-full border border-white/20 bg-white/15 px-2.5 py-[2] font-medium backdrop-blur-sm">
-                  {extension}
-                </span>
-                <span className="font-medium">{formatFileSize(file.size)}</span>
-              </div>
-            </div>
-          </div>
-        </button>
-      ) : (
-        <div className="overflow-hidden rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] shadow-[0_14px_36px_rgba(15,23,42,0.08)] ring-1 ring-zinc-200/70 transition duration-200 hover:-translate-y-1 hover:shadow-[0_22px_44px_rgba(15,23,42,0.12)]">
-          <div className="relative aspect-[5/7] overflow-hidden bg-zinc-100">
-            <div className="flex h-full flex-col items-center justify-center gap-4 bg-[linear-gradient(180deg,#f8fafc,#eef2ff)] px-4 text-center">
-              <div className="flex h-16 w-16 items-center justify-center rounded-[22px] bg-zinc-900 text-white shadow-[0_18px_36px_rgba(15,23,42,0.18)]">
-                <FileIcon className="h-7 w-7" />
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold line-clamp-2 text-zinc-800">
-                  {file.name}
-                </p>
-                <p className="mt-1 text-xs text-zinc-500">{extension}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function MediaLightbox({ media, onClose }) {
-  useEffect(() => {
-    function handleKeyDown(e) {
-      if (e.key === "Escape") onClose();
-    }
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
-  return (
-    <>
-      <motion.div
-        className="fixed inset-0 z-[180] bg-[linear-gradient(180deg,rgba(248,245,255,0.58),rgba(236,242,255,0.60))] backdrop-blur-md"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-      />
-
-      <motion.div
-        className="fixed inset-0 z-[190] flex items-center justify-center p-4 sm:p-6"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-      >
-        <motion.div
-          initial={{ opacity: 0, y: 18, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 10, scale: 0.98 }}
-          transition={{ duration: 0.2, ease: "easeOut" }}
-          className="relative w-full max-w-5xl overflow-hidden rounded-[32px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.94),rgba(250,246,255,0.92),rgba(240,247,255,0.90))] shadow-[0_32px_100px_rgba(129,140,248,0.16),0_18px_50px_rgba(15,23,42,0.10)] ring-1 ring-white/70 backdrop-blur-2xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <button
-            type="button"
-            onClick={onClose}
-            className="absolute z-20 inline-flex items-center justify-center text-zinc-700 transition border rounded-full cursor-pointer right-4 top-4 h-11 w-11 border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.86),rgba(245,239,255,0.82))] shadow-[0_12px_26px_rgba(148,163,184,0.18)] backdrop-blur-xl hover:scale-105 hover:text-zinc-900 hover:shadow-[0_16px_34px_rgba(182,137,255,0.20)] cursor-pointer"
-          >
-            <XIcon className="w-5 h-5" />
-          </button>
-
-          <div className="flex max-h-[85vh] min-h-[320px] items-center justify-center bg-[radial-gradient(circle_at_top,rgba(182,137,255,0.16),transparent_34%),radial-gradient(circle_at_bottom,rgba(79,124,255,0.10),transparent_38%),linear-gradient(180deg,#fffdfc,#f7f2ff,#eef5ff)] p-3 sm:p-5">
-            {media.kind === "image" ? (
-              <img
-                src={media.previewUrl}
-                alt={media.name}
-                className="max-h-[72vh] w-auto max-w-full rounded-[22px] object-contain"
-              />
-            ) : (
-              <video
-                src={media.previewUrl}
-                controls
-                autoPlay
-                playsInline
-                className="max-h-[72vh] w-full rounded-[22px] bg-white/70 object-contain"
-              />
-            )}
-          </div>
-
-          <div className="px-5 py-4 border-t border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(247,242,255,0.76))] backdrop-blur-xl sm:px-6">
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0">
-                <p className="text-sm font-semibold truncate text-zinc-900">
-                  {media.name}
-                </p>
-                <p className="mt-1 text-xs text-zinc-500">
-                  {media.kind === "image" ? "Image" : "Video"} •{" "}
-                  {formatFileSize(media.size)}
-                </p>
-              </div>
-
-              <div className="inline-flex w-fit items-center rounded-full border border-[#e7dcff] bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(245,238,255,0.92))] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-[#7c59d9] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
-                {media.kind === "image" ? "Photo preview" : "Video preview"}
-              </div>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-    </>
-  );
-}
-
-function formatFileSize(bytes = 0) {
-  if (!Number.isFinite(bytes) || bytes <= 0) return "0 KB";
-  if (bytes < 1024 * 1024)
-    return `${Math.max(bytes / 1024, 0.1).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function Field({ label, hint, children }) {
-  return (
-    <div>
-      <div className="flex items-center justify-between gap-3 mb-2">
-        <label className="block text-sm font-medium text-zinc-700">
-          {label}
-        </label>
-        {hint ? <span className="text-xs text-zinc-400">{hint}</span> : null}
-      </div>
-      {children}
-    </div>
-  );
-}
-
-function PrivacySelect({ value, onChange, options }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef(null);
-
-  const selected = options.find((item) => item.value === value) || options[0];
-
-  useEffect(() => {
-    function handleClickOutside(e) {
-      if (!rootRef.current?.contains(e.target)) {
-        setOpen(false);
-      }
-    }
-
-    function handleKeyDown(e) {
-      if (e.key === "Escape") setOpen(false);
-    }
-
-    document.addEventListener("mousedown", handleClickOutside);
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, []);
-
-  return (
-    <div ref={rootRef} className="relative">
-      <button
-        type="button"
-        onClick={() => setOpen((prev) => !prev)}
-        className={`cursor-pointer group relative flex min-h-[60px] w-full items-center justify-between gap-3 overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,248,250,0.96))] px-3 py-3 text-left shadow-[0_10px_26px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_18px_48px_rgba(15,23,42,0.10)] focus:outline-none focus:ring-4 focus:ring-[#d7c3a3]/25 sm:min-h-[72px] sm:gap-4 sm:rounded-[24px] sm:px-4 sm:py-4 sm:shadow-[0_14px_40px_rgba(15,23,42,0.06)] ${
-          open ? "border-[#d7c3a3]/70 ring-[#d7c3a3]/40" : ""
-        }`}
-      >
-        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(212,175,122,0.75),transparent)]" />
-
-        <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[15px] border border-white/70 bg-[linear-gradient(135deg,#fff7ed,#f5ecff)] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] sm:h-12 sm:w-12 sm:rounded-[18px]">
-            <PrivacyOptionIcon
-              value={selected.value}
-              className="h-4 w-4 text-zinc-700 sm:h-5 sm:w-5"
-            />
-          </div>
-
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="truncate text-[14px] font-semibold tracking-[0.01em] text-zinc-900 sm:text-[15px]">
-                {selected.label}
-              </p>
-
-              <span
-                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold tracking-[0.08em] uppercase sm:px-2.5 sm:py-1 sm:text-[11px] ${selected.tone}`}
-              >
-                Selected
-              </span>
-            </div>
-
-            <p className="mt-0.5 line-clamp-2 text-[12px] leading-4.5 text-zinc-500 sm:mt-1 sm:text-[13px] sm:leading-5">
-              {selected.description}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-zinc-200/80 bg-white/80 shadow-[0_6px_16px_rgba(15,23,42,0.05)] sm:h-10 sm:w-10">
-          <ChevronDownIcon
-            className={`h-4 w-4 text-zinc-500 transition duration-200 sm:h-4.5 sm:w-4.5 ${
-              open ? "rotate-180 text-zinc-800" : "group-hover:text-zinc-700"
-            }`}
+          <ShareJourneyMediaLightbox
+            media={previewMedia}
+            onClose={closePreview}
           />
-        </div>
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.985 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.985 }}
-            transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute left-0 right-0 top-[calc(100%+12px)] z-[160] overflow-hidden rounded-[26px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,247,249,0.98))] p-2.5 shadow-[0_28px_70px_rgba(15,23,42,0.16)] ring-1 ring-zinc-200/70 backdrop-blur-xl"
-          >
-            <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(212,175,122,0.85),transparent)]" />
-
-            <div className="space-y-1.5">
-              {options.map((item) => {
-                const active = item.value === value;
-
-                return (
-                  <button
-                    key={item.value}
-                    type="button"
-                    onClick={() => {
-                      onChange(item.value);
-                      setOpen(false);
-                    }}
-                    className={`cursor-pointer group flex w-full items-start gap-2.5 rounded-[16px] px-2.5 py-2.5 text-left transition sm:gap-3 sm:rounded-[20px] sm:px-3 sm:py-3.5 ${
-                      active
-                        ? "bg-[linear-gradient(135deg,rgba(255,247,237,0.95),rgba(245,236,255,0.92))] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
-                        : "hover:bg-white/90"
-                    }`}
-                  >
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] border border-white/70 bg-white/90 shadow-[0_8px_20px_rgba(15,23,42,0.05)] sm:h-11 sm:w-11 sm:rounded-[16px]">
-                      <PrivacyOptionIcon
-                        value={item.value}
-                        className="h-4 w-4 text-zinc-700 sm:h-5 sm:w-5"
-                      />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p
-                          className={`text-[13px] font-semibold sm:text-[14px] ${
-                            active ? "text-zinc-950" : "text-zinc-800"
-                          }`}
-                        >
-                          {item.label}
-                        </p>
-
-                        <span
-                          className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] font-semibold tracking-[0.08em] uppercase sm:px-2.5 sm:py-1 sm:text-[10px] ${item.tone}`}
-                        >
-                          {item.value}
-                        </span>
-                      </div>
-
-                      <p className="mt-0.5 text-[11.5px] leading-4.5 text-zinc-500 sm:mt-1 sm:text-[12.5px] sm:leading-5">
-                        {item.description}
-                      </p>
-                    </div>
-
-                    <div className="flex h-7 w-7 shrink-0 items-center justify-center sm:h-8 sm:w-8">
-                      {active ? (
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[linear-gradient(135deg,#caa56c,#b689ff)] text-white shadow-[0_8px_18px_rgba(202,165,108,0.28)] sm:h-7 sm:w-7">
-                          <CheckIcon className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                        </div>
-                      ) : (
-                        <div className="h-2 w-2 rounded-full bg-zinc-300 transition group-hover:bg-zinc-400 sm:h-2.5 sm:w-2.5" />
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }
 
@@ -1481,31 +964,6 @@ function XIcon({ className = "w-5 h-5" }) {
     >
       <path d="M18 6 6 18" />
       <path d="m6 6 12 12" />
-    </svg>
-  );
-}
-
-function PlayIcon({ className = "w-5 h-5" }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M8.5 6.75c0-1.01 1.1-1.64 1.97-1.12l7.83 4.75c.84.51.84 1.73 0 2.24l-7.83 4.75c-.87.52-1.97-.11-1.97-1.12V6.75Z" />
-    </svg>
-  );
-}
-
-function PlusIcon({ className = "w-5 h-5" }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      stroke="currentColor"
-      strokeWidth="2.1"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 5v14" />
-      <path d="M5 12h14" />
     </svg>
   );
 }
@@ -1548,25 +1006,6 @@ function UploadIcon({ className = "w-5 h-5" }) {
   );
 }
 
-function FileIcon({ className = "w-5 h-5" }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      className={className}
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" />
-      <path d="M14 3v5h5" />
-      <path d="M9 13h6" />
-      <path d="M9 17h4" />
-    </svg>
-  );
-}
-
 function SendIcon({ className = "w-5 h-5" }) {
   return (
     <svg
@@ -1580,93 +1019,6 @@ function SendIcon({ className = "w-5 h-5" }) {
     >
       <path d="M22 2 11 13" />
       <path d="m22 2-7 20-4-9-9-4 20-7Z" />
-    </svg>
-  );
-}
-
-function ChevronDownIcon({ className = "w-5 h-5" }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
-}
-
-function CheckIcon({ className = "w-4 h-4" }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <path d="M5 13l4 4L19 7" />
-    </svg>
-  );
-}
-
-function PrivacyOptionIcon({ value, className = "w-5 h-5" }) {
-  if (value === "public") {
-    return (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.9"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-      >
-        <circle cx="12" cy="12" r="8" />
-        <path d="M4.5 9h15" />
-        <path d="M4.5 15h15" />
-        <path d="M12 4c2 2.2 3 5 3 8s-1 5.8-3 8c-2-2.2-3-5-3-8s1-5.8 3-8Z" />
-      </svg>
-    );
-  }
-
-  if (value === "followers") {
-    return (
-      <svg
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.9"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className={className}
-      >
-        <path d="M15 19c0-2.3-1.8-4-4-4s-4 1.7-4 4" />
-        <circle cx="11" cy="8" r="3" />
-        <path d="M18 8v6" />
-        <path d="M15 11h6" />
-      </svg>
-    );
-  }
-
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.9"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-    >
-      <rect x="5" y="11" width="14" height="9" rx="2.5" />
-      <path d="M8 11V8a4 4 0 1 1 8 0v3" />
     </svg>
   );
 }

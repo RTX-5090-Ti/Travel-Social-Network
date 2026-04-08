@@ -701,7 +701,7 @@ export async function moveTripToTrash(req, res, next) {
 
     if (trip.ownerId.toString() !== userId?.toString()) {
       return res.status(403).json({
-        message: "Ban chi co the dua journey cua chinh minh vao thung rac.",
+        message: "Bạn chỉ có thể đưa chính journey của mình vào thùng rác.",
       });
     }
 
@@ -848,9 +848,7 @@ export async function listSavedTrips(req, res, next) {
           .lean()
       : [];
 
-    const tripMap = new Map(
-      trips.map((trip) => [trip._id.toString(), trip]),
-    );
+    const tripMap = new Map(trips.map((trip) => [trip._id.toString(), trip]));
 
     const ownerIds = [
       ...new Set(
@@ -887,36 +885,37 @@ export async function listSavedTrips(req, res, next) {
       followDocs.map((item) => item.followingId.toString()),
     );
 
-    const items = savedDocs.map((savedDoc) => {
-      const currentTripId = savedDoc.tripId.toString();
-      const trip = tripMap.get(currentTripId);
+    const items = savedDocs
+      .map((savedDoc) => {
+        const currentTripId = savedDoc.tripId.toString();
+        const trip = tripMap.get(currentTripId);
 
-      if (!trip) {
-        return buildUnavailableSavedTripItem(savedDoc);
-      }
+        if (!trip) {
+          return buildUnavailableSavedTripItem(savedDoc);
+        }
 
-      if (trip.deletedAt) {
-        return null;
-      }
+        if (trip.deletedAt) {
+          return null;
+        }
 
-      const ownerId = getTripOwnerId(trip);
-      const canView = canViewerAccessTrip({
-        trip,
-        viewerId: userId,
-        isFollowingOwner: followingSet.has(ownerId),
-      });
+        const ownerId = getTripOwnerId(trip);
+        const canView = canViewerAccessTrip({
+          trip,
+          viewerId: userId,
+          isFollowingOwner: followingSet.has(ownerId),
+        });
 
-      if (!canView) {
-        return buildUnavailableSavedTripItem(savedDoc);
-      }
+        if (!canView) {
+          return buildUnavailableSavedTripItem(savedDoc);
+        }
 
-      return {
-        ...trip,
-        saved: true,
-        savedAt: savedDoc.createdAt,
-        hearted: heartedSet.has(currentTripId),
-      };
-    })
+        return {
+          ...trip,
+          saved: true,
+          savedAt: savedDoc.createdAt,
+          hearted: heartedSet.has(currentTripId),
+        };
+      })
       .filter(Boolean);
 
     const total = await SavedTrip.countDocuments({ userId });
