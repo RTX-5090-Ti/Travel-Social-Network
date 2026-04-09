@@ -2,7 +2,45 @@ import mongoose from "mongoose";
 import Reaction from "../models/Reaction.js";
 import Comment from "../models/Comment.js";
 import Trip from "../models/Trip.js";
+import { createNotification } from "../services/notification.service.js";
 import { getTripAccessContext } from "../utils/tripVisibility.js";
+
+function toIdString(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  return value?.toString?.() || "";
+}
+
+async function resolveRootCommentId(commentOrId) {
+  let currentId =
+    typeof commentOrId === "string"
+      ? commentOrId
+      : toIdString(commentOrId?._id || commentOrId);
+
+  if (!currentId) {
+    return "";
+  }
+
+  let currentParentId =
+    typeof commentOrId === "object" && commentOrId
+      ? toIdString(commentOrId?.parentCommentId)
+      : "";
+
+  while (currentParentId) {
+    const parent = await Comment.findById(currentParentId)
+      .select("_id parentCommentId")
+      .lean();
+
+    if (!parent) {
+      break;
+    }
+
+    currentId = toIdString(parent._id) || currentId;
+    currentParentId = toIdString(parent.parentCommentId);
+  }
+
+  return currentId;
+}
 
 export async function toggleTripHeart(req, res, next) {
   try {
@@ -52,6 +90,13 @@ export async function toggleTripHeart(req, res, next) {
         { $inc: { "counts.reactions": 1 } },
       );
       hearted = true;
+
+      await createNotification({
+        recipientUserId: trip.ownerId,
+        actorUserId: userId,
+        type: "trip_like",
+        tripId,
+      });
     }
 
     const latestTrip = await Trip.findById(tripId)
@@ -151,7 +196,7 @@ export async function toggleCommentLike(req, res, next) {
     }
 
     const comment = await Comment.findById(commentId)
-      .select("_id targetType targetId counts.reactions")
+      .select("_id userId parentCommentId targetType targetId counts.reactions")
       .lean();
 
     if (!comment || comment.targetType !== "trip") {
@@ -197,6 +242,19 @@ export async function toggleCommentLike(req, res, next) {
         { $inc: { "counts.reactions": 1 } },
       );
       liked = true;
+
+      await createNotification({
+        recipientUserId: comment.userId,
+        actorUserId: userId,
+        type: "comment_like",
+        tripId: comment.targetId,
+        commentId,
+        payload: {
+          focusCommentId: toIdString(commentId),
+          threadCommentId:
+            (await resolveRootCommentId(comment)) || toIdString(commentId),
+        },
+      });
     }
 
     const latestComment = await Comment.findById(commentId)

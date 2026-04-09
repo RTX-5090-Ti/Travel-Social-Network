@@ -22,7 +22,7 @@ async function bootstrap() {
 
     const httpServer = createServer(app);
     initSocket(httpServer);
-    console.log("✅ Socket.IO initialized");
+    console.log("✅ Socket.IO ready");
 
     httpServer.listen(PORT, () => {
       console.log(`✅ Server running on port ${PORT}`);

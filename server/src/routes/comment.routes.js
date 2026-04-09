@@ -3,6 +3,7 @@ import { requireAuth } from "../middlewares/requireAuth.js";
 import {
   createTripComment,
   deleteComment,
+  getCommentContext,
   listCommentReplies,
   listTripComments,
   updateComment,
@@ -12,6 +13,7 @@ const router = Router();
 
 // /api/trips/:id/comments
 router.get("/trips/:id/comments", requireAuth, listTripComments);
+router.get("/comments/:commentId/context", requireAuth, getCommentContext);
 router.get("/comments/:commentId/replies", requireAuth, listCommentReplies);
 router.post("/trips/:id/comments", requireAuth, createTripComment);
 router.patch("/comments/:commentId", requireAuth, updateComment);

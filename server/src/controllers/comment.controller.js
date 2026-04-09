@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import Comment from "../models/Comment.js";
 import Reaction from "../models/Reaction.js";
 import Trip from "../models/Trip.js";
+import { createNotification } from "../services/notification.service.js";
 import { getTripAccessContext } from "../utils/tripVisibility.js";
 
 function toIdString(value) {
@@ -210,6 +211,37 @@ async function collectCommentSubtreeIds(rootCommentId) {
   return collectedIds;
 }
 
+async function resolveRootCommentId(commentOrId) {
+  let currentId =
+    typeof commentOrId === "string"
+      ? commentOrId
+      : toIdString(commentOrId?._id || commentOrId);
+
+  if (!currentId) {
+    return "";
+  }
+
+  let currentParentId =
+    typeof commentOrId === "object" && commentOrId
+      ? toIdString(commentOrId?.parentCommentId)
+      : "";
+
+  while (currentParentId) {
+    const parent = await Comment.findById(currentParentId)
+      .select("_id parentCommentId")
+      .lean();
+
+    if (!parent) {
+      break;
+    }
+
+    currentId = toIdString(parent._id) || currentId;
+    currentParentId = toIdString(parent.parentCommentId);
+  }
+
+  return currentId;
+}
+
 // POST /api/trips/:id/comments
 export async function createTripComment(req, res, next) {
   try {
@@ -250,7 +282,7 @@ export async function createTripComment(req, res, next) {
         targetType: "trip",
         targetId: tripId,
       })
-        .select("_id userId")
+        .select("_id userId parentCommentId")
         .lean();
 
       if (!parentComment) {
@@ -268,6 +300,34 @@ export async function createTripComment(req, res, next) {
     });
 
     await Trip.updateOne({ _id: tripId }, { $inc: { "counts.comments": 1 } });
+
+    if (!parentComment?._id) {
+      await createNotification({
+        recipientUserId: trip.ownerId,
+        actorUserId: userId,
+        type: "trip_comment",
+        tripId,
+        commentId: created._id,
+        payload: {
+          focusCommentId: toIdString(created._id),
+          threadCommentId: toIdString(created._id),
+        },
+      });
+    } else {
+      const threadCommentId = await resolveRootCommentId(parentComment);
+
+      await createNotification({
+        recipientUserId: parentComment.userId,
+        actorUserId: userId,
+        type: "comment_reply",
+        tripId,
+        commentId: created._id,
+        payload: {
+          focusCommentId: toIdString(created._id),
+          threadCommentId: threadCommentId || toIdString(parentComment._id),
+        },
+      });
+    }
 
     const comment = await Comment.findById(created._id)
       .populate("userId", "name avatarUrl scheduledDeletionAt")
@@ -452,6 +512,46 @@ export async function listCommentReplies(req, res, next) {
 
     res.json({
       replies: decorateCommentTreeWithLikes(replies, likedSet),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/comments/:commentId/context
+export async function getCommentContext(req, res, next) {
+  try {
+    const commentId = req.params.commentId;
+    const viewerId = req.user.userId;
+
+    if (!mongoose.isValidObjectId(commentId)) {
+      return res.status(400).json({ message: "Invalid comment id" });
+    }
+
+    const comment = await Comment.findById(commentId)
+      .select("_id targetType targetId parentCommentId")
+      .lean();
+
+    if (!comment || comment.targetType !== "trip") {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    const { trip, canView } = await getTripAccessContext({
+      tripId: comment.targetId,
+      viewerId,
+    });
+
+    if (!trip || !canView) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    const threadCommentId =
+      (await resolveRootCommentId(comment)) || toIdString(comment._id);
+
+    res.json({
+      tripId: toIdString(comment.targetId),
+      focusCommentId: toIdString(comment._id),
+      threadCommentId,
     });
   } catch (err) {
     next(err);

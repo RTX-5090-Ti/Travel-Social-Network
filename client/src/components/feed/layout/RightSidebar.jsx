@@ -1,16 +1,14 @@
-import { Bell, MessageCircleMore } from "lucide-react";
+import { MessageCircleMore } from "lucide-react";
 
 import { suggestions, contacts } from "../page/feed.constants";
 import { SendIcon, UserPlusIcon } from "../page/feed.icons";
-import { useNotifications } from "../../../notifications/useNotifications";
+import NotificationBellButton from "../../notifications/NotificationBellButton";
 import Divider from "./Divider";
 
 export default function RightSidebar() {
-  const { unreadCount } = useNotifications();
-
   return (
-    <aside className="hidden bg-white/80 px-6 backdrop-blur lg:block lg:self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:rounded-r-[34px] feed-side-scroll">
-      <div className="py-7">
+    <aside className="hidden bg-white/80 px-6 backdrop-blur lg:block lg:self-start lg:sticky lg:top-4 lg:z-30 lg:overflow-visible lg:rounded-r-[34px]">
+      <div className="feed-side-scroll py-7 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overflow-x-visible">
         <div className="sticky top-0 z-30 -mx-6 mb-3 border-b border-white/60 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(255,255,255,0.88)_100%)] px-6 py-3 backdrop-blur-xl supports-[backdrop-filter]:bg-white/75">
           <div className="flex items-center justify-between px-3">
             <div>
@@ -32,21 +30,7 @@ export default function RightSidebar() {
                 </span>
               </button>
 
-              <button
-                type="button"
-                aria-label="Notifications"
-                className="group relative inline-flex h-12 w-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-white shadow-[0_12px_28px_rgba(108,92,231,0.28)] transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(79,124,255,0.28)] cursor-pointer"
-              >
-                <Bell
-                  className="h-[22px] w-[22px] transition duration-200 group-hover:scale-105"
-                  strokeWidth={2.2}
-                />
-                {unreadCount > 0 ? (
-                  <span className="absolute -right-1 -top-1 inline-flex min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1.5 py-[2px] text-[10px] font-semibold leading-none text-white shadow-[0_8px_18px_rgba(255,255,255,0.35)]">
-                    {unreadCount > 99 ? "99+" : unreadCount}
-                  </span>
-                ) : null}
-              </button>
+              <NotificationBellButton />
             </div>
           </div>
         </div>

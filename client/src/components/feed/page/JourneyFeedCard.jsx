@@ -23,6 +23,8 @@ import ShareJourneyModal from "../ShareJourneyModal";
 export default function JourneyFeedCard({
   trip,
   forceOpen = false,
+  targetCommentId = "",
+  targetThreadCommentId = "",
   overlayOnly = false,
   surface = "feed",
   isPinnedOverride,
@@ -219,6 +221,8 @@ export default function JourneyFeedCard({
             detailLoading={detailLoading}
             detailError={detailError}
             commentCount={commentCount}
+            targetCommentId={targetCommentId}
+            targetThreadCommentId={targetThreadCommentId}
             onCommentCreated={handleCommentCreated}
             onCommentDeleted={handleCommentDeleted}
             onClose={handleOverlayClose}

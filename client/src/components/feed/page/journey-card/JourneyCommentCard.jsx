@@ -433,7 +433,10 @@ function CommentThread({
       : `Xem tất cả ${totalReplies} phản hồi`;
 
   return (
-    <div className="rounded-[24px] bg-transparent">
+    <div
+      className="rounded-[24px] bg-transparent"
+      data-comment-id={commentId || undefined}
+    >
       <CommentBubble
         comment={comment}
         showConnector={depth > 0}

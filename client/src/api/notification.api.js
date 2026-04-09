@@ -12,4 +12,14 @@ export const notificationApi = {
   markAllRead() {
     return api.post("/api/notifications/read-all");
   },
+
+  deleteSelected(notificationIds = []) {
+    return api.post("/api/notifications/delete-selected", {
+      notificationIds,
+    });
+  },
+
+  deleteAll() {
+    return api.post("/api/notifications/delete-all");
+  },
 };

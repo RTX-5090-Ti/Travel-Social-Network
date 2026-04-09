@@ -55,6 +55,8 @@ export default function JourneyDetailOverlay({
   detail,
   detailLoading,
   detailError,
+  targetCommentId = "",
+  targetThreadCommentId = "",
   commentCount: _commentCount,
   onCommentCreated,
   onCommentDeleted,
@@ -92,7 +94,11 @@ export default function JourneyDetailOverlay({
   const [commentsLoadingMore, setCommentsLoadingMore] = useState(false);
   const commentTextareaRef = useRef(null);
   const commentListEndRef = useRef(null);
+  const overlayContentRef = useRef(null);
   const shouldScrollToNewestCommentRef = useRef(false);
+  const commentsCursorRef = useRef(null);
+  const commentsHasMoreRef = useRef(false);
+  const focusRequestKeyRef = useRef("");
   const onCloseRef = useRef(onClose);
   const showToastRef = useRef(showToast);
 
@@ -113,6 +119,11 @@ export default function JourneyDetailOverlay({
   useEffect(() => {
     onCloseRef.current = onClose;
   }, [onClose]);
+
+  useEffect(() => {
+    commentsCursorRef.current = commentsCursor;
+    commentsHasMoreRef.current = commentsHasMore;
+  }, [commentsCursor, commentsHasMore]);
 
   useEffect(() => {
     showToastRef.current = showToast;
@@ -208,6 +219,7 @@ export default function JourneyDetailOverlay({
     setExpandedReplyThreads({});
     setVisibleReplyCounts({});
     setLoadingReplyThreads({});
+    focusRequestKeyRef.current = "";
   }, [trip?._id]);
 
   useEffect(() => {
@@ -298,6 +310,12 @@ export default function JourneyDetailOverlay({
   }, [trip?._id, detail, detailLoading, detailError, handleTripUnavailable]);
 
   useEffect(() => {
+    if (!targetCommentId) {
+      focusRequestKeyRef.current = "";
+    }
+  }, [targetCommentId, targetThreadCommentId]);
+
+  useEffect(() => {
     if (!shouldScrollToNewestCommentRef.current) return;
 
     shouldScrollToNewestCommentRef.current = false;
@@ -351,6 +369,166 @@ export default function JourneyDetailOverlay({
       setCommentsLoadingMore(false);
     }
   }
+
+  function scrollToComment(targetId) {
+    if (!targetId) return false;
+
+    const escapedId =
+      typeof CSS !== "undefined" && typeof CSS.escape === "function"
+        ? CSS.escape(targetId)
+        : targetId.replace(/["\\]/g, "\\$&");
+
+    const targetNode = overlayContentRef.current?.querySelector(
+      `[data-comment-id="${escapedId}"]`,
+    );
+
+    if (!targetNode) return false;
+
+    targetNode.scrollIntoView({
+      behavior: "smooth",
+      block: "center",
+    });
+
+    return true;
+  }
+
+  /* eslint-disable react-hooks/exhaustive-deps */
+  useEffect(() => {
+    if (
+      !trip?._id ||
+      !detail ||
+      detailLoading ||
+      detailError ||
+      commentsLoading ||
+      !targetCommentId
+    ) {
+      return undefined;
+    }
+
+    const requestKey = [
+      trip._id,
+      targetCommentId,
+      targetThreadCommentId || targetCommentId,
+    ].join(":");
+
+    if (focusRequestKeyRef.current === requestKey) {
+      return undefined;
+    }
+
+    let cancelled = false;
+
+    async function focusTargetComment() {
+      const threadId = targetThreadCommentId || targetCommentId;
+      let workingItems = commentItems;
+      let threadComment = findCommentInTree(workingItems, threadId);
+      let pageLoads = 0;
+
+      while (
+        !threadComment &&
+        commentsHasMoreRef.current &&
+        commentsCursorRef.current &&
+        pageLoads < 6 &&
+        !cancelled
+      ) {
+        try {
+          const res = await tripApi.listComments(trip._id, {
+            limit: 20,
+            cursor: commentsCursorRef.current,
+          });
+
+          if (cancelled) return;
+
+          const olderComments = Array.isArray(res.data?.comments)
+            ? res.data.comments
+            : [];
+
+          if (!olderComments.length) {
+            commentsCursorRef.current = null;
+            commentsHasMoreRef.current = false;
+            setCommentsCursor(null);
+            setCommentsHasMore(false);
+            break;
+          }
+
+          workingItems = [...olderComments, ...workingItems];
+          threadComment = findCommentInTree(workingItems, threadId);
+
+          const nextCursor = res.data?.page?.nextCursor || null;
+          const nextHasMore = !!res.data?.page?.hasMore;
+
+          commentsCursorRef.current = nextCursor;
+          commentsHasMoreRef.current = nextHasMore;
+          setCommentsCursor(nextCursor);
+          setCommentsHasMore(nextHasMore);
+          setCommentItems((prev) => [...olderComments, ...prev]);
+
+          pageLoads += 1;
+        } catch {
+          break;
+        }
+      }
+
+      if (cancelled) return;
+
+      if (threadId && threadId !== targetCommentId && threadComment) {
+        setExpandedReplyThreads((prev) => ({
+          ...prev,
+          [threadId]: true,
+        }));
+
+        setVisibleReplyCounts((prev) => ({
+          ...prev,
+          [threadId]: Math.max(prev[threadId] || 0, 10),
+        }));
+
+        await new Promise((resolve) => {
+          window.requestAnimationFrame(() => resolve());
+        });
+
+        await loadRepliesForComment(threadId, { force: true });
+      }
+
+      if (cancelled) return;
+
+      let attempts = 0;
+      const maxAttempts = 6;
+
+      function attemptScroll() {
+        if (cancelled) return;
+        attempts += 1;
+
+        const didScroll = scrollToComment(targetCommentId);
+        if (didScroll) {
+          focusRequestKeyRef.current = requestKey;
+          return;
+        }
+
+        if (attempts >= maxAttempts) {
+          return;
+        }
+
+        window.requestAnimationFrame(attemptScroll);
+      }
+
+      window.requestAnimationFrame(attemptScroll);
+    }
+
+    focusTargetComment();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    commentItems,
+    commentsLoading,
+    detail,
+    detailError,
+    detailLoading,
+    targetCommentId,
+    targetThreadCommentId,
+    trip?._id,
+  ]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   async function handleSubmitComment(e) {
     e.preventDefault();
@@ -484,11 +662,11 @@ export default function JourneyDetailOverlay({
     }
 
     const targetComment = findCommentInTree(commentItems, commentId);
-    if (!targetComment) {
+    if (!targetComment && !force) {
       return false;
     }
 
-    if (!force && areRepliesLoaded(targetComment)) {
+    if (!force && targetComment && areRepliesLoaded(targetComment)) {
       return true;
     }
 
@@ -1099,7 +1277,10 @@ export default function JourneyDetailOverlay({
           </div>
         </div>
 
-        <div className="flex-1 min-h-0 px-4 py-4 overflow-y-auto sm:px-6 sm:py-6">
+        <div
+          ref={overlayContentRef}
+          className="flex-1 min-h-0 px-4 py-4 overflow-y-auto sm:px-6 sm:py-6"
+        >
           {detailLoading ? (
             <div className="rounded-[20px] border border-zinc-200 bg-[linear-gradient(180deg,#fafafa,#ffffff)] p-4 sm:rounded-[24px] sm:p-5">
               <div className="space-y-3 animate-pulse">

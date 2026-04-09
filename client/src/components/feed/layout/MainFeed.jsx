@@ -20,6 +20,8 @@ export default function MainFeed({
   onTripTrashed,
   onTripUpdated,
   onTripHidden,
+  activeNotificationTarget = null,
+  onClearNotificationTarget,
 }) {
   const loadMoreRef = useRef(null);
 
@@ -113,19 +115,40 @@ export default function MainFeed({
               </>
             ) : feedItems.length > 0 ? (
               <>
-                {feedItems.map((trip, index) => (
-                  <JourneyFeedCard
-                    key={
-                      trip._id || `feed-trip-${trip.createdAt || "x"}-${index}`
-                    }
-                    trip={trip}
-                    surface="feed"
-                    onPreviewUser={onPreviewUser}
-                    onTripTrashed={onTripTrashed}
-                    onTripUpdated={onTripUpdated}
-                    onTripHidden={onTripHidden}
-                  />
-                ))}
+                {feedItems.map((trip, index) => {
+                  const tripId = trip?._id || trip?.id || "";
+                  const shouldForceOpen =
+                    activeNotificationTarget?.tripId &&
+                    tripId === activeNotificationTarget.tripId;
+
+                  return (
+                    <JourneyFeedCard
+                      key={
+                        trip._id || `feed-trip-${trip.createdAt || "x"}-${index}`
+                      }
+                      trip={trip}
+                      surface="feed"
+                      onPreviewUser={onPreviewUser}
+                      onTripTrashed={onTripTrashed}
+                      onTripUpdated={onTripUpdated}
+                      onTripHidden={onTripHidden}
+                      forceOpen={shouldForceOpen}
+                      targetCommentId={
+                        shouldForceOpen
+                          ? activeNotificationTarget?.focusCommentId || ""
+                          : ""
+                      }
+                      targetThreadCommentId={
+                        shouldForceOpen
+                          ? activeNotificationTarget?.threadCommentId || ""
+                          : ""
+                      }
+                      onForceOpenClose={
+                        shouldForceOpen ? onClearNotificationTarget : undefined
+                      }
+                    />
+                  );
+                })}
 
                 <div ref={loadMoreRef} className="h-6 w-full" />
 
