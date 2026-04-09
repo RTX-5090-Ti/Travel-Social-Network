@@ -231,6 +231,25 @@ export function ShareIcon({ className = "w-5 h-5" }) {
   );
 }
 
+export function PinBadgeIcon({ className = "w-5 h-5" }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.9"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+    >
+      <path d="m15 4 5 5" />
+      <path d="m11.5 7.5 5 5" />
+      <path d="m14 2 8 8-3 3-3-1-7 7-1.5-1.5 7-7-1-3Z" />
+      <path d="M4 20h6" />
+    </svg>
+  );
+}
+
 export function BookmarkFillIcon({ className = "w-5 h-5" }) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
