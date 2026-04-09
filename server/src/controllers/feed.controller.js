@@ -6,19 +6,58 @@ import SavedTrip from "../models/SavedTrip.js";
 
 const FOLLOWER_VISIBLE_PRIVACIES = ["public", "followers"];
 
-function dedupeAndSortTrips(items, limit) {
-  const seen = new Set();
-  const unique = [];
+function toIdString(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  return value?.toString?.() || "";
+}
 
-  for (const item of items) {
-    const id = item?._id?.toString();
-    if (!id || seen.has(id)) continue;
-    seen.add(id);
-    unique.push(item);
+function encodeFeedCursor(trip) {
+  const createdAt =
+    trip?.createdAt instanceof Date
+      ? trip.createdAt.toISOString()
+      : typeof trip?.createdAt === "string"
+        ? trip.createdAt
+        : "";
+  const tripId = toIdString(trip?._id);
+
+  if (!createdAt || !tripId) {
+    return null;
   }
 
-  unique.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  return unique.slice(0, limit);
+  return `${createdAt}__${tripId}`;
+}
+
+function decodeFeedCursor(rawCursor) {
+  if (typeof rawCursor !== "string" || !rawCursor.trim()) {
+    return null;
+  }
+
+  const trimmedCursor = rawCursor.trim();
+  const separatorIndex = trimmedCursor.lastIndexOf("__");
+
+  if (separatorIndex === -1) {
+    const legacyDate = new Date(trimmedCursor);
+    return Number.isNaN(legacyDate.getTime())
+      ? null
+      : {
+          createdAt: legacyDate,
+          id: "",
+        };
+  }
+
+  const createdAtRaw = trimmedCursor.slice(0, separatorIndex);
+  const idRaw = trimmedCursor.slice(separatorIndex + 2);
+  const createdAt = new Date(createdAtRaw);
+
+  if (Number.isNaN(createdAt.getTime())) {
+    return null;
+  }
+
+  return {
+    createdAt,
+    id: idRaw,
+  };
 }
 
 function buildFeedQuery(filter) {
@@ -31,10 +70,10 @@ function buildFeedQuery(filter) {
     )
     .populate({
       path: "ownerId",
-      select: "name email avatarUrl",
+      select: "name avatarUrl",
       match: { isActive: { $ne: false } },
     })
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1, _id: -1 });
 }
 
 export async function getFeed(req, res, next) {
@@ -46,25 +85,13 @@ export async function getFeed(req, res, next) {
     const limit = Number.isFinite(limitRaw)
       ? Math.min(Math.max(limitRaw, 1), 50)
       : 20;
-
-    const ownCount = Math.min(2, limit);
+    const cursor = decodeFeedCursor(req.query.cursor);
 
     const follows = await Follow.find({ followerId: userId })
       .select("followingId")
       .lean();
 
     const followingIds = follows.map((f) => f.followingId);
-
-    const remainingAfterOwn = Math.max(0, limit - ownCount);
-
-    const followingCount = followingIds.length
-      ? Math.min(
-          remainingAfterOwn,
-          Math.max(1, Math.round(remainingAfterOwn * 0.45)),
-        )
-      : 0;
-
-    const communityCount = Math.max(0, limit - ownCount - followingCount);
 
     const hiddenDocs = await HiddenTrip.find({
       userId,
@@ -75,39 +102,49 @@ export async function getFeed(req, res, next) {
 
     const hiddenTripIds = hiddenDocs.map((item) => item.tripId);
 
-    const [ownTrips, followingTrips, communityTrips] = await Promise.all([
-      buildFeedQuery({
-        ownerId: userId,
-        _id: { $nin: hiddenTripIds },
-      })
-        .limit(ownCount)
-        .lean(),
+    const filter = {
+      deletedAt: null,
+      _id: { $nin: hiddenTripIds },
+      $or: [
+        { ownerId: userId },
+        ...(followingIds.length
+          ? [
+              {
+                ownerId: { $in: followingIds },
+                privacy: { $in: FOLLOWER_VISIBLE_PRIVACIES },
+              },
+            ]
+          : []),
+        {
+          ownerId: { $nin: [userId, ...followingIds] },
+          privacy: "public",
+        },
+      ],
+    };
 
-      followingIds.length
-        ? buildFeedQuery({
-            ownerId: { $in: followingIds },
-            _id: { $nin: hiddenTripIds },
-            privacy: { $in: FOLLOWER_VISIBLE_PRIVACIES },
-          })
-            .limit(followingCount)
-            .lean()
-        : [],
+    if (cursor?.createdAt) {
+      if (cursor.id) {
+        filter.$and = [
+          {
+            $or: [
+              { createdAt: { $lt: cursor.createdAt } },
+              {
+                createdAt: cursor.createdAt,
+                _id: { $lt: cursor.id },
+              },
+            ],
+          },
+        ];
+      } else {
+        filter.createdAt = { $lt: cursor.createdAt };
+      }
+    }
 
-      buildFeedQuery({
-        _id: { $nin: hiddenTripIds },
-        privacy: "public",
-        ownerId: { $nin: [userId, ...followingIds] },
-      })
-        .limit(communityCount)
-        .lean(),
-    ]);
+    const docs = await buildFeedQuery(filter).limit(limit + 1).lean();
+    const hasMore = docs.length > limit;
+    const pageDocs = hasMore ? docs.slice(0, limit) : docs;
 
-    const items = dedupeAndSortTrips(
-      [...ownTrips, ...followingTrips, ...communityTrips].filter(
-        (item) => item?.ownerId?._id,
-      ),
-      limit,
-    );
+    const items = pageDocs.filter((item) => item?.ownerId?._id);
 
     const tripIds = items.map((item) => item._id);
 
@@ -144,14 +181,12 @@ export async function getFeed(req, res, next) {
 
     res.json({
       items: hydratedItems,
-      meta: {
+      page: {
         limit,
-        includedOwnTrips: ownTrips.length,
-        ratio: {
-          own: ownCount,
-          following: followingCount,
-          community: communityCount,
-        },
+        hasMore,
+        nextCursor: pageDocs.length
+          ? encodeFeedCursor(pageDocs[pageDocs.length - 1])
+          : null,
       },
     });
   } catch (err) {

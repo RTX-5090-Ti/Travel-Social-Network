@@ -32,12 +32,14 @@ function normalizeProfileValue(value = "") {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function buildUserPayload(user) {
+function buildUserPayload(
+  user,
+  { includeEmail = false, includeRole = false } = {},
+) {
   const payload = {
     _id: user._id,
     id: user._id,
     name: user.name || "Traveler",
-    email: user.email || "",
     avatarUrl: user.avatarUrl || "",
     coverUrl: user.coverUrl || "",
     bio: user.bio || "",
@@ -46,11 +48,46 @@ function buildUserPayload(user) {
     pinnedTripId: user.pinnedTripId || null,
   };
 
-  if (typeof user.role === "string" && user.role) {
+  if (includeEmail) {
+    payload.email = user.email || "";
+  }
+
+  if (includeRole && typeof user.role === "string" && user.role) {
     payload.role = user.role;
   }
 
   return payload;
+}
+
+async function resolveVisiblePinnedTripId({
+  ownerId,
+  viewerId,
+  isFollowingOwner = false,
+  pinnedTripId,
+}) {
+  const normalizedPinnedTripId =
+    typeof pinnedTripId === "string"
+      ? pinnedTripId
+      : pinnedTripId?._id?.toString?.() || pinnedTripId?.toString?.() || "";
+
+  if (!normalizedPinnedTripId) {
+    return null;
+  }
+
+  if (!mongoose.isValidObjectId(normalizedPinnedTripId)) {
+    return null;
+  }
+
+  const exists = await Trip.exists({
+    _id: normalizedPinnedTripId,
+    ...buildOwnerTripVisibilityFilter({
+      ownerId,
+      viewerId,
+      isFollowingOwner,
+    }),
+  });
+
+  return exists ? normalizedPinnedTripId : null;
 }
 
 async function countActiveFollowRelations({ matchField, targetUserId, joinField }) {
@@ -112,7 +149,7 @@ export async function uploadAvatarController(req, res, next) {
 
     res.json({
       message: "Avatar updated successfully",
-      user: buildUserPayload(user),
+      user: buildUserPayload(user, { includeEmail: true, includeRole: true }),
     });
   } catch (err) {
     next(err);
@@ -145,7 +182,7 @@ async function buildProfileTrips({
     )
     .populate({
       path: "ownerId",
-      select: "name email avatarUrl",
+      select: "name avatarUrl",
       match: { isActive: { $ne: false } },
     })
     .sort({ createdAt: -1 })
@@ -154,7 +191,7 @@ async function buildProfileTrips({
 
   const tripIds = trips.map((trip) => trip._id);
 
-  const [myReactions, mySavedTrips, tripItems, milestones] = await Promise.all([
+  const [myReactions, mySavedTrips] = await Promise.all([
     tripIds.length
       ? Reaction.find({
           targetType: "trip",
@@ -172,23 +209,66 @@ async function buildProfileTrips({
           .select("tripId")
           .lean()
       : [],
-    tripIds.length
-      ? TripItem.find({ tripId: { $in: tripIds } })
-          .select("tripId milestoneId media order createdAt")
-          .sort({ tripId: 1, milestoneId: 1, order: 1, createdAt: 1 })
-          .lean()
-      : [],
-    tripIds.length
-      ? Milestone.find({ tripId: { $in: tripIds } })
-          .select("_id title")
-          .lean()
-      : [],
   ]);
 
   const heartedSet = new Set(
     myReactions.map((item) => item.targetId.toString()),
   );
   const savedSet = new Set(mySavedTrips.map((item) => item.tripId.toString()));
+
+  return trips
+    .filter((trip) => trip?.ownerId?._id)
+    .map((trip) => ({
+      ...trip,
+      hearted: heartedSet.has(trip._id.toString()),
+      saved: savedSet.has(trip._id.toString()),
+    }));
+}
+
+async function buildProfileMediaItems({
+  ownerId,
+  viewerId,
+  isFollowingOwner = false,
+  limit = null,
+}) {
+  const visibilityFilter = buildOwnerTripVisibilityFilter({
+    ownerId,
+    viewerId,
+    isFollowingOwner,
+  });
+
+  const trips = await Trip.find(visibilityFilter)
+    .select("_id title privacy createdAt")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  if (!trips.length) {
+    return [];
+  }
+
+  const tripIds = trips.map((trip) => trip._id);
+  const tripItems = await TripItem.find({ tripId: { $in: tripIds } })
+    .select("tripId milestoneId media order createdAt")
+    .sort({ createdAt: -1, order: 1, _id: -1 })
+    .lean();
+
+  if (!tripItems.length) {
+    return [];
+  }
+
+  const milestoneIds = [
+    ...new Set(
+      tripItems
+        .map((item) => item?.milestoneId?.toString?.())
+        .filter(Boolean),
+    ),
+  ];
+
+  const milestones = milestoneIds.length
+    ? await Milestone.find({ _id: { $in: milestoneIds } })
+        .select("_id title")
+        .lean()
+    : [];
 
   const milestoneTitleMap = new Map(
     milestones.map((milestone) => [
@@ -197,52 +277,59 @@ async function buildProfileTrips({
     ]),
   );
 
-  const mediaByTripId = new Map();
-  const seenByTripId = new Map();
+  const tripItemsByTripId = new Map();
 
-  for (const item of tripItems) {
+  tripItems.forEach((item) => {
     const tripKey = item?.tripId?.toString?.();
+    if (!tripKey) return;
+
+    if (!tripItemsByTripId.has(tripKey)) {
+      tripItemsByTripId.set(tripKey, []);
+    }
+
+    tripItemsByTripId.get(tripKey).push(item);
+  });
+
+  const output = [];
+  const seen = new Set();
+  const shouldLimit = Number.isFinite(limit) && limit > 0;
+
+  for (const trip of trips) {
+    const tripKey = trip?._id?.toString?.();
     if (!tripKey) continue;
 
-    if (!mediaByTripId.has(tripKey)) {
-      mediaByTripId.set(tripKey, []);
-    }
+    const tripMediaItems = tripItemsByTripId.get(tripKey) || [];
 
-    if (!seenByTripId.has(tripKey)) {
-      seenByTripId.set(tripKey, new Set());
-    }
+    for (const item of tripMediaItems) {
+      for (const media of item.media || []) {
+        const url = safeUrl(media?.url);
+        if (!url) continue;
 
-    const tripMedia = mediaByTripId.get(tripKey);
-    const tripSeen = seenByTripId.get(tripKey);
+        const mediaId = `${tripKey}:${url}`;
+        if (seen.has(mediaId)) continue;
 
-    for (const media of item.media || []) {
-      const url = safeUrl(media?.url);
-      if (!url) continue;
-      if (tripSeen.has(url)) continue;
+        seen.add(mediaId);
+        output.push({
+          id: mediaId,
+          url,
+          type: normalizeMediaType(media?.type),
+          tripId: tripKey,
+          tripTitle: trip?.title || "Untitled journey",
+          privacy: trip?.privacy || "public",
+          createdAt: item?.createdAt || trip?.createdAt || null,
+          milestoneTitle: item?.milestoneId
+            ? milestoneTitleMap.get(item.milestoneId.toString()) || null
+            : null,
+        });
 
-      tripSeen.add(url);
-
-      tripMedia.push({
-        url,
-        type: normalizeMediaType(media?.type),
-        width: media?.width ?? null,
-        height: media?.height ?? null,
-        duration: media?.duration ?? null,
-        milestoneTitle: item?.milestoneId
-          ? milestoneTitleMap.get(item.milestoneId.toString()) || null
-          : null,
-      });
+        if (shouldLimit && output.length >= limit) {
+          return output;
+        }
+      }
     }
   }
 
-  return trips
-    .filter((trip) => trip?.ownerId?._id)
-    .map((trip) => ({
-      ...trip,
-      hearted: heartedSet.has(trip._id.toString()),
-      saved: savedSet.has(trip._id.toString()),
-      profileMedia: mediaByTripId.get(trip._id.toString()) || [],
-    }));
+  return output;
 }
 
 export async function getMyTripsController(req, res, next) {
@@ -300,7 +387,7 @@ export async function getUserProfileController(req, res, next) {
       await Promise.all([
         User.findById(profileUserId)
           .select(
-            "_id name email avatarUrl coverUrl bio location travelStyle pinnedTripId isActive",
+            "_id name avatarUrl coverUrl bio location travelStyle pinnedTripId isActive",
           )
           .lean(),
         viewerId && viewerId !== profileUserId
@@ -335,7 +422,7 @@ export async function getUserProfileController(req, res, next) {
       isFollowingOwner,
     });
 
-    const [trips, totalTrips] = await Promise.all([
+    const [trips, totalTrips, visiblePinnedTripId] = await Promise.all([
       buildProfileTrips({
         ownerId: profileUserId,
         viewerId,
@@ -343,10 +430,21 @@ export async function getUserProfileController(req, res, next) {
         limit,
       }),
       Trip.countDocuments(visibilityFilter),
+      resolveVisiblePinnedTripId({
+        ownerId: profileUserId,
+        viewerId,
+        isFollowingOwner,
+        pinnedTripId: profileUser?.pinnedTripId,
+      }),
     ]);
 
+    const profileUserPayload = buildUserPayload({
+      ...profileUser,
+      pinnedTripId: visiblePinnedTripId,
+    });
+
     res.json({
-      user: buildUserPayload(profileUser),
+      user: profileUserPayload,
       trips,
       follow: {
         followed: isFollowingOwner,
@@ -376,7 +474,7 @@ export async function getUserSummaryController(req, res, next) {
       await Promise.all([
         User.findById(profileUserId)
           .select(
-            "_id name email avatarUrl coverUrl bio location travelStyle pinnedTripId isActive",
+            "_id name avatarUrl coverUrl bio location travelStyle pinnedTripId isActive",
           )
           .lean(),
         viewerId && viewerId !== profileUserId
@@ -405,16 +503,29 @@ export async function getUserSummaryController(req, res, next) {
 
     const isFollowingOwner = !!followDoc;
 
-    const postsCount = await Trip.countDocuments(
-      buildOwnerTripVisibilityFilter({
+    const [postsCount, visiblePinnedTripId] = await Promise.all([
+      Trip.countDocuments(
+        buildOwnerTripVisibilityFilter({
+          ownerId: profileUserId,
+          viewerId,
+          isFollowingOwner,
+        }),
+      ),
+      resolveVisiblePinnedTripId({
         ownerId: profileUserId,
         viewerId,
         isFollowingOwner,
+        pinnedTripId: profileUser?.pinnedTripId,
       }),
-    );
+    ]);
+
+    const profileUserPayload = buildUserPayload({
+      ...profileUser,
+      pinnedTripId: visiblePinnedTripId,
+    });
 
     res.json({
-      user: buildUserPayload(profileUser),
+      user: profileUserPayload,
       follow: {
         followed: isFollowingOwner,
         followersCount,
@@ -424,6 +535,55 @@ export async function getUserSummaryController(req, res, next) {
         postsCount,
         followersCount,
         followingCount,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getUserProfileMediaController(req, res, next) {
+  try {
+    const viewerId = req.user?.userId;
+    const profileUserId = req.params.id;
+
+    if (!mongoose.isValidObjectId(profileUserId)) {
+      return res.status(400).json({ message: "Invalid user id" });
+    }
+
+    const limitRaw = Number(req.query.limit ?? 0);
+    const limit =
+      Number.isFinite(limitRaw) && limitRaw > 0
+        ? Math.min(Math.max(limitRaw, 1), 200)
+        : null;
+
+    const [profileUser, followDoc] = await Promise.all([
+      User.findById(profileUserId).select("_id isActive").lean(),
+      viewerId && viewerId !== profileUserId
+        ? Follow.findOne({
+            followerId: viewerId,
+            followingId: profileUserId,
+          })
+            .select("_id")
+            .lean()
+        : null,
+    ]);
+
+    if (!profileUser || profileUser.isActive === false) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const items = await buildProfileMediaItems({
+      ownerId: profileUserId,
+      viewerId,
+      isFollowingOwner: !!followDoc,
+      limit,
+    });
+
+    res.json({
+      items,
+      meta: {
+        limit,
       },
     });
   } catch (err) {
@@ -475,7 +635,7 @@ export async function updateProfileController(req, res, next) {
 
     res.json({
       message: "Profile updated successfully",
-      user: buildUserPayload(user),
+      user: buildUserPayload(user, { includeEmail: true, includeRole: true }),
     });
   } catch (err) {
     next(err);
@@ -518,7 +678,7 @@ export async function uploadCoverController(req, res, next) {
 
     res.json({
       message: "Cover updated successfully",
-      user: buildUserPayload(user),
+      user: buildUserPayload(user, { includeEmail: true, includeRole: true }),
     });
   } catch (err) {
     next(err);

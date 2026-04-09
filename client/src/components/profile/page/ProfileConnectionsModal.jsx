@@ -186,7 +186,7 @@ export default function ProfileConnectionsModal({
 
                         return (
                           <div
-                            key={personId || `${person?.name}-${person?.email}`}
+                            key={personId || `connection-${person?.name || "traveler"}`}
                             className="group flex items-center justify-between gap-4 rounded-[22px] border border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.88),rgba(245,247,255,0.94),rgba(244,239,255,0.90))] px-4 py-3 shadow-[0_12px_28px_rgba(15,23,42,0.06)] ring-1 ring-zinc-200/55 transition hover:-translate-y-[1px] hover:shadow-[0_18px_36px_rgba(91,99,246,0.10)]"
                           >
                             <div className="flex items-center min-w-0 gap-3">
@@ -207,7 +207,7 @@ export default function ProfileConnectionsModal({
                                   {person?.name || "Traveler"}
                                 </p>
                                 <p className="text-sm truncate text-zinc-500">
-                                  {person?.email || "Chưa cập nhật email"}
+                                  Travel Social member
                                 </p>
                               </div>
                             </div>
@@ -224,13 +224,17 @@ export default function ProfileConnectionsModal({
                                     : "bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-white shadow-[0_14px_30px_rgba(91,99,246,0.24)] hover:-translate-y-0.5"
                               } ${isBusy ? "opacity-70" : ""}`}
                             >
-                              {isSelf
-                                ? "Bạn"
-                                : isBusy
-                                  ? "Đang tải..."
-                                  : followed
-                                    ? "Following"
-                                    : "Follow"}
+                              {isSelf ? (
+                                "Bạn"
+                              ) : isBusy ? (
+                                <span className="inline-flex items-center justify-center">
+                                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/50 border-t-white" />
+                                </span>
+                              ) : followed ? (
+                                "Following"
+                              ) : (
+                                "Follow"
+                              )}
                             </button>
                           </div>
                         );

@@ -11,6 +11,54 @@ function toIdString(value) {
   return value?.toString?.() || "";
 }
 
+function encodeCommentCursor(comment) {
+  const createdAt =
+    comment?.createdAt instanceof Date
+      ? comment.createdAt.toISOString()
+      : typeof comment?.createdAt === "string"
+        ? comment.createdAt
+        : "";
+  const commentId = toIdString(comment?._id);
+
+  if (!createdAt || !commentId) {
+    return null;
+  }
+
+  return `${createdAt}__${commentId}`;
+}
+
+function decodeCommentCursor(rawCursor) {
+  if (typeof rawCursor !== "string" || !rawCursor.trim()) {
+    return null;
+  }
+
+  const trimmedCursor = rawCursor.trim();
+  const separatorIndex = trimmedCursor.lastIndexOf("__");
+
+  if (separatorIndex === -1) {
+    const legacyDate = new Date(trimmedCursor);
+    return Number.isNaN(legacyDate.getTime())
+      ? null
+      : {
+          createdAt: legacyDate,
+          id: "",
+        };
+  }
+
+  const createdAtRaw = trimmedCursor.slice(0, separatorIndex);
+  const idRaw = trimmedCursor.slice(separatorIndex + 2);
+  const createdAt = new Date(createdAtRaw);
+
+  if (Number.isNaN(createdAt.getTime())) {
+    return null;
+  }
+
+  return {
+    createdAt,
+    id: mongoose.isValidObjectId(idRaw) ? idRaw : "",
+  };
+}
+
 function countDescendants(replies = []) {
   return replies.reduce(
     (total, reply) => total + 1 + countDescendants(reply?.replies || []),
@@ -36,7 +84,7 @@ function normalizeCommentUser(user) {
   };
 }
 
-function normalizeCommentPayload(comment, replies = []) {
+function normalizeCommentPayload(comment, replies = [], options = {}) {
   const likeCount = Math.max(
     0,
     Number(comment?.likeCount ?? comment?.counts?.reactions ?? 0),
@@ -55,7 +103,9 @@ function normalizeCommentPayload(comment, replies = []) {
     replyToUser: comment?.replyToUserId ? normalizedReplyToUser : null,
     liked: !!comment?.liked,
     likeCount,
-    replyCount: countDescendants(replies),
+    replyCount: Number.isFinite(options?.replyCount)
+      ? Number(options.replyCount)
+      : countDescendants(replies),
     replies,
   };
 }
@@ -96,6 +146,43 @@ function decorateCommentTreeWithLikes(items = [], likedSet = new Set()) {
       ? decorateCommentTreeWithLikes(comment.replies, likedSet)
       : [],
   }));
+}
+
+async function buildReplyCountMap(rootCommentIds = [], tripId) {
+  if (!rootCommentIds.length) {
+    return new Map();
+  }
+
+  const replyCounts = await Comment.aggregate([
+    {
+      $match: {
+        _id: { $in: rootCommentIds.map((id) => new mongoose.Types.ObjectId(id)) },
+      },
+    },
+    {
+      $graphLookup: {
+        from: Comment.collection.name,
+        startWith: "$_id",
+        connectFromField: "_id",
+        connectToField: "parentCommentId",
+        as: "descendants",
+        restrictSearchWithMatch: {
+          targetType: "trip",
+          targetId: new mongoose.Types.ObjectId(tripId),
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 1,
+        replyCount: { $size: "$descendants" },
+      },
+    },
+  ]);
+
+  return new Map(
+    replyCounts.map((item) => [toIdString(item?._id), Number(item?.replyCount || 0)]),
+  );
 }
 
 async function collectCommentSubtreeIds(rootCommentId) {
@@ -210,7 +297,7 @@ export async function listTripComments(req, res, next) {
       ? Math.min(Math.max(limitRaw, 1), 50)
       : 20;
 
-    const cursor = req.query.cursor ? new Date(req.query.cursor) : null;
+    const cursor = decodeCommentCursor(req.query.cursor);
 
     const { trip, canView } = await getTripAccessContext({
       tripId,
@@ -227,12 +314,22 @@ export async function listTripComments(req, res, next) {
       parentCommentId: null,
     };
 
-    if (cursor && !Number.isNaN(cursor.getTime())) {
-      filter.createdAt = { $lt: cursor };
+    if (cursor?.createdAt) {
+      if (cursor.id) {
+        filter.$or = [
+          { createdAt: { $lt: cursor.createdAt } },
+          {
+            createdAt: cursor.createdAt,
+            _id: { $lt: new mongoose.Types.ObjectId(cursor.id) },
+          },
+        ];
+      } else {
+        filter.createdAt = { $lt: cursor.createdAt };
+      }
     }
 
     const docs = await Comment.find(filter)
-      .sort({ createdAt: -1 })
+      .sort({ createdAt: -1, _id: -1 })
       .limit(limit + 1)
       .populate("userId", "name avatarUrl scheduledDeletionAt")
       .populate("replyToUserId", "name avatarUrl scheduledDeletionAt")
@@ -240,75 +337,26 @@ export async function listTripComments(req, res, next) {
 
     const hasMore = docs.length > limit;
     const topLevelItems = hasMore ? docs.slice(0, limit) : docs;
-    const topLevelIds = new Set(topLevelItems.map((item) => toIdString(item._id)));
-
-    const replyDocs = topLevelItems.length
-      ? await Comment.find({
-          targetType: "trip",
-          targetId: tripId,
-          parentCommentId: { $ne: null },
-        })
-          .sort({ createdAt: 1 })
-          .populate("userId", "name avatarUrl scheduledDeletionAt")
-          .populate("replyToUserId", "name avatarUrl scheduledDeletionAt")
-          .lean()
-      : [];
-
-    const rawRepliesByParentId = new Map();
-
-    replyDocs.forEach((reply) => {
-      const parentId = toIdString(reply?.parentCommentId);
-      if (!parentId) return;
-
-      if (!rawRepliesByParentId.has(parentId)) {
-        rawRepliesByParentId.set(parentId, []);
-      }
-
-      rawRepliesByParentId.get(parentId).push(reply);
-    });
-
-    const allowedCommentIds = new Set([...topLevelIds]);
-
-    function collectDescendantIds(parentId) {
-      const children = rawRepliesByParentId.get(parentId) || [];
-      children.forEach((child) => {
-        const childId = toIdString(child?._id);
-        if (!childId || allowedCommentIds.has(childId)) return;
-        allowedCommentIds.add(childId);
-        collectDescendantIds(childId);
-      });
-    }
-
-    topLevelIds.forEach((commentId) => {
-      collectDescendantIds(commentId);
-    });
-
-    const repliesByParentId = new Map();
-
-    rawRepliesByParentId.forEach((children, parentId) => {
-      const filteredChildren = children.filter((child) =>
-        allowedCommentIds.has(toIdString(child?._id)),
-      );
-
-      if (filteredChildren.length) {
-        repliesByParentId.set(parentId, filteredChildren);
-      }
-    });
+    const topLevelIds = topLevelItems.map((item) => toIdString(item._id)).filter(Boolean);
+    const replyCountMap = await buildReplyCountMap(topLevelIds, tripId);
 
     const nextCursor = topLevelItems.length
-      ? topLevelItems[topLevelItems.length - 1].createdAt.toISOString()
+      ? encodeCommentCursor(topLevelItems[topLevelItems.length - 1])
       : null;
 
     const items = topLevelItems
       .map((comment) =>
         normalizeCommentPayload(
           comment,
-          buildReplyTree(comment?._id, repliesByParentId),
+          [],
+          {
+            replyCount: replyCountMap.get(toIdString(comment?._id)) || 0,
+          },
         ),
       )
       .reverse();
 
-    const commentIds = collectCommentIds(items);
+    const commentIds = topLevelIds;
     const likedSet = new Set(
       commentIds.length
         ? (
@@ -326,6 +374,84 @@ export async function listTripComments(req, res, next) {
     res.json({
       comments: decorateCommentTreeWithLikes(items, likedSet),
       page: { limit, hasMore, nextCursor },
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// GET /api/comments/:commentId/replies
+export async function listCommentReplies(req, res, next) {
+  try {
+    const commentId = req.params.commentId;
+    const viewerId = req.user.userId;
+
+    if (!mongoose.isValidObjectId(commentId)) {
+      return res.status(400).json({ message: "Invalid comment id" });
+    }
+
+    const rootComment = await Comment.findById(commentId)
+      .select("_id targetType targetId")
+      .lean();
+
+    if (!rootComment || rootComment.targetType !== "trip") {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    const { trip, canView } = await getTripAccessContext({
+      tripId: rootComment.targetId,
+      viewerId,
+    });
+
+    if (!trip || !canView) {
+      return res.status(404).json({ message: "Comment not found" });
+    }
+
+    const subtreeIds = await collectCommentSubtreeIds(commentId);
+    const replyIds = subtreeIds.filter((id) => id && id !== toIdString(commentId));
+
+    if (!replyIds.length) {
+      return res.json({ replies: [] });
+    }
+
+    const replyDocs = await Comment.find({
+      _id: { $in: replyIds },
+      targetType: "trip",
+      targetId: rootComment.targetId,
+    })
+      .sort({ createdAt: 1 })
+      .populate("userId", "name avatarUrl scheduledDeletionAt")
+      .populate("replyToUserId", "name avatarUrl scheduledDeletionAt")
+      .lean();
+
+    const repliesByParentId = new Map();
+
+    replyDocs.forEach((reply) => {
+      const parentId = toIdString(reply?.parentCommentId);
+      if (!parentId) return;
+
+      if (!repliesByParentId.has(parentId)) {
+        repliesByParentId.set(parentId, []);
+      }
+
+      repliesByParentId.get(parentId).push(reply);
+    });
+
+    const replies = buildReplyTree(commentId, repliesByParentId);
+    const likedSet = new Set(
+      (
+        await Reaction.find({
+          targetType: "comment",
+          userId: viewerId,
+          targetId: { $in: replyIds },
+        })
+          .select("targetId")
+          .lean()
+      ).map((item) => toIdString(item.targetId)),
+    );
+
+    res.json({
+      replies: decorateCommentTreeWithLikes(replies, likedSet),
     });
   } catch (err) {
     next(err);

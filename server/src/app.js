@@ -17,6 +17,7 @@ import reactionRoutes from "./routes/reaction.routes.js";
 import commentRoutes from "./routes/comment.routes.js";
 import followRoutes from "./routes/follow.routes.js";
 import feedRoutes from "./routes/feed.routes.js";
+import notificationRoutes from "./routes/notification.routes.js";
 
 const app = express();
 
@@ -45,6 +46,7 @@ app.use("/api", reactionRoutes);
 app.use("/api", commentRoutes);
 app.use("/api/follow", followRoutes);
 app.use("/api/feed", feedRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

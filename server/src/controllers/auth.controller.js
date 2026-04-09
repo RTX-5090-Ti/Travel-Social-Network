@@ -7,6 +7,13 @@ import {
 } from "../utils/jwt.js";
 import { getCookieOptions } from "../utils/cookie.js";
 import { buildAccountDeletionSchedule } from "../services/accountDeletionCleanup.service.js";
+import {
+  hasPendingDeletion,
+  isAccountActive,
+  isAccountReactivatable,
+  isDeactivated,
+  isPendingDeletionExpired,
+} from "../utils/accountState.js";
 
 // Biến chuổi thành mã hash sha256 (hash refresh token rồi lưu vào DB)
 function sha256(input) {
@@ -64,6 +71,40 @@ function sendPendingDeletionResponse(res, user) {
   });
 }
 
+function clearSessionCookies(res) {
+  const opts = getCookieOptions();
+  res.clearCookie("accessToken", opts);
+  res.clearCookie("refreshToken", opts);
+}
+
+async function issueSessionForUser(user, res) {
+  const payload = { userId: user._id.toString(), role: user.role };
+  const accessToken = signAccessToken(payload);
+  const refreshToken = signRefreshToken(payload);
+
+  user.refreshTokenHash = sha256(refreshToken);
+  await user.save();
+
+  const opts = getCookieOptions();
+  res.cookie("accessToken", accessToken, { ...opts, maxAge: 15 * 60 * 1000 });
+  res.cookie("refreshToken", refreshToken, {
+    ...opts,
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
+}
+
+function sendBlockedAccountResponse(res, user) {
+  if (hasPendingDeletion(user)) {
+    return sendPendingDeletionResponse(res, user);
+  }
+
+  if (isDeactivated(user)) {
+    return sendInactiveAccountResponse(res);
+  }
+
+  return null;
+}
+
 // Đăng kí
 export async function register(req, res, next) {
   try {
@@ -84,19 +125,7 @@ export async function register(req, res, next) {
       password,
     });
 
-    const payload = { userId: user._id.toString(), role: user.role };
-    const accessToken = signAccessToken(payload);
-    const refreshToken = signRefreshToken(payload);
-
-    user.refreshTokenHash = sha256(refreshToken);
-    await user.save();
-
-    const opts = getCookieOptions();
-    res.cookie("accessToken", accessToken, { ...opts, maxAge: 15 * 60 * 1000 });
-    res.cookie("refreshToken", refreshToken, {
-      ...opts,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    await issueSessionForUser(user, res);
 
     res.status(201).json({
       message: "Registered",
@@ -126,27 +155,12 @@ export async function login(req, res, next) {
       throw new Error("Invalid credentials");
     }
 
-    if (user.scheduledDeletionAt) {
-      return sendPendingDeletionResponse(res, user);
+    const blockedResponse = sendBlockedAccountResponse(res, user);
+    if (blockedResponse) {
+      return blockedResponse;
     }
 
-    if (user.isActive === false) {
-      return sendInactiveAccountResponse(res);
-    }
-
-    const payload = { userId: user._id.toString(), role: user.role };
-    const accessToken = signAccessToken(payload);
-    const refreshToken = signRefreshToken(payload);
-
-    user.refreshTokenHash = sha256(refreshToken);
-    await user.save();
-
-    const opts = getCookieOptions();
-    res.cookie("accessToken", accessToken, { ...opts, maxAge: 15 * 60 * 1000 });
-    res.cookie("refreshToken", refreshToken, {
-      ...opts,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    await issueSessionForUser(user, res);
 
     res.json({
       message: "Logged in",
@@ -162,40 +176,27 @@ export async function refresh(req, res, next) {
   try {
     const token = req.cookies?.refreshToken;
     if (!token) {
+      clearSessionCookies(res);
       res.status(401);
       throw new Error("Unauthorized");
     }
 
     const decoded = verifyRefreshToken(token); // { userId, role, iat, exp }
     const user = await User.findById(decoded.userId);
-    if (!user || !user.refreshTokenHash || user.isActive === false) {
+    if (!user || !user.refreshTokenHash || !isAccountActive(user)) {
+      clearSessionCookies(res);
       res.status(401);
       throw new Error("Unauthorized");
     }
 
     // So khớp refresh token hiện tại (hash)
     if (user.refreshTokenHash !== sha256(token)) {
+      clearSessionCookies(res);
       res.status(401);
       throw new Error("Unauthorized");
     }
 
-    // Rotate refresh token
-    const payload = { userId: user._id.toString(), role: user.role };
-    const newAccessToken = signAccessToken(payload);
-    const newRefreshToken = signRefreshToken(payload);
-
-    user.refreshTokenHash = sha256(newRefreshToken);
-    await user.save();
-
-    const opts = getCookieOptions();
-    res.cookie("accessToken", newAccessToken, {
-      ...opts,
-      maxAge: 15 * 60 * 1000,
-    });
-    res.cookie("refreshToken", newRefreshToken, {
-      ...opts,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    await issueSessionForUser(user, res);
 
     res.json({ message: "Refreshed" });
   } catch (e) {
@@ -206,8 +207,6 @@ export async function refresh(req, res, next) {
 // Đăng xuất
 export async function logout(req, res, next) {
   try {
-    const opts = getCookieOptions();
-
     // nếu muốn chắc: xóa refreshTokenHash theo cookie refreshToken
     const token = req.cookies?.refreshToken;
     if (token) {
@@ -225,8 +224,7 @@ export async function logout(req, res, next) {
       }
     }
 
-    res.clearCookie("accessToken", opts);
-    res.clearCookie("refreshToken", opts);
+    clearSessionCookies(res);
 
     res.json({ message: "Logged out" });
   } catch (e) {
@@ -237,10 +235,10 @@ export async function logout(req, res, next) {
 export async function me(req, res, next) {
   try {
     const user = await User.findById(req.user.userId).select(
-      "_id name email role avatarUrl coverUrl bio location travelStyle pinnedTripId",
+      "_id name email role avatarUrl coverUrl bio location travelStyle pinnedTripId isActive scheduledDeletionAt",
     );
 
-    if (!user || user.isActive === false) {
+    if (!user || !isAccountActive(user)) {
       res.status(401);
       throw new Error("Unauthorized");
     }
@@ -268,7 +266,7 @@ export async function changePassword(req, res, next) {
     }
 
     const user = await User.findById(req.user.userId);
-    if (!user || user.isActive === false) {
+    if (!user || !isAccountActive(user)) {
       res.status(401);
       throw new Error("Unauthorized");
     }
@@ -297,15 +295,18 @@ export async function deactivateAccount(req, res, next) {
       throw new Error("Unauthorized");
     }
 
+    if (isDeactivated(user)) {
+      clearSessionCookies(res);
+      return res.json({ message: "Account deactivated successfully" });
+    }
+
     user.isActive = false;
     user.refreshTokenHash = null;
     user.deletionRequestedAt = null;
     user.scheduledDeletionAt = null;
     await user.save();
 
-    const opts = getCookieOptions();
-    res.clearCookie("accessToken", opts);
-    res.clearCookie("refreshToken", opts);
+    clearSessionCookies(res);
 
     res.json({ message: "Account deactivated successfully" });
   } catch (e) {
@@ -322,6 +323,16 @@ export async function requestAccountDeletion(req, res, next) {
       throw new Error("Unauthorized");
     }
 
+    if (hasPendingDeletion(user)) {
+      clearSessionCookies(res);
+      return res.json({
+        message: "Account scheduled for deletion",
+        deletionRequestedAt: user.deletionRequestedAt,
+        scheduledDeletionAt: user.scheduledDeletionAt,
+        remainingLabel: formatDeletionRemainingLabel(user.scheduledDeletionAt),
+      });
+    }
+
     const requestedAt = new Date();
     const scheduledDeletionAt = buildAccountDeletionSchedule(requestedAt);
 
@@ -331,9 +342,7 @@ export async function requestAccountDeletion(req, res, next) {
     user.scheduledDeletionAt = scheduledDeletionAt;
     await user.save();
 
-    const opts = getCookieOptions();
-    res.clearCookie("accessToken", opts);
-    res.clearCookie("refreshToken", opts);
+    clearSessionCookies(res);
 
     res.json({
       message: "Account scheduled for deletion",
@@ -363,23 +372,21 @@ export async function reactivateAccount(req, res, next) {
       throw new Error("Invalid credentials");
     }
 
+    if (!isAccountReactivatable(user)) {
+      res.status(400);
+      throw new Error("Account is already active");
+    }
+
+    if (isPendingDeletionExpired(user)) {
+      res.status(410);
+      throw new Error("Account can no longer be reactivated");
+    }
+
     user.isActive = true;
     user.deletionRequestedAt = null;
     user.scheduledDeletionAt = null;
 
-    const payload = { userId: user._id.toString(), role: user.role };
-    const accessToken = signAccessToken(payload);
-    const refreshToken = signRefreshToken(payload);
-
-    user.refreshTokenHash = sha256(refreshToken);
-    await user.save();
-
-    const opts = getCookieOptions();
-    res.cookie("accessToken", accessToken, { ...opts, maxAge: 15 * 60 * 1000 });
-    res.cookie("refreshToken", refreshToken, {
-      ...opts,
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    await issueSessionForUser(user, res);
 
     res.json({
       message: "Account reactivated successfully",

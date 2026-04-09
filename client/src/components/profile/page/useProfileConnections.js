@@ -36,9 +36,7 @@ export function useProfileConnections({
 
     return currentConnections.filter((item) => {
       const name = String(item?.name || "").toLowerCase();
-      const email = String(item?.email || "").toLowerCase();
-
-      return name.includes(keyword) || email.includes(keyword);
+      return name.includes(keyword);
     });
   }, [connectionsSearch, currentConnections]);
 

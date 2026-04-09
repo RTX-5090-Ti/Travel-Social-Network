@@ -1,11 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { userApi } from "../../../api/user.api";
 import { followApi } from "../../../api/follow.api";
-import {
-  collectProfileMedia,
-  formatLargeNumber,
-  getUserAvatar,
-} from "./profile-page.helpers";
+import { formatLargeNumber, getUserAvatar } from "./profile-page.helpers";
 
 export function useProfileData({
   user,
@@ -39,9 +35,15 @@ export function useProfileData({
 
   const [ownPostsCount, setOwnPostsCount] = useState(0);
   const [visitorPostsCount, setVisitorPostsCount] = useState(0);
+  const [mediaItems, setMediaItems] = useState([]);
+  const [mediaLoading, setMediaLoading] = useState(false);
+  const [mediaError, setMediaError] = useState("");
+  const [mediaFullyLoaded, setMediaFullyLoaded] = useState(false);
+  const mediaRequestIdRef = useRef(0);
 
   const displayUser = isVisitorProfile ? visitorProfileUser : user;
   const rawProfileTrips = isVisitorProfile ? visitorProfileTrips : ownTrips;
+  const mediaOwnerId = isVisitorProfile ? userId || "" : user?.id || "";
 
   const pinnedTripId =
     typeof displayUser?.pinnedTripId === "string"
@@ -71,6 +73,87 @@ export function useProfileData({
 
   const profileUserId = displayUser?._id || displayUser?.id || user?.id || "";
 
+  const loadProfileMedia = useCallback(
+    async ({ limit = 4, full = false, silent = false } = {}) => {
+      if (!mediaOwnerId) {
+        setMediaItems([]);
+        setMediaError("");
+        setMediaLoading(false);
+        setMediaFullyLoaded(false);
+        return [];
+      }
+
+      const requestId = mediaRequestIdRef.current + 1;
+      mediaRequestIdRef.current = requestId;
+
+      try {
+        setMediaLoading(true);
+        setMediaError("");
+
+        const params = {};
+        if (Number.isFinite(limit) && limit > 0) {
+          params.limit = limit;
+        }
+
+        const res = await userApi.getProfileMedia(mediaOwnerId, params);
+        const items = Array.isArray(res.data?.items) ? res.data.items : [];
+
+        if (mediaRequestIdRef.current !== requestId) {
+          return items;
+        }
+
+        setMediaItems((prev) => {
+          if (full || !prev.length) {
+            return items;
+          }
+
+          return prev;
+        });
+        setMediaFullyLoaded(full);
+
+        return items;
+      } catch (err) {
+        if (mediaRequestIdRef.current !== requestId) {
+          return [];
+        }
+
+        const nextError =
+          err?.response?.data?.message ||
+          "Không tải được media cho profile lúc này.";
+
+        setMediaError(nextError);
+        if (!silent) {
+          showToast(nextError, "error");
+        }
+
+        return [];
+      } finally {
+        if (mediaRequestIdRef.current === requestId) {
+          setMediaLoading(false);
+        }
+      }
+    },
+    [mediaOwnerId, showToast],
+  );
+
+  const ensureFullProfileMedia = useCallback(async () => {
+    if (!mediaOwnerId || mediaFullyLoaded || mediaLoading) {
+      return mediaItems;
+    }
+
+    return loadProfileMedia({
+      limit: null,
+      full: true,
+      silent: false,
+    });
+  }, [
+    loadProfileMedia,
+    mediaFullyLoaded,
+    mediaItems,
+    mediaLoading,
+    mediaOwnerId,
+  ]);
+
   const loadOwnTrips = useCallback(
     async ({ skipLoading = false } = {}) => {
       if (!user?.id) {
@@ -89,6 +172,13 @@ export function useProfileData({
 
         setOwnTrips(items);
         setOwnPostsCount(Number(res.data?.meta?.total || 0));
+        if (skipLoading || mediaFullyLoaded) {
+          await loadProfileMedia({
+            limit: mediaFullyLoaded ? null : 4,
+            full: mediaFullyLoaded,
+            silent: true,
+          });
+        }
         return items;
       } catch (err) {
         setError(
@@ -102,7 +192,7 @@ export function useProfileData({
         if (!skipLoading) setLoading(false);
       }
     },
-    [user?.id],
+    [loadProfileMedia, mediaFullyLoaded, user?.id],
   );
 
   const loadOwnFollowSummary = useCallback(async () => {
@@ -204,6 +294,24 @@ export function useProfileData({
     }
   }, [isVisitorProfile, loadVisitorProfile]);
 
+  useEffect(() => {
+    mediaRequestIdRef.current += 1;
+    setMediaItems([]);
+    setMediaError("");
+    setMediaLoading(false);
+    setMediaFullyLoaded(false);
+
+    if (!mediaOwnerId) {
+      return;
+    }
+
+    loadProfileMedia({
+      limit: 4,
+      full: false,
+      silent: true,
+    });
+  }, [loadProfileMedia, mediaOwnerId]);
+
   const stats = useMemo(() => {
     const totalJourneys = profileTrips.length;
     const totalHearts = profileTrips.reduce(
@@ -214,12 +322,12 @@ export function useProfileData({
       (sum, trip) => sum + (trip?.counts?.comments || 0),
       0,
     );
-    const totalMedia = profileTrips.reduce((sum, trip) => {
-      if (Array.isArray(trip?.profileMedia)) {
-        return sum + trip.profileMedia.length;
-      }
-      return sum + (trip?.feedPreview?.mediaCount || 0);
-    }, 0);
+    const totalMedia = mediaFullyLoaded
+      ? mediaItems.length
+      : profileTrips.reduce(
+          (sum, trip) => sum + (trip?.feedPreview?.mediaCount || 0),
+          0,
+        );
 
     return {
       totalJourneys,
@@ -227,7 +335,7 @@ export function useProfileData({
       totalComments,
       totalMedia,
     };
-  }, [profileTrips]);
+  }, [mediaFullyLoaded, mediaItems.length, profileTrips]);
 
   const sidebarPostsCount = isVisitorProfile
     ? visitorPostsCount
@@ -268,12 +376,7 @@ export function useProfileData({
         if (commentsDiff !== 0) return commentsDiff;
 
         const mediaDiff =
-          (Array.isArray(b?.profileMedia)
-            ? b.profileMedia.length
-            : b?.feedPreview?.mediaCount || 0) -
-          (Array.isArray(a?.profileMedia)
-            ? a.profileMedia.length
-            : a?.feedPreview?.mediaCount || 0);
+          (b?.feedPreview?.mediaCount || 0) - (a?.feedPreview?.mediaCount || 0);
         if (mediaDiff !== 0) return mediaDiff;
 
         return (
@@ -283,11 +386,6 @@ export function useProfileData({
       })
       .slice(0, 2);
   }, [profileTrips]);
-
-  const mediaItems = useMemo(
-    () => collectProfileMedia(profileTrips),
-    [profileTrips],
-  );
 
   const recentCaptures = useMemo(() => mediaItems.slice(0, 4), [mediaItems]);
 
@@ -382,11 +480,15 @@ export function useProfileData({
     highlightTrips,
     mediaItems,
     recentCaptures,
+    mediaLoading,
+    mediaError,
+    mediaFullyLoaded,
     isFollowing,
     isFollowSubmitting,
     ownFollowCounts,
     applyOwnFollowingCountDelta,
     handleToggleFollow,
     loadOwnTrips,
+    ensureFullProfileMedia,
   };
 }

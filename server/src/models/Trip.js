@@ -58,8 +58,8 @@ const TripSchema = new mongoose.Schema(
   { timestamps: true },
 );
 
-TripSchema.index({ createdAt: -1 });
-TripSchema.index({ ownerId: 1, privacy: 1, createdAt: -1 });
-TripSchema.index({ privacy: 1, createdAt: -1 });
+TripSchema.index({ createdAt: -1, _id: -1 });
+TripSchema.index({ ownerId: 1, privacy: 1, createdAt: -1, _id: -1 });
+TripSchema.index({ privacy: 1, createdAt: -1, _id: -1 });
 
 export default mongoose.model("Trip", TripSchema);

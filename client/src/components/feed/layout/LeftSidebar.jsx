@@ -292,7 +292,7 @@ export default function LeftSidebar({
                           previewAvatar ||
                           displayUser._id ||
                           displayUser.id ||
-                          displayUser.email ||
+                          displayUser.location ||
                           displayUser.name ||
                           "avatar"
                         }
@@ -330,7 +330,7 @@ export default function LeftSidebar({
                         key={
                           displayUser._id ||
                           displayUser.id ||
-                          displayUser.email ||
+                          displayUser.location ||
                           displayUser.name ||
                           "identity"
                         }
@@ -344,8 +344,7 @@ export default function LeftSidebar({
                           {displayUser.name || "Traveler"}
                         </h2>
                         <p className="mt-1 break-all text-[14px] text-zinc-400">
-                          {displayUser.email ||
-                            "Email chưa có trong dữ liệu feed"}
+                          {displayUser.location || "Traveler preview"}
                         </p>
                       </motion.div>
                     </AnimatePresence>

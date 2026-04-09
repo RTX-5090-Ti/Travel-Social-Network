@@ -381,6 +381,7 @@ function CommentThread({
   onReplyToggle,
   onToggleLike,
   likingCommentId = "",
+  loadingReplyThreads = {},
   onExpandReplies,
   onLoadMoreReplies,
   onEdit,
@@ -397,9 +398,16 @@ function CommentThread({
   const rawReplies = Array.isArray(comment?.replies) ? comment.replies : [];
   const commentId = getCommentId(comment);
   const childDepth = Math.min(depth + 1, 2);
-  const hasReplies = rawReplies.length > 0;
+  const totalReplies = Math.max(
+    Number.isFinite(comment?.replyCount)
+      ? Number(comment.replyCount)
+      : countReplyNodes(rawReplies),
+    countReplyNodes(rawReplies),
+  );
+  const hasReplies = totalReplies > 0;
   const isActivePath = treeContainsComment(comment, activeReplyId);
   const isExpanded = !!expandedReplyThreads[commentId];
+  const repliesLoading = !!loadingReplyThreads[commentId];
   const visibleRepliesCount =
     visibleReplyCounts[commentId] || REPLIES_PAGE_SIZE;
   const expandDescendants = isExpanded || forceExpanded;
@@ -412,12 +420,6 @@ function CommentThread({
     ? "relative ml-[18px] mt-3 pl-8"
     : "relative mt-3";
 
-  const totalReplies = Math.max(
-    Number.isFinite(comment?.replyCount)
-      ? Number(comment.replyCount)
-      : countReplyNodes(rawReplies),
-    countReplyNodes(rawReplies),
-  );
   const limitedReplies = expandedByAncestor
     ? { items: rawReplies, used: countReplyNodes(rawReplies) }
     : limitReplyTree(rawReplies, visibleRepliesCount);
@@ -529,6 +531,12 @@ function CommentThread({
 
               {repliesExpanded ? (
                 <div className="space-y-3">
+                  {repliesLoading ? (
+                    <div className="flex items-center gap-2 pl-1 text-violet-500">
+                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-violet-200 border-t-violet-500" />
+                    </div>
+                  ) : null}
+
                   {visibleReplies.map((reply, index) => (
                     <CommentThread
                       key={getCommentId(reply) || `reply-${index}`}
@@ -549,6 +557,7 @@ function CommentThread({
                       onReplyToggle={onReplyToggle}
                       onToggleLike={onToggleLike}
                       likingCommentId={likingCommentId}
+                      loadingReplyThreads={loadingReplyThreads}
                       onExpandReplies={onExpandReplies}
                       onLoadMoreReplies={onLoadMoreReplies}
                       onEdit={onEdit}
@@ -564,7 +573,9 @@ function CommentThread({
                     />
                   ))}
 
-                  {remainingReplies > 0 && !expandedByAncestor ? (
+                  {remainingReplies > 0 &&
+                  !expandedByAncestor &&
+                  !repliesLoading ? (
                     <button
                       type="button"
                       onClick={() =>

@@ -842,7 +842,7 @@ export async function listSavedTrips(req, res, next) {
           )
           .populate({
             path: "ownerId",
-            select: "name email avatarUrl",
+            select: "name avatarUrl",
             match: { isActive: { $ne: false } },
           })
           .lean()

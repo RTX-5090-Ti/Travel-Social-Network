@@ -2,12 +2,12 @@ import mongoose from "mongoose";
 
 import Follow from "../models/Follow.js";
 import User from "../models/User.js";
+import { createNotification } from "../services/notification.service.js";
 
 function mapUserItem(user, extra = {}) {
   return {
     _id: user?._id,
     name: user?.name || "Traveler",
-    email: user?.email || "",
     avatarUrl: user?.avatarUrl || "",
     ...extra,
   };
@@ -89,7 +89,7 @@ async function listFollowUsers({
 
   const [docs, total] = await Promise.all([
     Follow.find(baseFilter)
-      .populate(populatePath, "_id name email avatarUrl isActive")
+      .populate(populatePath, "_id name avatarUrl isActive")
       .sort({ createdAt: -1, _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -158,6 +158,11 @@ export async function followUser(req, res, next) {
     }
 
     await Follow.create({ followerId, followingId });
+    await createNotification({
+      recipientUserId: followingId,
+      actorUserId: followerId,
+      type: "follow",
+    });
 
     res.status(201).json({ followed: true });
   } catch (err) {

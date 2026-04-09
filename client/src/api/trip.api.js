@@ -81,6 +81,10 @@ export const tripApi = {
     return api.get(`/api/trips/${id}/comments`, { params });
   },
 
+  listCommentReplies(commentId) {
+    return api.get(`/api/comments/${commentId}/replies`);
+  },
+
   createComment(id, payload) {
     return api.post(`/api/trips/${id}/comments`, payload);
   },

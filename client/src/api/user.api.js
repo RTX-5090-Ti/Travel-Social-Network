@@ -21,6 +21,10 @@ export const userApi = {
     return api.get(`/api/users/${userId}/profile`, { params });
   },
 
+  getProfileMedia(userId, params = {}) {
+    return api.get(`/api/users/${userId}/media`, { params });
+  },
+
   getSummary(userId) {
     return api.get(`/api/users/${userId}/summary`);
   },

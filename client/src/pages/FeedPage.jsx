@@ -34,11 +34,32 @@ function buildPreviewStats(summary) {
   ];
 }
 
+function getTripId(item) {
+  return item?._id || item?.id || "";
+}
+
+function mergeFeedItems(existingItems = [], incomingItems = []) {
+  const nextMap = new Map();
+
+  [...existingItems, ...incomingItems].forEach((item) => {
+    const itemId = getTripId(item);
+    if (!itemId) return;
+    nextMap.set(itemId, item);
+  });
+
+  return [...nextMap.values()].sort(
+    (a, b) => new Date(b?.createdAt || 0) - new Date(a?.createdAt || 0),
+  );
+}
+
 export default function FeedPage() {
   const [openComposer, setOpenComposer] = useState(false);
   const [feedItems, setFeedItems] = useState([]);
   const [feedLoading, setFeedLoading] = useState(true);
+  const [feedLoadingMore, setFeedLoadingMore] = useState(false);
   const [feedError, setFeedError] = useState("");
+  const [feedCursor, setFeedCursor] = useState(null);
+  const [feedHasMore, setFeedHasMore] = useState(false);
   const [previewUser, setPreviewUser] = useState(null);
 
   const [previewStats, setPreviewStats] = useState(null);
@@ -46,23 +67,60 @@ export default function FeedPage() {
 
   const previewStatsCacheRef = useRef(new Map());
   const previewRequestIdRef = useRef(0);
+  const feedRequestIdRef = useRef(0);
+  const feedCursorRef = useRef(null);
 
-  const loadFeed = useCallback(async () => {
-    try {
-      setFeedLoading(true);
-      setFeedError("");
+  const loadFeed = useCallback(
+    async ({ reset = true } = {}) => {
+      const requestId = ++feedRequestIdRef.current;
 
-      const res = await feedApi.list({ limit: 12 });
-      setFeedItems(res.data?.items || []);
-    } catch (e) {
-      setFeedError(
-        e?.response?.data?.message || "Không tải được feed lúc này.",
-      );
-      setFeedItems([]);
-    } finally {
-      setFeedLoading(false);
-    }
-  }, []);
+      try {
+        if (reset) {
+          setFeedLoading(true);
+          setFeedError("");
+        } else {
+          setFeedLoadingMore(true);
+        }
+
+        const res = await feedApi.list({
+          limit: 12,
+          ...(reset ? {} : { cursor: feedCursorRef.current }),
+        });
+        const nextItems = Array.isArray(res.data?.items) ? res.data.items : [];
+
+        if (requestId !== feedRequestIdRef.current) return;
+
+        setFeedItems((prev) =>
+          reset ? nextItems : mergeFeedItems(prev, nextItems),
+        );
+        feedCursorRef.current = res.data?.page?.nextCursor || null;
+        setFeedCursor(res.data?.page?.nextCursor || null);
+        setFeedHasMore(!!res.data?.page?.hasMore);
+      } catch (error) {
+        if (requestId !== feedRequestIdRef.current) return;
+
+        setFeedError(
+          error?.response?.data?.message || "Không tải được feed lúc này.",
+        );
+
+        if (reset) {
+          setFeedItems([]);
+          feedCursorRef.current = null;
+          setFeedCursor(null);
+          setFeedHasMore(false);
+        }
+      } finally {
+        if (requestId === feedRequestIdRef.current) {
+          if (reset) {
+            setFeedLoading(false);
+          } else {
+            setFeedLoadingMore(false);
+          }
+        }
+      }
+    },
+    [],
+  );
 
   const loadPreviewStats = useCallback(async (ownerId) => {
     if (!ownerId) {
@@ -83,7 +141,6 @@ export default function FeedPage() {
       setPreviewStatsLoading(true);
 
       const res = await userApi.getSummary(ownerId);
-
       const nextStats = buildPreviewStats(res.data?.stats);
 
       previewStatsCacheRef.current.set(ownerId, nextStats);
@@ -106,19 +163,34 @@ export default function FeedPage() {
   }, []);
 
   useEffect(() => {
-    loadFeed();
+    loadFeed({ reset: true });
   }, [loadFeed]);
+
+  useEffect(() => {
+    setPreviewUser((prev) => {
+      if (!prev?.id) return prev;
+
+      const ownerTrips = feedItems.filter((item) => {
+        const itemOwnerId = item?.ownerId?._id || item?.ownerId?.id || "";
+        return itemOwnerId && itemOwnerId === prev.id;
+      });
+
+      return {
+        ...prev,
+        previewTrips: ownerTrips,
+      };
+    });
+  }, [feedItems]);
 
   async function handlePosted() {
     setOpenComposer(false);
-    await loadFeed();
+    await loadFeed({ reset: true });
   }
 
   async function handlePreviewUser(user) {
     if (!user) return;
 
     const ownerId = user?._id || user?.id || "";
-
     if (!ownerId) return;
 
     const ownerTrips = feedItems.filter((item) => {
@@ -148,54 +220,28 @@ export default function FeedPage() {
     if (!tripId) return;
 
     setFeedItems((prev) =>
-      prev.filter((item) => {
-        const itemId = item?._id || item?.id || "";
-        return itemId !== tripId;
-      }),
+      prev.filter((item) => getTripId(item) !== tripId),
     );
-
-    setPreviewUser((prev) => {
-      if (!prev) return prev;
-
-      return {
-        ...prev,
-        previewTrips: Array.isArray(prev.previewTrips)
-          ? prev.previewTrips.filter((item) => {
-              const itemId = item?._id || item?.id || "";
-              return itemId !== tripId;
-            })
-          : [],
-      };
-    });
   }
 
   function handleTripHidden(tripId) {
     if (!tripId) return;
 
     setFeedItems((prev) =>
-      prev.filter((item) => {
-        const itemId = item?._id || item?.id || "";
-        return itemId !== tripId;
-      }),
+      prev.filter((item) => getTripId(item) !== tripId),
     );
-
-    setPreviewUser((prev) => {
-      if (!prev) return prev;
-
-      return {
-        ...prev,
-        previewTrips: Array.isArray(prev.previewTrips)
-          ? prev.previewTrips.filter((item) => {
-              const itemId = item?._id || item?.id || "";
-              return itemId !== tripId;
-            })
-          : [],
-      };
-    });
   }
 
   async function handleTripUpdated() {
-    await loadFeed();
+    await loadFeed({ reset: true });
+  }
+
+  async function handleLoadMoreFeed() {
+    if (feedLoading || feedLoadingMore || !feedHasMore || !feedCursor) {
+      return;
+    }
+
+    await loadFeed({ reset: false });
   }
 
   return (
@@ -250,17 +296,22 @@ export default function FeedPage() {
               setPreviewStatsLoading(false);
             }}
           />
+
           <MainFeed
             onOpenComposer={() => setOpenComposer(true)}
             feedItems={feedItems}
             feedLoading={feedLoading}
+            feedLoadingMore={feedLoadingMore}
             feedError={feedError}
-            onReloadFeed={loadFeed}
+            feedHasMore={feedHasMore}
+            onReloadFeed={() => loadFeed({ reset: true })}
+            onLoadMoreFeed={handleLoadMoreFeed}
             onPreviewUser={handlePreviewUser}
             onTripTrashed={handleTripTrashed}
             onTripUpdated={handleTripUpdated}
             onTripHidden={handleTripHidden}
           />
+
           <RightSidebar />
         </div>
       </div>

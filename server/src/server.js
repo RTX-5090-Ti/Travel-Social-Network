@@ -1,7 +1,10 @@
 import dotenv from "dotenv";
 import "dotenv/config";
+import { createServer } from "http";
+
 import app from "./app.js";
 import connectDB from "./config/db.js";
+import { initSocket } from "./socket/index.js";
 import { startAccountDeletionCleanupJob } from "./services/accountDeletionCleanup.service.js";
 import { startHiddenTripCleanupJob } from "./services/hiddenTripCleanup.service.js";
 import { startTripTrashCleanupJob } from "./services/tripTrashCleanup.service.js";
@@ -17,7 +20,11 @@ async function bootstrap() {
     startHiddenTripCleanupJob();
     startAccountDeletionCleanupJob();
 
-    app.listen(PORT, () => {
+    const httpServer = createServer(app);
+    initSocket(httpServer);
+    console.log("✅ Socket.IO initialized");
+
+    httpServer.listen(PORT, () => {
       console.log(`✅ Server running on port ${PORT}`);
     });
   } catch (error) {

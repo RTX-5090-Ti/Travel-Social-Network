@@ -86,6 +86,7 @@ export default function JourneyDetailOverlay({
   const [deleteConfirmComment, setDeleteConfirmComment] = useState(null);
   const [expandedReplyThreads, setExpandedReplyThreads] = useState({});
   const [visibleReplyCounts, setVisibleReplyCounts] = useState({});
+  const [loadingReplyThreads, setLoadingReplyThreads] = useState({});
   const [commentsCursor, setCommentsCursor] = useState(null);
   const [commentsHasMore, setCommentsHasMore] = useState(false);
   const [commentsLoadingMore, setCommentsLoadingMore] = useState(false);
@@ -206,6 +207,7 @@ export default function JourneyDetailOverlay({
     setDeleteConfirmComment(null);
     setExpandedReplyThreads({});
     setVisibleReplyCounts({});
+    setLoadingReplyThreads({});
   }, [trip?._id]);
 
   useEffect(() => {
@@ -406,7 +408,126 @@ export default function JourneyDetailOverlay({
     return getCommentAuthor(comment)?.name?.trim?.() || "";
   }
 
-  function handleExpandReplies(commentId) {
+  function findCommentInTree(items, targetCommentId) {
+    for (const comment of items) {
+      if (getCommentId(comment) === targetCommentId) {
+        return comment;
+      }
+
+      const childReplies = Array.isArray(comment?.replies) ? comment.replies : [];
+      if (!childReplies.length) continue;
+
+      const nestedComment = findCommentInTree(childReplies, targetCommentId);
+      if (nestedComment) {
+        return nestedComment;
+      }
+    }
+
+    return null;
+  }
+
+  function areRepliesLoaded(comment) {
+    if (!comment) return false;
+
+    const replyCount = Math.max(0, Number(comment?.replyCount || 0));
+    const replies = Array.isArray(comment?.replies) ? comment.replies : [];
+
+    return replyCount === 0 || replies.length > 0;
+  }
+
+  function replaceRepliesInTree(items, targetCommentId, nextReplies) {
+    let didChange = false;
+
+    const mappedItems = items.map((comment) => {
+      const commentId = getCommentId(comment);
+
+      if (commentId === targetCommentId) {
+        didChange = true;
+        return {
+          ...comment,
+          replies: nextReplies,
+          replyCount: Math.max(
+            Number(comment?.replyCount || 0),
+            countReplyNodes(nextReplies),
+          ),
+        };
+      }
+
+      const childReplies = Array.isArray(comment?.replies) ? comment.replies : [];
+      if (!childReplies.length) {
+        return comment;
+      }
+
+      const updatedReplies = replaceRepliesInTree(
+        childReplies,
+        targetCommentId,
+        nextReplies,
+      );
+
+      if (updatedReplies === childReplies) {
+        return comment;
+      }
+
+      didChange = true;
+      return {
+        ...comment,
+        replies: updatedReplies,
+      };
+    });
+
+    return didChange ? mappedItems : items;
+  }
+
+  async function loadRepliesForComment(commentId, { force = false } = {}) {
+    if (!commentId || loadingReplyThreads[commentId]) {
+      return false;
+    }
+
+    const targetComment = findCommentInTree(commentItems, commentId);
+    if (!targetComment) {
+      return false;
+    }
+
+    if (!force && areRepliesLoaded(targetComment)) {
+      return true;
+    }
+
+    try {
+      setLoadingReplyThreads((prev) => ({
+        ...prev,
+        [commentId]: true,
+      }));
+      setCommentsError("");
+
+      const res = await tripApi.listCommentReplies(commentId);
+      const nextReplies = Array.isArray(res.data?.replies) ? res.data.replies : [];
+
+      setCommentItems((prev) =>
+        replaceRepliesInTree(prev, commentId, nextReplies),
+      );
+
+      return true;
+    } catch (err) {
+      if (isTripUnavailableError(err)) {
+        handleTripUnavailable(err);
+        return false;
+      }
+
+      setCommentsError(
+        err?.response?.data?.message || "Không tải phản hồi được lúc này.",
+      );
+      return false;
+    } finally {
+      setLoadingReplyThreads((prev) => {
+        if (!prev[commentId]) return prev;
+        const next = { ...prev };
+        delete next[commentId];
+        return next;
+      });
+    }
+  }
+
+  async function handleExpandReplies(commentId) {
     if (!commentId) return;
 
     setExpandedReplyThreads((prev) => {
@@ -421,9 +542,11 @@ export default function JourneyDetailOverlay({
       ...prev,
       [commentId]: Math.max(prev[commentId] || 0, 10),
     }));
+
+    await loadRepliesForComment(commentId);
   }
 
-  function handleLoadMoreReplies(commentId, totalReplies = 0) {
+  async function handleLoadMoreReplies(commentId, totalReplies = 0) {
     if (!commentId) return;
 
     setExpandedReplyThreads((prev) => ({
@@ -435,6 +558,8 @@ export default function JourneyDetailOverlay({
       ...prev,
       [commentId]: Math.min((prev[commentId] || 10) + 10, totalReplies || 10),
     }));
+
+    await loadRepliesForComment(commentId);
   }
 
   function appendReplyToTree(items, parentCommentId, createdReply) {
@@ -776,9 +901,26 @@ export default function JourneyDetailOverlay({
         throw new Error("Missing created reply");
       }
 
-      setCommentItems((prev) =>
-        appendReplyToTree(prev, commentId, createdReply),
-      );
+      const targetComment = findCommentInTree(commentItems, commentId);
+      const shouldRefreshReplies =
+        !targetComment || areRepliesLoaded(targetComment);
+
+      if (shouldRefreshReplies) {
+        setCommentItems((prev) =>
+          appendReplyToTree(prev, commentId, createdReply),
+        );
+      } else {
+        await loadRepliesForComment(commentId, { force: true });
+      }
+
+      setExpandedReplyThreads((prev) => ({
+        ...prev,
+        [commentId]: true,
+      }));
+      setVisibleReplyCounts((prev) => ({
+        ...prev,
+        [commentId]: Math.max(prev[commentId] || 0, 10),
+      }));
 
       setReplyText("");
       setReplyingToCommentId("");
@@ -830,6 +972,13 @@ export default function JourneyDetailOverlay({
       });
 
       setVisibleReplyCounts((prev) => {
+        if (!Object.keys(prev).length) return prev;
+        const next = { ...prev };
+        delete next[deletedCommentId];
+        return next;
+      });
+
+      setLoadingReplyThreads((prev) => {
         if (!Object.keys(prev).length) return prev;
         const next = { ...prev };
         delete next[deletedCommentId];
@@ -1117,9 +1266,13 @@ export default function JourneyDetailOverlay({
                         disabled={commentsLoadingMore}
                         className="inline-flex items-center px-4 py-2 text-sm font-semibold transition bg-white border rounded-full cursor-pointer border-zinc-200 text-zinc-600 hover:bg-zinc-50 disabled:opacity-60"
                       >
-                        {commentsLoadingMore
-                          ? "Loading..."
-                          : "Load older comments"}
+                        {commentsLoadingMore ? (
+                          <span className="inline-flex items-center justify-center">
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
+                          </span>
+                        ) : (
+                          "Load older comments"
+                        )}
                       </button>
                     </div>
                   ) : null}
@@ -1163,6 +1316,7 @@ export default function JourneyDetailOverlay({
                           onReplyToggle={handleToggleReply}
                           onToggleLike={handleToggleCommentLike}
                           likingCommentId={likingCommentId}
+                          loadingReplyThreads={loadingReplyThreads}
                           onExpandReplies={handleExpandReplies}
                           onLoadMoreReplies={handleLoadMoreReplies}
                           onEdit={handleStartEditing}

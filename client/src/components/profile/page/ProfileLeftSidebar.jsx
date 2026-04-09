@@ -17,7 +17,7 @@ export default function ProfileLeftSidebar({
 
   const fallbackProfile = {
     name: "Traveler",
-    location: "Chưa cập nhật email",
+    location: "Chua cap nhat dia diem",
     avatar: "",
     stats: [
       { label: "Posts", value: "0" },
@@ -28,7 +28,7 @@ export default function ProfileLeftSidebar({
 
   const sidebarProfile = {
     name: displayUser?.name || fallbackProfile.name,
-    location: displayUser?.email || fallbackProfile.location,
+    location: displayUser?.location || fallbackProfile.location,
     avatar:
       displayUser?.avatarUrl ||
       displayUser?.avatar ||

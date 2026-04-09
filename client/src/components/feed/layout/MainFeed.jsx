@@ -1,3 +1,5 @@
+import { useEffect, useRef } from "react";
+
 import { stories } from "../page/feed.constants";
 import { AddStory, StoryBubble } from "../page/StoriesSection";
 import { FeedCardSkeleton, EmptyJourneyState } from "../page/FeedStates";
@@ -9,13 +11,49 @@ export default function MainFeed({
   onOpenComposer,
   feedItems,
   feedLoading,
+  feedLoadingMore = false,
   feedError,
+  feedHasMore = false,
   onReloadFeed,
+  onLoadMoreFeed,
   onPreviewUser,
   onTripTrashed,
   onTripUpdated,
   onTripHidden,
 }) {
+  const loadMoreRef = useRef(null);
+
+  useEffect(() => {
+    const targetNode = loadMoreRef.current;
+
+    if (
+      !targetNode ||
+      typeof IntersectionObserver === "undefined" ||
+      feedLoading ||
+      feedLoadingMore ||
+      !feedHasMore
+    ) {
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (!entry?.isIntersecting) return;
+        onLoadMoreFeed?.();
+      },
+      {
+        root: null,
+        rootMargin: "0px 0px 420px 0px",
+        threshold: 0.01,
+      },
+    );
+
+    observer.observe(targetNode);
+
+    return () => observer.disconnect();
+  }, [feedHasMore, feedLoading, feedLoadingMore, onLoadMoreFeed]);
+
   return (
     <main className="feed-main-scroll min-w-0 bg-white px-4 pb-28 pt-5 sm:px-6 sm:py-7 md:bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,250,251,0.96))] md:px-7 md:py-8 lg:h-full lg:overflow-y-auto lg:overflow-x-hidden lg:border-r border-zinc-200/80 lg:px-9 xl:px-10">
       <div className="mx-auto w-full max-w-[860px]">
@@ -58,8 +96,9 @@ export default function MainFeed({
               </div>
 
               <button
+                type="button"
                 onClick={onReloadFeed}
-                className="inline-flex items-center justify-center rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-red-600 ring-1 ring-red-200 transition hover:bg-red-100"
+                className="inline-flex items-center justify-center rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-red-600 ring-1 ring-red-200 transition hover:bg-red-100 cursor-pointer"
               >
                 Retry
               </button>
@@ -73,19 +112,35 @@ export default function MainFeed({
                 <FeedCardSkeleton />
               </>
             ) : feedItems.length > 0 ? (
-              feedItems.map((trip, index) => (
-                <JourneyFeedCard
-                  key={
-                    trip._id || `feed-trip-${trip.createdAt || "x"}-${index}`
-                  }
-                  trip={trip}
-                  surface="feed"
-                  onPreviewUser={onPreviewUser}
-                  onTripTrashed={onTripTrashed}
-                  onTripUpdated={onTripUpdated}
-                  onTripHidden={onTripHidden}
-                />
-              ))
+              <>
+                {feedItems.map((trip, index) => (
+                  <JourneyFeedCard
+                    key={
+                      trip._id || `feed-trip-${trip.createdAt || "x"}-${index}`
+                    }
+                    trip={trip}
+                    surface="feed"
+                    onPreviewUser={onPreviewUser}
+                    onTripTrashed={onTripTrashed}
+                    onTripUpdated={onTripUpdated}
+                    onTripHidden={onTripHidden}
+                  />
+                ))}
+
+                <div ref={loadMoreRef} className="h-6 w-full" />
+
+                {feedLoadingMore ? (
+                  <div className="flex items-center justify-center py-2">
+                    <span className="h-6 w-6 animate-spin rounded-full border-2 border-violet-200 border-t-violet-500" />
+                  </div>
+                ) : null}
+
+                {!feedHasMore ? (
+                  <div className="rounded-[22px] border border-dashed border-zinc-200 bg-[linear-gradient(180deg,#ffffff,#fbfbff)] px-4 py-4 text-center text-sm font-medium text-zinc-500">
+                    Bạn đã xem hết journey mới trong feed rồi.
+                  </div>
+                ) : null}
+              </>
             ) : (
               <EmptyJourneyState onOpenComposer={onOpenComposer} />
             )}

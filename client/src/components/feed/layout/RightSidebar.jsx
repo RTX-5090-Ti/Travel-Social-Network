@@ -2,9 +2,12 @@ import { Bell, MessageCircleMore } from "lucide-react";
 
 import { suggestions, contacts } from "../page/feed.constants";
 import { SendIcon, UserPlusIcon } from "../page/feed.icons";
+import { useNotifications } from "../../../notifications/useNotifications";
 import Divider from "./Divider";
 
 export default function RightSidebar() {
+  const { unreadCount } = useNotifications();
+
   return (
     <aside className="hidden bg-white/80 px-6 backdrop-blur lg:block lg:self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:rounded-r-[34px] feed-side-scroll">
       <div className="py-7">
@@ -38,9 +41,11 @@ export default function RightSidebar() {
                   className="h-[22px] w-[22px] transition duration-200 group-hover:scale-105"
                   strokeWidth={2.2}
                 />
-                <span className="absolute -right-1 -top-1 inline-flex min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1.5 py-[2px] text-[10px] font-semibold leading-none text-white shadow-[0_8px_18px_rgba(255,255,255,0.35)]">
-                  3
-                </span>
+                {unreadCount > 0 ? (
+                  <span className="absolute -right-1 -top-1 inline-flex min-w-[20px] items-center justify-center rounded-full bg-rose-500 px-1.5 py-[2px] text-[10px] font-semibold leading-none text-white shadow-[0_8px_18px_rgba(255,255,255,0.35)]">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                ) : null}
               </button>
             </div>
           </div>

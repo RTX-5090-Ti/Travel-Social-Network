@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { ImageIcon, Sparkles, Camera, PenSquare } from "lucide-react";
@@ -71,11 +71,15 @@ export default function ProfilePage() {
     highlightTrips,
     mediaItems,
     recentCaptures,
+    mediaLoading,
+    mediaError,
+    mediaFullyLoaded,
     isFollowing,
     isFollowSubmitting,
     applyOwnFollowingCountDelta,
     handleToggleFollow,
     loadOwnTrips,
+    ensureFullProfileMedia,
   } = useProfileData({
     user,
     userId,
@@ -165,6 +169,12 @@ export default function ProfilePage() {
     setTabDirection(nextIndex > activeTabIndex ? 1 : -1);
     setActiveTab(nextTab);
   }
+
+  useEffect(() => {
+    if (activeTab !== "media") return;
+
+    ensureFullProfileMedia();
+  }, [activeTab, ensureFullProfileMedia]);
 
   function handleOpenShareJourney() {
     setOpenComposer(true);
@@ -342,7 +352,7 @@ export default function ProfilePage() {
                     captures={recentCaptures}
                     onOpenCapture={openMediaLightbox}
                     onShareJourney={handleOpenShareJourney}
-                    loading={loading}
+                    loading={loading || (mediaLoading && !recentCaptures.length)}
                   />
                 </div>
               </section>
@@ -506,6 +516,15 @@ export default function ProfilePage() {
                             isVisitorProfile={isVisitorProfile}
                           />
                         )
+                      ) : mediaLoading && !mediaFullyLoaded ? (
+                        <ProfileMediaGridSkeleton />
+                      ) : mediaError && !mediaItems.length ? (
+                        <div className="rounded-[24px] border border-red-200 bg-red-50/90 px-4 py-4 text-sm text-red-600">
+                          <p className="font-semibold">
+                            Không tải được gallery media
+                          </p>
+                          <p className="mt-1 text-red-500/90">{mediaError}</p>
+                        </div>
                       ) : (
                         <ProfileMediaGrid
                           mediaItems={mediaItems}
@@ -593,6 +612,25 @@ function ProfileHighlightSkeletonGrid() {
                 <div className="h-3.5 w-12 rounded-full bg-[linear-gradient(90deg,rgba(255,255,255,0.88),rgba(226,232,240,0.92),rgba(255,255,255,0.88))]" />
               </div>
             </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ProfileMediaGridSkeleton() {
+  return (
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={`profile-media-skeleton-${index}`}
+          className="overflow-hidden rounded-[28px] border border-white/70 bg-white shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60"
+        >
+          <div className="aspect-[4/5] animate-pulse bg-[linear-gradient(135deg,rgba(102,126,234,0.12),rgba(118,75,162,0.10),rgba(255,255,255,0.54))]" />
+          <div className="space-y-3 p-4">
+            <div className="h-4 w-3/4 rounded-full bg-zinc-200/80" />
+            <div className="h-3 w-1/2 rounded-full bg-zinc-100" />
           </div>
         </div>
       ))}

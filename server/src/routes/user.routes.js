@@ -5,6 +5,7 @@ import {
   uploadAvatarController,
   uploadCoverController,
   getMyTripsController,
+  getUserProfileMediaController,
   getUserProfileController,
   getUserSummaryController,
   updateProfileController,
@@ -17,6 +18,8 @@ const router = Router();
 router.get("/me/trips", requireAuth, getMyTripsController);
 
 router.get("/:id/summary", requireAuth, getUserSummaryController);
+
+router.get("/:id/media", requireAuth, getUserProfileMediaController);
 
 router.get("/:id/profile", requireAuth, getUserProfileController);
 

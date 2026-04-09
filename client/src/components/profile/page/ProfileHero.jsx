@@ -436,12 +436,14 @@ export default function ProfileHero({
                   )}
 
                   <div className="mt-4 flex flex-wrap gap-2.5 text-[13px] text-zinc-500">
-                    <div className="w-full">
+                    {!isVisitorProfile ? (
+                      <div className="w-full">
                       <ProfileMetaPill
                         icon={<Mail className="w-4 h-4" />}
                         text={displayUser?.email || "Chưa cập nhật email"}
                       />
-                    </div>
+                      </div>
+                    ) : null}
                     <div className="w-full">
                       <ProfileMetaPill
                         icon={<MapPin className="w-4 h-4" />}
