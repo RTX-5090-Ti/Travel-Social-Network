@@ -15,6 +15,10 @@ function getPreviewAvatar(user) {
   );
 }
 
+function getPreviewEmail(user) {
+  return user?.email || user?.profile?.email || "";
+}
+
 function MenuLinesIcon({ className = "h-5 w-5" }) {
   return (
     <svg viewBox="0 0 24 24" fill="none" className={className}>
@@ -52,6 +56,7 @@ export default function LeftSidebar({
 
   const displayUser = previewUser || null;
   const previewAvatar = getPreviewAvatar(displayUser);
+  const previewEmail = getPreviewEmail(displayUser);
 
   const previewUserId = displayUser?._id || displayUser?.id || "";
 
@@ -292,7 +297,7 @@ export default function LeftSidebar({
                           previewAvatar ||
                           displayUser._id ||
                           displayUser.id ||
-                          displayUser.location ||
+                          previewEmail ||
                           displayUser.name ||
                           "avatar"
                         }
@@ -330,7 +335,7 @@ export default function LeftSidebar({
                         key={
                           displayUser._id ||
                           displayUser.id ||
-                          displayUser.location ||
+                          previewEmail ||
                           displayUser.name ||
                           "identity"
                         }
@@ -344,7 +349,7 @@ export default function LeftSidebar({
                           {displayUser.name || "Traveler"}
                         </h2>
                         <p className="mt-1 break-all text-[14px] text-zinc-400">
-                          {displayUser.location || "Traveler preview"}
+                          {previewEmail || "Email unavailable"}
                         </p>
                       </motion.div>
                     </AnimatePresence>

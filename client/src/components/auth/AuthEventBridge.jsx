@@ -5,12 +5,16 @@ import { useToast } from "../../toast/useToast";
 
 export default function AuthEventBridge() {
   const navigate = useNavigate();
-  const { user, clearAuth } = useAuth();
+  const { user, clearAuth, bootstrapping } = useAuth();
   const { showToast } = useToast();
   const lastExpiredAtRef = useRef(0);
 
   useEffect(() => {
     function handleExpired(event) {
+      if (bootstrapping) {
+        return;
+      }
+
       const hadUser = !!user;
       clearAuth();
 
@@ -34,7 +38,7 @@ export default function AuthEventBridge() {
     return () => {
       window.removeEventListener("auth:expired", handleExpired);
     };
-  }, [user, clearAuth, navigate, showToast]);
+  }, [bootstrapping, user, clearAuth, navigate, showToast]);
 
   return null;
 }

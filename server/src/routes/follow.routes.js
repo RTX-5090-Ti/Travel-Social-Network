@@ -5,6 +5,7 @@ import {
   unfollowUser,
   getFollowStatus,
   getFollowSummary,
+  listMutualFollows,
   listFollowers,
   listFollowing,
   listFollowersByUserId,
@@ -14,6 +15,7 @@ import {
 const router = Router();
 
 router.get("/summary", requireAuth, getFollowSummary);
+router.get("/mutuals", requireAuth, listMutualFollows);
 
 router.get("/followers", requireAuth, listFollowers);
 router.get("/following", requireAuth, listFollowing);

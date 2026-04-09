@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Bell, Trash2 } from "lucide-react";
+import { Bell, CheckCheck, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { tripApi } from "../../api/trip.api";
@@ -281,6 +281,7 @@ export default function NotificationBellButton() {
     hasMore,
     loadingMore,
     loadMoreNotifications,
+    markAllAsRead,
     markNotificationRead,
     deleteSelectedNotifications,
     deleteAllNotifications,
@@ -293,6 +294,7 @@ export default function NotificationBellButton() {
   const [selectedIds, setSelectedIds] = useState([]);
   const [deletingSelected, setDeletingSelected] = useState(false);
   const [deletingAll, setDeletingAll] = useState(false);
+  const [markingAllRead, setMarkingAllRead] = useState(false);
 
   const rootRef = useRef(null);
   const panelRef = useRef(null);
@@ -321,6 +323,7 @@ export default function NotificationBellButton() {
     setSelectedIds([]);
     setDeletingSelected(false);
     setDeletingAll(false);
+    setMarkingAllRead(false);
   }
 
   function handleToggleSelect(notificationId) {
@@ -368,6 +371,18 @@ export default function NotificationBellButton() {
       }
     } finally {
       setDeletingAll(false);
+    }
+  }
+
+  async function handleMarkAllRead() {
+    if (markingAllRead || unreadCount <= 0) return;
+
+    setMarkingAllRead(true);
+
+    try {
+      await markAllAsRead();
+    } finally {
+      setMarkingAllRead(false);
     }
   }
 
@@ -502,10 +517,29 @@ export default function NotificationBellButton() {
           style={panelStyle}
         >
           <div className="border-b border-zinc-200/70 px-4 py-4">
-            <div className="flex items-center justify-between gap-3">
+            <div className="relative flex items-center justify-between gap-3">
               <h4 className="text-[18px] font-semibold text-zinc-900">
                 Thông báo
               </h4>
+
+              <button
+                type="button"
+                aria-label="Đọc tất cả thông báo"
+                title="Đọc tất cả thông báo"
+                onClick={handleMarkAllRead}
+                disabled={markingAllRead || unreadCount <= 0}
+                className={`absolute right-11 top-1/2 inline-flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border shadow-[0_8px_18px_rgba(15,23,42,0.06)] transition ${
+                  markingAllRead || unreadCount <= 0
+                    ? "cursor-not-allowed border-zinc-200/70 bg-zinc-100/80 text-zinc-300"
+                    : "cursor-pointer border-zinc-200/80 bg-white/80 text-zinc-500 hover:-translate-y-[52%] hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-600"
+                }`}
+              >
+                {markingAllRead ? (
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-200 border-t-emerald-500" />
+                ) : (
+                  <CheckCheck className="h-4 w-4" strokeWidth={2.1} />
+                )}
+              </button>
 
               <button
                 type="button"

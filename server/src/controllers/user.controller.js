@@ -387,7 +387,7 @@ export async function getUserProfileController(req, res, next) {
       await Promise.all([
         User.findById(profileUserId)
           .select(
-            "_id name avatarUrl coverUrl bio location travelStyle pinnedTripId isActive",
+            "_id name email avatarUrl coverUrl bio location travelStyle pinnedTripId isActive",
           )
           .lean(),
         viewerId && viewerId !== profileUserId
@@ -438,10 +438,13 @@ export async function getUserProfileController(req, res, next) {
       }),
     ]);
 
-    const profileUserPayload = buildUserPayload({
-      ...profileUser,
-      pinnedTripId: visiblePinnedTripId,
-    });
+    const profileUserPayload = buildUserPayload(
+      {
+        ...profileUser,
+        pinnedTripId: visiblePinnedTripId,
+      },
+      { includeEmail: true },
+    );
 
     res.json({
       user: profileUserPayload,
@@ -474,7 +477,7 @@ export async function getUserSummaryController(req, res, next) {
       await Promise.all([
         User.findById(profileUserId)
           .select(
-            "_id name avatarUrl coverUrl bio location travelStyle pinnedTripId isActive",
+            "_id name email avatarUrl coverUrl bio location travelStyle pinnedTripId isActive",
           )
           .lean(),
         viewerId && viewerId !== profileUserId
@@ -519,10 +522,13 @@ export async function getUserSummaryController(req, res, next) {
       }),
     ]);
 
-    const profileUserPayload = buildUserPayload({
-      ...profileUser,
-      pinnedTripId: visiblePinnedTripId,
-    });
+    const profileUserPayload = buildUserPayload(
+      {
+        ...profileUser,
+        pinnedTripId: visiblePinnedTripId,
+      },
+      { includeEmail: true },
+    );
 
     res.json({
       user: profileUserPayload,

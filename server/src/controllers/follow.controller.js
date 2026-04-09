@@ -13,6 +13,13 @@ function mapUserItem(user, extra = {}) {
   };
 }
 
+function parseLimit(query, fallback = 8, max = 24) {
+  const limitRaw = Number(query.limit ?? fallback);
+  return Number.isFinite(limitRaw)
+    ? Math.min(Math.max(limitRaw, 1), max)
+    : fallback;
+}
+
 function parsePagination(query) {
   const pageRaw = Number(query.page ?? 1);
   const limitRaw = Number(query.limit ?? 12);
@@ -231,6 +238,61 @@ export async function getFollowSummary(req, res, next) {
     res.json({
       followersCount,
       followingCount,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function listMutualFollows(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const limit = parseLimit(req.query, 10, 200);
+
+    const followingDocs = await Follow.find({ followerId: userId })
+      .select("followingId")
+      .lean();
+
+    const followingIds = followingDocs
+      .map((item) => item?.followingId?.toString?.())
+      .filter(Boolean);
+
+    if (!followingIds.length) {
+      return res.json({
+        items: [],
+        meta: {
+          limit,
+          total: 0,
+        },
+      });
+    }
+
+    const mutualDocs = await Follow.find({
+      followingId: userId,
+      followerId: { $in: followingIds },
+    })
+      .populate("followerId", "_id name email avatarUrl isActive")
+      .sort({ createdAt: -1, _id: -1 })
+      .limit(limit)
+      .lean();
+
+    const items = mutualDocs
+      .map((doc) => doc?.followerId)
+      .filter(Boolean)
+      .filter((item) => item?.isActive !== false)
+      .map((item) =>
+        mapUserItem(item, {
+          id: item?._id,
+          email: item?.email || "",
+        }),
+      );
+
+    return res.json({
+      items,
+      meta: {
+        limit,
+        total: items.length,
+      },
     });
   } catch (err) {
     next(err);

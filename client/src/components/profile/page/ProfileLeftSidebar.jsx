@@ -17,7 +17,7 @@ export default function ProfileLeftSidebar({
 
   const fallbackProfile = {
     name: "Traveler",
-    location: "Chua cap nhat dia diem",
+    email: "Email unavailable",
     avatar: "",
     stats: [
       { label: "Posts", value: "0" },
@@ -28,7 +28,7 @@ export default function ProfileLeftSidebar({
 
   const sidebarProfile = {
     name: displayUser?.name || fallbackProfile.name,
-    location: displayUser?.location || fallbackProfile.location,
+    email: displayUser?.email || displayUser?.profile?.email || fallbackProfile.email,
     avatar:
       displayUser?.avatarUrl ||
       displayUser?.avatar ||
@@ -145,8 +145,8 @@ export default function ProfileLeftSidebar({
             <h2 className="text-[20px] font-semibold tracking-tight text-zinc-900">
               {sidebarProfile.name}
             </h2>
-            <p className="mt-1 text-[14px] text-zinc-400">
-              {sidebarProfile.location}
+            <p className="mt-1 break-all text-[14px] text-zinc-400">
+              {sidebarProfile.email}
             </p>
           </div>
 

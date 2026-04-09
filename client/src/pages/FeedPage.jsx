@@ -66,6 +66,7 @@ export default function FeedPage() {
   const [previewStatsLoading, setPreviewStatsLoading] = useState(false);
 
   const previewStatsCacheRef = useRef(new Map());
+  const previewUserCacheRef = useRef(new Map());
   const previewRequestIdRef = useRef(0);
   const feedRequestIdRef = useRef(0);
   const feedCursorRef = useRef(null);
@@ -136,7 +137,7 @@ export default function FeedPage() {
     if (previewStatsCacheRef.current.has(ownerId)) {
       setPreviewStats(previewStatsCacheRef.current.get(ownerId));
       setPreviewStatsLoading(false);
-      return;
+      return previewUserCacheRef.current.get(ownerId) || null;
     }
 
     const requestId = ++previewRequestIdRef.current;
@@ -146,11 +147,14 @@ export default function FeedPage() {
 
       const res = await userApi.getSummary(ownerId);
       const nextStats = buildPreviewStats(res.data?.stats);
+      const nextPreviewUser = res.data?.user || null;
 
       previewStatsCacheRef.current.set(ownerId, nextStats);
+      previewUserCacheRef.current.set(ownerId, nextPreviewUser);
 
       if (requestId !== previewRequestIdRef.current) return;
       setPreviewStats(nextStats);
+      return nextPreviewUser;
     } catch {
       if (requestId !== previewRequestIdRef.current) return;
 
@@ -159,6 +163,7 @@ export default function FeedPage() {
         { label: "Followers", value: "0" },
         { label: "Following", value: "0" },
       ]);
+      return null;
     } finally {
       if (requestId === previewRequestIdRef.current) {
         setPreviewStatsLoading(false);
@@ -217,7 +222,28 @@ export default function FeedPage() {
     });
 
     setPreviewStats(null);
-    await loadPreviewStats(ownerId);
+    const summaryUser = await loadPreviewStats(ownerId);
+
+    if (summaryUser) {
+      setPreviewUser((prev) => {
+        if (!prev) return prev;
+        const prevId = prev?._id || prev?.id || "";
+        if (prevId !== ownerId) return prev;
+
+        return {
+          ...prev,
+          name: summaryUser?.name || prev.name,
+          email: summaryUser?.email || prev.email || "",
+          avatarUrl:
+            summaryUser?.avatarUrl ||
+            summaryUser?.avatar ||
+            summaryUser?.profile?.avatarUrl ||
+            summaryUser?.profile?.avatar ||
+            prev.avatarUrl ||
+            "",
+        };
+      });
+    }
   }
 
   function handleTripTrashed(tripId) {
@@ -288,7 +314,7 @@ export default function FeedPage() {
       </div>
 
       <div className="relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden bg-[#fafafb] md:rounded-[34px] md:border md:border-white/60 md:shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
-        <div className="grid min-h-screen grid-cols-1 md:min-h-[900px] lg:h-full lg:min-h-0 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
+        <div className="grid min-h-screen grid-cols-1 md:min-h-[900px] lg:h-full lg:min-h-0 lg:grid-cols-[312px_minmax(0,1fr)_344px]">
           <LeftSidebar
             previewUser={previewUser}
             previewStats={previewStats}

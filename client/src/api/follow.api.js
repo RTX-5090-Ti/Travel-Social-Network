@@ -5,6 +5,10 @@ export const followApi = {
     return api.get("/api/follow/summary");
   },
 
+  listMutuals(params = {}) {
+    return api.get("/api/follow/mutuals", { params });
+  },
+
   listMyFollowers(params = {}) {
     return api.get("/api/follow/followers", { params });
   },

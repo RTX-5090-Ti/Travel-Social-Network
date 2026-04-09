@@ -274,7 +274,7 @@ export default function ProfilePage() {
       </div>
 
       <div className="relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden rounded-[34px] border border-white/60 bg-[#fafafb] shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
-        <div className="grid min-h-[900px] grid-cols-1 lg:h-full lg:min-h-0 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
+        <div className="grid min-h-[900px] grid-cols-1 lg:h-full lg:min-h-0 lg:grid-cols-[312px_minmax(0,1fr)_344px]">
           <ProfileLeftSidebar
             user={displayUser}
             stats={sidebarStats}
@@ -353,6 +353,7 @@ export default function ProfilePage() {
                     onOpenCapture={openMediaLightbox}
                     onShareJourney={handleOpenShareJourney}
                     loading={loading || (mediaLoading && !recentCaptures.length)}
+                    isVisitorProfile={isVisitorProfile}
                   />
                 </div>
               </section>

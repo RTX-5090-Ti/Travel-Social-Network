@@ -6,6 +6,7 @@ export default function ProfileRecentCapturesCard({
   onOpenCapture,
   onShareJourney,
   loading = false,
+  isVisitorProfile = false,
 }) {
   const hasCaptures = captures.length > 0;
 
@@ -73,7 +74,7 @@ export default function ProfileRecentCapturesCard({
             />
           ))}
         </div>
-      ) : (
+      ) : !isVisitorProfile ? (
         <button
           type="button"
           onClick={onShareJourney}
@@ -82,7 +83,7 @@ export default function ProfileRecentCapturesCard({
           <Plus className="w-4 h-4" />
           Share your first journey
         </button>
-      )}
+      ) : null}
     </div>
   );
 }
