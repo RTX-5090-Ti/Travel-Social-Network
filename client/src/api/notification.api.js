@@ -9,6 +9,10 @@ export const notificationApi = {
     return api.get("/api/notifications/summary");
   },
 
+  markRead(notificationId) {
+    return api.patch(`/api/notifications/${notificationId}/read`);
+  },
+
   markAllRead() {
     return api.post("/api/notifications/read-all");
   },

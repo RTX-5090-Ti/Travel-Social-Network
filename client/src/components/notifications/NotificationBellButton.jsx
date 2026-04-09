@@ -281,7 +281,7 @@ export default function NotificationBellButton() {
     hasMore,
     loadingMore,
     loadMoreNotifications,
-    markAllAsRead,
+    markNotificationRead,
     deleteSelectedNotifications,
     deleteAllNotifications,
   } = useNotifications();
@@ -298,7 +298,6 @@ export default function NotificationBellButton() {
   const panelRef = useRef(null);
   const scrollRef = useRef(null);
   const loadMoreRef = useRef(null);
-  const markReadFrameRef = useRef(0);
 
   const hasNotifications = notifications.length > 0;
   const canExpand = notifications.length > COLLAPSED_VISIBLE_COUNT || hasMore;
@@ -418,21 +417,6 @@ export default function NotificationBellButton() {
   }, [open]);
 
   useEffect(() => {
-    if (!open || unreadCount <= 0) return undefined;
-
-    markReadFrameRef.current = window.requestAnimationFrame(() => {
-      void markAllAsRead();
-    });
-
-    return () => {
-      if (markReadFrameRef.current) {
-        window.cancelAnimationFrame(markReadFrameRef.current);
-        markReadFrameRef.current = 0;
-      }
-    };
-  }, [markAllAsRead, open, unreadCount]);
-
-  useEffect(() => {
     if (!open || !expanded || !hasMore || loadingMore) return undefined;
 
     const targetNode = loadMoreRef.current;
@@ -480,6 +464,11 @@ export default function NotificationBellButton() {
   async function handleActivateNotification(item) {
     if (showDeleteActions || deletingSelected || deletingAll) {
       return;
+    }
+
+    const itemId = item?._id || item?.id || "";
+    if (itemId && !item?.read) {
+      await markNotificationRead(itemId);
     }
 
     const openTarget = await buildNotificationOpenTarget(item);

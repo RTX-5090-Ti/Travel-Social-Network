@@ -149,6 +149,51 @@ export async function markAllNotificationsRead(req, res, next) {
   }
 }
 
+export async function markNotificationRead(req, res, next) {
+  try {
+    const userId = req.user?.userId;
+    const notificationId = toIdString(req.params?.notificationId);
+
+    if (!mongoose.isValidObjectId(notificationId)) {
+      res.status(400).json({ message: "Notification không hợp lệ." });
+      return;
+    }
+
+    const existingNotification = await Notification.findOne({
+      _id: notificationId,
+      recipientUserId: userId,
+    });
+
+    if (!existingNotification) {
+      res.status(404).json({ message: "Không tìm thấy thông báo." });
+      return;
+    }
+
+    if (!existingNotification.readAt) {
+      existingNotification.readAt = new Date();
+      await existingNotification.save();
+    }
+
+    await existingNotification.populate(
+      "actorUserId",
+      "_id name avatarUrl isActive scheduledDeletionAt",
+    );
+
+    const unreadCount = await Notification.countDocuments({
+      recipientUserId: userId,
+      readAt: null,
+    });
+
+    res.json({
+      ok: true,
+      item: normalizeNotificationPayload(existingNotification.toObject()),
+      unreadCount,
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function deleteSelectedNotifications(req, res, next) {
   try {
     const userId = req.user?.userId;

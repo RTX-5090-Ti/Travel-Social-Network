@@ -50,6 +50,44 @@ function countReplyNodes(replies = []) {
   );
 }
 
+function countReplyNodesUntilTarget(replies = [], targetCommentId = "") {
+  if (!targetCommentId || !replies.length) {
+    return { found: false, used: 0 };
+  }
+
+  let used = 0;
+
+  for (const reply of replies) {
+    used += 1;
+
+    const replyId =
+      typeof reply?._id === "string"
+        ? reply._id
+        : reply?._id?.toString?.() || "";
+
+    if (replyId === targetCommentId) {
+      return { found: true, used };
+    }
+
+    const childReplies = Array.isArray(reply?.replies) ? reply.replies : [];
+    if (!childReplies.length) {
+      continue;
+    }
+
+    const nestedResult = countReplyNodesUntilTarget(childReplies, targetCommentId);
+    if (nestedResult.found) {
+      return {
+        found: true,
+        used: used + nestedResult.used,
+      };
+    }
+
+    used += countReplyNodes(childReplies);
+  }
+
+  return { found: false, used };
+}
+
 export default function JourneyDetailOverlay({
   trip,
   detail,
@@ -92,6 +130,7 @@ export default function JourneyDetailOverlay({
   const [commentsCursor, setCommentsCursor] = useState(null);
   const [commentsHasMore, setCommentsHasMore] = useState(false);
   const [commentsLoadingMore, setCommentsLoadingMore] = useState(false);
+  const [highlightedCommentId, setHighlightedCommentId] = useState("");
   const commentTextareaRef = useRef(null);
   const commentListEndRef = useRef(null);
   const overlayContentRef = useRef(null);
@@ -99,6 +138,9 @@ export default function JourneyDetailOverlay({
   const commentsCursorRef = useRef(null);
   const commentsHasMoreRef = useRef(false);
   const focusRequestKeyRef = useRef("");
+  const highlightTimeoutRef = useRef(0);
+  const loadingReplyThreadsRef = useRef({});
+  const hydratedReplyThreadsRef = useRef(new Set());
   const onCloseRef = useRef(onClose);
   const showToastRef = useRef(showToast);
 
@@ -124,6 +166,10 @@ export default function JourneyDetailOverlay({
     commentsCursorRef.current = commentsCursor;
     commentsHasMoreRef.current = commentsHasMore;
   }, [commentsCursor, commentsHasMore]);
+
+  useEffect(() => {
+    loadingReplyThreadsRef.current = loadingReplyThreads;
+  }, [loadingReplyThreads]);
 
   useEffect(() => {
     showToastRef.current = showToast;
@@ -219,8 +265,20 @@ export default function JourneyDetailOverlay({
     setExpandedReplyThreads({});
     setVisibleReplyCounts({});
     setLoadingReplyThreads({});
+    loadingReplyThreadsRef.current = {};
+    hydratedReplyThreadsRef.current = new Set();
+    setHighlightedCommentId("");
     focusRequestKeyRef.current = "";
   }, [trip?._id]);
+
+  useEffect(() => {
+    return () => {
+      if (highlightTimeoutRef.current) {
+        window.clearTimeout(highlightTimeoutRef.current);
+        highlightTimeoutRef.current = 0;
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const prevOverflow = document.body.style.overflow;
@@ -379,7 +437,7 @@ export default function JourneyDetailOverlay({
         : targetId.replace(/["\\]/g, "\\$&");
 
     const targetNode = overlayContentRef.current?.querySelector(
-      `[data-comment-id="${escapedId}"]`,
+      `[data-comment-anchor-id="${escapedId}"]`,
     );
 
     if (!targetNode) return false;
@@ -476,16 +534,37 @@ export default function JourneyDetailOverlay({
           [threadId]: true,
         }));
 
-        setVisibleReplyCounts((prev) => ({
-          ...prev,
-          [threadId]: Math.max(prev[threadId] || 0, 10),
-        }));
-
         await new Promise((resolve) => {
           window.requestAnimationFrame(() => resolve());
         });
 
-        await loadRepliesForComment(threadId, { force: true });
+        const replyLoadResult = await loadRepliesForComment(threadId, {
+          force: true,
+        });
+
+        if (replyLoadResult?.ok) {
+          workingItems = replaceRepliesInTree(
+            workingItems,
+            threadId,
+            Array.isArray(replyLoadResult.nextReplies)
+              ? replyLoadResult.nextReplies
+              : [],
+          );
+          threadComment = findCommentInTree(workingItems, threadId);
+        }
+
+        const requiredVisibleReplies = Math.max(
+          10,
+          countReplyNodesUntilTarget(
+            Array.isArray(threadComment?.replies) ? threadComment.replies : [],
+            targetCommentId,
+          ).used || 0,
+        );
+
+        setVisibleReplyCounts((prev) => ({
+          ...prev,
+          [threadId]: Math.max(prev[threadId] || 0, requiredVisibleReplies),
+        }));
       }
 
       if (cancelled) return;
@@ -499,6 +578,16 @@ export default function JourneyDetailOverlay({
 
         const didScroll = scrollToComment(targetCommentId);
         if (didScroll) {
+          if (highlightTimeoutRef.current) {
+            window.clearTimeout(highlightTimeoutRef.current);
+          }
+
+          setHighlightedCommentId(targetCommentId);
+          highlightTimeoutRef.current = window.setTimeout(() => {
+            setHighlightedCommentId((prev) =>
+              prev === targetCommentId ? "" : prev,
+            );
+          }, 3200);
           focusRequestKeyRef.current = requestKey;
           return;
         }
@@ -657,20 +746,32 @@ export default function JourneyDetailOverlay({
   }
 
   async function loadRepliesForComment(commentId, { force = false } = {}) {
-    if (!commentId || loadingReplyThreads[commentId]) {
-      return false;
+    if (!commentId || loadingReplyThreadsRef.current[commentId]) {
+      return { ok: false, nextReplies: [] };
     }
 
     const targetComment = findCommentInTree(commentItems, commentId);
     if (!targetComment && !force) {
-      return false;
+      return { ok: false, nextReplies: [] };
     }
 
-    if (!force && targetComment && areRepliesLoaded(targetComment)) {
-      return true;
+    if (
+      hydratedReplyThreadsRef.current.has(commentId) ||
+      (!force && targetComment && areRepliesLoaded(targetComment))
+    ) {
+      return {
+        ok: true,
+        nextReplies: Array.isArray(targetComment?.replies)
+          ? targetComment.replies
+          : [],
+      };
     }
 
     try {
+      loadingReplyThreadsRef.current = {
+        ...loadingReplyThreadsRef.current,
+        [commentId]: true,
+      };
       setLoadingReplyThreads((prev) => ({
         ...prev,
         [commentId]: true,
@@ -683,19 +784,27 @@ export default function JourneyDetailOverlay({
       setCommentItems((prev) =>
         replaceRepliesInTree(prev, commentId, nextReplies),
       );
+      hydratedReplyThreadsRef.current.add(commentId);
 
-      return true;
+      return {
+        ok: true,
+        nextReplies,
+      };
     } catch (err) {
       if (isTripUnavailableError(err)) {
         handleTripUnavailable(err);
-        return false;
+        return { ok: false, nextReplies: [] };
       }
 
       setCommentsError(
         err?.response?.data?.message || "Không tải phản hồi được lúc này.",
       );
-      return false;
+      return { ok: false, nextReplies: [] };
     } finally {
+      const nextLoadingMap = { ...loadingReplyThreadsRef.current };
+      delete nextLoadingMap[commentId];
+      loadingReplyThreadsRef.current = nextLoadingMap;
+
       setLoadingReplyThreads((prev) => {
         if (!prev[commentId]) return prev;
         const next = { ...prev };
@@ -1484,6 +1593,7 @@ export default function JourneyDetailOverlay({
                         <JourneyCommentCard
                           key={getSafeListKey(comment, index, "comment")}
                           comment={comment}
+                          highlightedCommentId={highlightedCommentId}
                           expandedReplyThreads={expandedReplyThreads}
                           visibleReplyCounts={visibleReplyCounts}
                           activeReplyId={replyingToCommentId}

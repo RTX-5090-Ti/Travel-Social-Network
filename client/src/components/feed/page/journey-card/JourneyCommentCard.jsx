@@ -126,6 +126,7 @@ function treeContainsComment(comment, targetId) {
 
 function CommentBubble({
   comment,
+  highlighted = false,
   showConnector = false,
   onReply,
   onToggleLike,
@@ -150,6 +151,7 @@ function CommentBubble({
   const replyToName = getReplyToName(comment);
   const content =
     typeof comment?.content === "string" ? comment.content.trim() : "";
+  const commentId = getCommentId(comment);
   const liked = !!comment?.liked;
   const likeCount = Math.max(0, Number(comment?.likeCount || 0));
   const isOwnComment =
@@ -182,7 +184,14 @@ function CommentBubble({
   }, [menuOpen]);
 
   return (
-    <div className="relative flex items-start gap-3">
+    <div
+      data-comment-anchor-id={commentId || undefined}
+      className={`relative flex items-start gap-3 rounded-[24px] transition-all duration-500 ${
+        highlighted
+          ? "animate-[pulse_0.85s_ease-in-out_3] bg-[linear-gradient(135deg,rgba(255,251,235,0.72),rgba(255,247,205,0.58))] shadow-[0_10px_24px_rgba(245,158,11,0.08)] ring-1 ring-amber-200/55"
+          : ""
+      }`}
+    >
       {showConnector ? (
         <span className="absolute left-[-24px] top-5 h-px w-5 rounded-full bg-gradient-to-r from-violet-300 to-fuchsia-300" />
       ) : null}
@@ -365,6 +374,7 @@ function CommentBubble({
 
 function CommentThread({
   comment,
+  highlightedCommentId = "",
   depth = 0,
   forceExpanded = false,
   expandedByAncestor = false,
@@ -419,6 +429,7 @@ function CommentThread({
   const childWrapperClass = shouldIndentChildren
     ? "relative ml-[18px] mt-3 pl-8"
     : "relative mt-3";
+  const isHighlighted = highlightedCommentId === commentId;
 
   const limitedReplies = expandedByAncestor
     ? { items: rawReplies, used: countReplyNodes(rawReplies) }
@@ -433,12 +444,10 @@ function CommentThread({
       : `Xem tất cả ${totalReplies} phản hồi`;
 
   return (
-    <div
-      className="rounded-[24px] bg-transparent"
-      data-comment-id={commentId || undefined}
-    >
+    <div className="rounded-[24px] bg-transparent" data-comment-id={commentId || undefined}>
       <CommentBubble
         comment={comment}
+        highlighted={isHighlighted}
         showConnector={depth > 0}
         onReply={() => onReplyToggle?.(comment)}
         onToggleLike={likeSubmitting ? null : onToggleLike}
@@ -544,6 +553,7 @@ function CommentThread({
                     <CommentThread
                       key={getCommentId(reply) || `reply-${index}`}
                       comment={reply}
+                      highlightedCommentId={highlightedCommentId}
                       depth={childDepth}
                       forceExpanded={expandDescendants}
                       expandedByAncestor={repliesExpanded}

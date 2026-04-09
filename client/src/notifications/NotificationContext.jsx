@@ -170,6 +170,78 @@ export function NotificationProvider({ children }) {
     }
   }, [unreadCount, user?.id]);
 
+  const markNotificationRead = useCallback(
+    async (notificationId) => {
+      if (!user?.id || !notificationId) {
+        return { ok: false };
+      }
+
+      const targetId =
+        typeof notificationId === "string" ? notificationId.trim() : "";
+      if (!targetId) {
+        return { ok: false };
+      }
+
+      const currentItem = notifications.find((item) => {
+        const itemId = item?._id || item?.id;
+        return itemId === targetId;
+      });
+
+      if (currentItem?.read) {
+        return {
+          ok: true,
+          item: currentItem,
+          unreadCount,
+        };
+      }
+
+      try {
+        const res = await notificationApi.markRead(targetId);
+        const nextItem = res.data?.item;
+        const nextUnreadCount = Number(res.data?.unreadCount);
+
+        if (nextItem) {
+          setNotifications((prev) =>
+            prev.map((item) => {
+              const itemId = item?._id || item?.id;
+              return itemId === targetId ? { ...item, ...nextItem } : item;
+            }),
+          );
+        } else {
+          setNotifications((prev) =>
+            prev.map((item) => {
+              const itemId = item?._id || item?.id;
+              return itemId === targetId
+                ? {
+                    ...item,
+                    read: true,
+                    readAt: item?.readAt || new Date().toISOString(),
+                  }
+                : item;
+            }),
+          );
+        }
+
+        if (Number.isFinite(nextUnreadCount)) {
+          setUnreadCount(nextUnreadCount);
+        } else {
+          setUnreadCount((prev) => Math.max(prev - 1, 0));
+        }
+
+        return {
+          ok: !!res.data?.ok,
+          item: nextItem,
+          unreadCount: Number.isFinite(nextUnreadCount)
+            ? nextUnreadCount
+            : Math.max(unreadCount - 1, 0),
+        };
+      } catch {
+        return { ok: false };
+      }
+    },
+    [notifications, unreadCount, user?.id],
+  );
+
   const deleteSelectedNotifications = useCallback(
     async (notificationIds = []) => {
       if (!user?.id) {
@@ -345,6 +417,7 @@ export function NotificationProvider({ children }) {
       nextCursor,
       refreshNotifications,
       loadMoreNotifications,
+      markNotificationRead,
       markAllAsRead,
       deleteSelectedNotifications,
       deleteAllNotifications,
@@ -356,6 +429,7 @@ export function NotificationProvider({ children }) {
       loading,
       loadingMore,
       loadMoreNotifications,
+      markNotificationRead,
       markAllAsRead,
       nextCursor,
       notifications,

@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 
 import FloatingShape from "../components/auth/login/FloatingShape";
 import ShareJourneyModal from "../components/feed/ShareJourneyModal";
 import { feedApi } from "../api/feed.api";
 import { userApi } from "../api/user.api";
-import { tripApi } from "../api/trip.api";
 
 import { shapeStyles } from "../components/feed/page/feed.constants";
 
@@ -54,26 +52,7 @@ function mergeFeedItems(existingItems = [], incomingItems = []) {
   );
 }
 
-function normalizeTripDetailForFeed(detailPayload) {
-  const baseTrip = detailPayload?.trip;
-  if (!baseTrip?._id) {
-    return null;
-  }
-
-  return {
-    ...baseTrip,
-    generalItems: Array.isArray(detailPayload?.generalItems)
-      ? detailPayload.generalItems
-      : [],
-    milestones: Array.isArray(detailPayload?.milestones)
-      ? detailPayload.milestones
-      : [],
-  };
-}
-
 export default function FeedPage() {
-  const location = useLocation();
-  const navigate = useNavigate();
   const [openComposer, setOpenComposer] = useState(false);
   const [feedItems, setFeedItems] = useState([]);
   const [feedLoading, setFeedLoading] = useState(true);
@@ -82,7 +61,6 @@ export default function FeedPage() {
   const [feedCursor, setFeedCursor] = useState(null);
   const [feedHasMore, setFeedHasMore] = useState(false);
   const [previewUser, setPreviewUser] = useState(null);
-  const [notificationTarget, setNotificationTarget] = useState(null);
 
   const [previewStats, setPreviewStats] = useState(null);
   const [previewStatsLoading, setPreviewStatsLoading] = useState(false);
@@ -91,13 +69,6 @@ export default function FeedPage() {
   const previewRequestIdRef = useRef(0);
   const feedRequestIdRef = useRef(0);
   const feedCursorRef = useRef(null);
-  const hydratedTripsRef = useRef(new Map());
-
-  const cacheHydratedTrip = useCallback((trip) => {
-    const tripId = getTripId(trip);
-    if (!tripId) return;
-    hydratedTripsRef.current.set(tripId, trip);
-  }, []);
 
   const loadFeed = useCallback(
     async ({ reset = true } = {}) => {
@@ -116,16 +87,15 @@ export default function FeedPage() {
           ...(reset ? {} : { cursor: feedCursorRef.current }),
         });
         const nextItems = Array.isArray(res.data?.items) ? res.data.items : [];
-        const hydratedTrips = [...hydratedTripsRef.current.values()];
 
         if (requestId !== feedRequestIdRef.current) return;
 
         setFeedItems((prev) => {
           if (reset) {
-            return mergeFeedItems(nextItems, hydratedTrips);
+            return nextItems;
           }
 
-          return mergeFeedItems(mergeFeedItems(prev, nextItems), hydratedTrips);
+          return mergeFeedItems(prev, nextItems);
         });
         feedCursorRef.current = res.data?.page?.nextCursor || null;
         setFeedCursor(res.data?.page?.nextCursor || null);
@@ -199,59 +169,6 @@ export default function FeedPage() {
   useEffect(() => {
     loadFeed({ reset: true });
   }, [loadFeed]);
-
-  useEffect(() => {
-    const incomingTarget = location.state?.notificationTarget;
-    if (!incomingTarget?.tripId || !incomingTarget?.nonce) {
-      return;
-    }
-
-    let ignore = false;
-
-    async function consumeNotificationTarget() {
-      let didHydrateTargetTrip = false;
-
-      try {
-        const res = await tripApi.getDetail(incomingTarget.tripId);
-        const nextTrip = normalizeTripDetailForFeed(res.data);
-
-        if (!ignore && nextTrip?._id) {
-          cacheHydratedTrip(nextTrip);
-          setFeedItems((prev) => mergeFeedItems(prev, [nextTrip]));
-          didHydrateTargetTrip = true;
-        }
-      } catch {
-        // De feed tu xu ly unavailable neu can.
-      }
-
-      if (!ignore) {
-        setNotificationTarget({
-          ...incomingTarget,
-          hydrated: didHydrateTargetTrip,
-        });
-      }
-
-      const nextState = { ...(location.state || {}) };
-      delete nextState.notificationTarget;
-
-      navigate(location.pathname, {
-        replace: true,
-        state: Object.keys(nextState).length ? nextState : null,
-      });
-    }
-
-    consumeNotificationTarget();
-
-    return () => {
-      ignore = true;
-    };
-  }, [
-    cacheHydratedTrip,
-    feedItems,
-    location.pathname,
-    location.state,
-    navigate,
-  ]);
 
   useEffect(() => {
     setPreviewUser((prev) => {
@@ -397,8 +314,6 @@ export default function FeedPage() {
             onTripTrashed={handleTripTrashed}
             onTripUpdated={handleTripUpdated}
             onTripHidden={handleTripHidden}
-            activeNotificationTarget={notificationTarget}
-            onClearNotificationTarget={() => setNotificationTarget(null)}
           />
 
           <RightSidebar />
