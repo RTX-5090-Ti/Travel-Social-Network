@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { io } from "socket.io-client";
 import { notificationApi } from "../api/notification.api";
 import { useAuth } from "../auth/useAuth";
+import { useSocket } from "../socket/useSocket";
 import { NotificationContext } from "./notification-context";
-
-const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export function NotificationProvider({ children }) {
   const { user, bootstrapping } = useAuth();
+  const { socket } = useSocket();
 
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -19,7 +18,6 @@ export function NotificationProvider({ children }) {
   const initializedRef = useRef(false);
   const seenIdsRef = useRef(new Set());
   const requestIdRef = useRef(0);
-  const socketRef = useRef(null);
   const loadMoreRequestIdRef = useRef(0);
 
   const resetNotifications = useCallback(() => {
@@ -347,22 +345,11 @@ export function NotificationProvider({ children }) {
   }, [bootstrapping, refreshNotifications, resetNotifications, user?.id]);
 
   useEffect(() => {
-    if (bootstrapping || !user?.id) {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
+    if (bootstrapping || !user?.id || !socket) {
       return undefined;
     }
 
-    const socket = io(SOCKET_URL, {
-      withCredentials: true,
-      transports: ["websocket", "polling"],
-    });
-
-    socketRef.current = socket;
-
-    socket.on("notification:new", (payload) => {
+    const handleNotificationNew = (payload) => {
       const notification = payload?.notification;
       const notificationId = notification?._id || notification?.id;
 
@@ -389,23 +376,20 @@ export function NotificationProvider({ children }) {
       } else {
         setUnreadCount((prev) => prev + 1);
       }
-    });
+    };
 
-    socket.on("connect", () => {
+    const handleConnect = () => {
       refreshNotifications({ silent: true });
-    });
+    };
 
-    socket.on("connect_error", () => {
-      // Giu refresh khi focus lam fallback nhe.
-    });
+    socket.on("notification:new", handleNotificationNew);
+    socket.on("connect", handleConnect);
 
     return () => {
-      socket.disconnect();
-      if (socketRef.current === socket) {
-        socketRef.current = null;
-      }
+      socket.off("notification:new", handleNotificationNew);
+      socket.off("connect", handleConnect);
     };
-  }, [bootstrapping, refreshNotifications, user?.id]);
+  }, [bootstrapping, refreshNotifications, socket, user?.id]);
 
   const value = useMemo(
     () => ({

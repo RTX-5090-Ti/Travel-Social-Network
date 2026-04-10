@@ -1,8 +1,17 @@
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 
 import { SendIcon } from "../feed.icons";
 import { formatFeedTime, getInitials } from "../feed.utils";
+import CommentComposerActionButton from "./CommentComposerActionButton";
 import CommentComposerAvatar from "./CommentComposerAvatar";
+import LazyEmojiPicker from "../../../shared/LazyEmojiPicker";
+import LazyGiphyGrid from "../../../shared/LazyGiphyGrid";
+import {
+  CommentCameraIcon,
+  CommentSmileIcon,
+  CommentStickerIcon,
+} from "./CommentComposerIcons";
 
 const REPLIES_PAGE_SIZE = 10;
 
@@ -234,6 +243,46 @@ function CommentBubble({
               ) : null}
               {content}
             </p>
+
+            {comment?.image?.url ? (
+              comment?.image?.mediaType === "gif" ? (
+                <div
+                  className={`overflow-hidden rounded-[14px] border border-zinc-200/80 ${
+                    content ? "mt-2.5" : "mt-1.5"
+                  }`}
+                >
+                  <img
+                    src={comment.image.url}
+                    alt="Comment GIF"
+                    className="h-[170px] w-[170px] object-cover"
+                  />
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() =>
+                    onOpenMedia?.(
+                      [
+                        {
+                          type: "image",
+                          url: comment.image.url,
+                        },
+                      ],
+                      0,
+                    )
+                  }
+                  className={`block cursor-pointer overflow-hidden rounded-[14px] border border-zinc-200/80 ${
+                    content ? "mt-2.5" : "mt-1.5"
+                  }`}
+                >
+                  <img
+                    src={comment.image.url}
+                    alt="Comment attachment"
+                    className="h-[170px] w-[170px] object-cover transition hover:scale-[1.02]"
+                  />
+                </button>
+              )
+            ) : null}
           </div>
 
           {isOwnComment ? (
@@ -384,6 +433,11 @@ function CommentThread({
   replyText = "",
   replySubmitting = false,
   replyTargetName = "",
+  replyImageDraft = null,
+  replyGifDraft = null,
+  replyEmojiPickerOpen = false,
+  replyGifPickerOpen = false,
+  replyGifQuery = "",
   currentUserId = "",
   currentUserAvatar = "",
   currentUserInitials = "Y",
@@ -401,9 +455,25 @@ function CommentThread({
   editSubmitting = false,
   onReplyTextChange,
   onReplySubmit,
+  onReplyTextSelect,
   onEditTextChange,
   onEditCancel,
   onEditSubmit,
+  onOpenMedia,
+  onReplyPickImage,
+  onReplyImageChange,
+  onReplyImageRemove,
+  onReplyGifRemove,
+  onReplyToggleEmojiPicker,
+  onReplyEmojiSelect,
+  onReplyToggleGifPicker,
+  onReplyGifQueryChange,
+  onReplyFetchGifs,
+  onReplySelectGif,
+  replyTextareaRef,
+  replyImageInputRef,
+  replyEmojiPickerRef,
+  replyGifPickerRef,
 }) {
   const rawReplies = Array.isArray(comment?.replies) ? comment.replies : [];
   const commentId = getCommentId(comment);
@@ -473,6 +543,13 @@ function CommentThread({
 
           {replyingHere ? (
             <form onSubmit={onReplySubmit} className="mt-3 mb-4">
+              <input
+                ref={replyImageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={onReplyImageChange}
+                className="hidden"
+              />
               <div className="relative">
                 <span className="absolute left-[-24px] top-5 h-px w-5 rounded-full bg-gradient-to-r from-violet-300 to-fuchsia-300" />
                 <div className="flex items-end gap-3">
@@ -483,11 +560,47 @@ function CommentThread({
                   />
 
                   <div className="min-w-0 flex-1 rounded-[21px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.95),rgba(250,247,255,0.96))] px-3 py-1.5 shadow-[0_8px_18px_rgba(99,102,241,0.08)] ring-1 ring-zinc-200/70">
-                    <textarea
-                      value={replyText}
-                      onChange={(event) =>
-                        onReplyTextChange?.(event.target.value)
-                      }
+                    {(replyImageDraft?.previewUrl || replyGifDraft?.previewUrl) ? (
+                      <div className="mb-2 rounded-[16px] border border-zinc-200/80 bg-white/90 p-2 shadow-[0_8px_18px_rgba(15,23,42,0.05)]">
+                        <div className="relative inline-flex overflow-hidden rounded-[12px] border border-zinc-200/80 bg-zinc-50">
+                          <img
+                            src={replyImageDraft?.previewUrl || replyGifDraft?.previewUrl}
+                            alt="Reply media preview"
+                            className="h-[84px] w-[84px] object-cover"
+                          />
+                          <button
+                            type="button"
+                            aria-label="Remove reply media"
+                            onClick={() => {
+                              if (replyImageDraft?.previewUrl) {
+                                onReplyImageRemove?.();
+                              } else {
+                                onReplyGifRemove?.();
+                              }
+                            }}
+                            disabled={replySubmitting}
+                            className={`absolute right-1.5 top-1.5 inline-flex h-5.5 w-5.5 items-center justify-center rounded-full bg-zinc-950/72 text-white shadow-[0_8px_18px_rgba(15,23,42,0.18)] transition ${
+                              replySubmitting
+                                ? "cursor-not-allowed opacity-60"
+                                : "cursor-pointer hover:scale-105 hover:bg-zinc-950/84"
+                            }`}
+                          >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-3 w-3">
+                              <path d="M18 6 6 18M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+
+                      <textarea
+                        ref={replyTextareaRef}
+                        value={replyText}
+                        onChange={(event) => {
+                          onReplyTextChange?.(event.target.value);
+                          onReplyTextSelect?.(event);
+                        }}
+                        onSelect={onReplyTextSelect}
                       rows={1}
                       placeholder={
                         replyTargetName
@@ -496,6 +609,109 @@ function CommentThread({
                       }
                       className="min-h-[28px] w-full resize-none overflow-y-hidden border-0 bg-transparent text-[12px] leading-5 text-zinc-700 outline-none placeholder:text-zinc-400"
                     />
+
+                    <div className="mb-1.5 mt-1 flex flex-wrap items-center gap-1.5">
+                      <div className="relative">
+                        <CommentComposerActionButton
+                          ariaLabel="Reply emoji"
+                          onClick={onReplyToggleEmojiPicker}
+                          className={
+                            replyEmojiPickerOpen
+                              ? "bg-[linear-gradient(135deg,rgba(102,126,234,0.16),rgba(118,75,162,0.18))] text-violet-600 shadow-[0_10px_22px_rgba(102,126,234,0.12)]"
+                              : ""
+                          }
+                        >
+                          <CommentSmileIcon className="h-[19px] w-[19px]" />
+                        </CommentComposerActionButton>
+
+                        <AnimatePresence>
+                          {replyEmojiPickerOpen ? (
+                            <motion.div
+                              ref={replyEmojiPickerRef}
+                              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                              transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                              className="absolute bottom-[calc(100%+8px)] left-0 z-20 overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80"
+                            >
+                              <LazyEmojiPicker
+                                onEmojiClick={onReplyEmojiSelect}
+                                lazyLoadEmojis
+                                previewConfig={{ showPreview: false }}
+                                searchDisabled={false}
+                                skinTonesDisabled
+                                width={300}
+                                height={360}
+                                fallbackWidth={300}
+                                fallbackHeight={360}
+                              />
+                            </motion.div>
+                          ) : null}
+                        </AnimatePresence>
+                      </div>
+
+                      <CommentComposerActionButton ariaLabel="Reply camera" onClick={onReplyPickImage}>
+                        <CommentCameraIcon className="h-[19px] w-[19px]" />
+                      </CommentComposerActionButton>
+
+                      <div className="relative">
+                        <CommentComposerActionButton
+                          ariaLabel="Reply GIF"
+                          onClick={onReplyToggleGifPicker}
+                          className={
+                            replyGifPickerOpen
+                              ? "bg-[linear-gradient(135deg,rgba(102,126,234,0.16),rgba(118,75,162,0.18))] text-violet-600 shadow-[0_10px_22px_rgba(102,126,234,0.12)]"
+                              : ""
+                          }
+                        >
+                          <span className="text-[11px] font-bold tracking-[0.08em]">GIF</span>
+                        </CommentComposerActionButton>
+
+                        <AnimatePresence>
+                          {replyGifPickerOpen ? (
+                            <motion.div
+                              ref={replyGifPickerRef}
+                              initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                              animate={{ opacity: 1, y: 0, scale: 1 }}
+                              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                              transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                              className="absolute bottom-[calc(100%+8px)] left-0 z-20 overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80"
+                            >
+                              <div className="border-b border-zinc-200/70 px-3 py-3">
+                                <input
+                                  type="text"
+                                  value={replyGifQuery}
+                                  onChange={(event) => onReplyGifQueryChange?.(event.target.value)}
+                                  placeholder="Tìm GIF trên Giphy..."
+                                  className="w-full rounded-[14px] border border-zinc-200/80 bg-white px-3 py-2 text-[13px] text-zinc-700 outline-none placeholder:text-zinc-400"
+                                />
+                              </div>
+                              <div className="h-[300px] w-[300px] overflow-y-auto px-2 py-2">
+                                <LazyGiphyGrid
+                                  width={276}
+                                  columns={2}
+                                  gutter={8}
+                                  fetchGifs={onReplyFetchGifs}
+                                  key={replyGifQuery.trim() || `reply-trending-${commentId}`}
+                                  onGifClick={(gif, event) => {
+                                    event.preventDefault();
+                                    onReplySelectGif?.(gif);
+                                  }}
+                                  noLink
+                                  hideAttribution
+                                  fallbackWidth={276}
+                                  fallbackHeight={300}
+                                />
+                              </div>
+                            </motion.div>
+                          ) : null}
+                        </AnimatePresence>
+                      </div>
+
+                      <CommentComposerActionButton ariaLabel="Reply sticker">
+                        <CommentStickerIcon className="h-[19px] w-[19px]" />
+                      </CommentComposerActionButton>
+                    </div>
 
                     <div className="mt-1 flex items-center justify-between gap-3">
                       <button
@@ -508,9 +724,16 @@ function CommentThread({
 
                       <button
                         type="submit"
-                        disabled={!replyText.trim() || replySubmitting}
+                        disabled={
+                          (!replyText.trim() &&
+                            !replyImageDraft?.previewUrl &&
+                            !replyGifDraft?.previewUrl) ||
+                          replySubmitting
+                        }
                         className={`inline-flex h-8.5 w-8.5 items-center justify-center rounded-full transition ${
-                          replyText.trim()
+                          replyText.trim() ||
+                          replyImageDraft?.previewUrl ||
+                          replyGifDraft?.previewUrl
                             ? "cursor-pointer bg-[linear-gradient(135deg,#667eea_0%,#8b5cf6_48%,#7c3aed_100%)] text-white shadow-[0_12px_24px_rgba(124,58,237,0.22)] hover:-translate-y-0.5"
                             : "cursor-not-allowed bg-white/80 text-zinc-300 ring-1 ring-zinc-200/80"
                         }`}
@@ -563,6 +786,11 @@ function CommentThread({
                       replyText={replyText}
                       replySubmitting={replySubmitting}
                       replyTargetName={replyTargetName}
+                      replyImageDraft={replyImageDraft}
+                      replyGifDraft={replyGifDraft}
+                      replyEmojiPickerOpen={replyEmojiPickerOpen}
+                      replyGifPickerOpen={replyGifPickerOpen}
+                      replyGifQuery={replyGifQuery}
                       currentUserId={currentUserId}
                       currentUserAvatar={currentUserAvatar}
                       currentUserInitials={currentUserInitials}
@@ -580,9 +808,25 @@ function CommentThread({
                       editSubmitting={editSubmitting}
                       onReplyTextChange={onReplyTextChange}
                       onReplySubmit={onReplySubmit}
+                      onReplyTextSelect={onReplyTextSelect}
                       onEditTextChange={onEditTextChange}
                       onEditCancel={onEditCancel}
                       onEditSubmit={onEditSubmit}
+                      onOpenMedia={onOpenMedia}
+                      onReplyPickImage={onReplyPickImage}
+                      onReplyImageChange={onReplyImageChange}
+                      onReplyImageRemove={onReplyImageRemove}
+                      onReplyGifRemove={onReplyGifRemove}
+                      onReplyToggleEmojiPicker={onReplyToggleEmojiPicker}
+                      onReplyEmojiSelect={onReplyEmojiSelect}
+                      onReplyToggleGifPicker={onReplyToggleGifPicker}
+                      onReplyGifQueryChange={onReplyGifQueryChange}
+                      onReplyFetchGifs={onReplyFetchGifs}
+                      onReplySelectGif={onReplySelectGif}
+                      replyTextareaRef={replyTextareaRef}
+                      replyImageInputRef={replyImageInputRef}
+                      replyEmojiPickerRef={replyEmojiPickerRef}
+                      replyGifPickerRef={replyGifPickerRef}
                     />
                   ))}
 

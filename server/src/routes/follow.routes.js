@@ -1,5 +1,12 @@
 import { Router } from "express";
 import { requireAuth } from "../middlewares/requireAuth.js";
+import { validate } from "../middlewares/validate.js";
+import {
+  followUserParamsSchema,
+  listMutualFollowsSchema,
+  listOwnFollowUsersSchema,
+  listUserFollowUsersSchema,
+} from "../validations/follow.validation.js";
 import {
   followUser,
   unfollowUser,
@@ -15,16 +22,51 @@ import {
 const router = Router();
 
 router.get("/summary", requireAuth, getFollowSummary);
-router.get("/mutuals", requireAuth, listMutualFollows);
+router.get(
+  "/mutuals",
+  requireAuth,
+  validate(listMutualFollowsSchema),
+  listMutualFollows,
+);
 
-router.get("/followers", requireAuth, listFollowers);
-router.get("/following", requireAuth, listFollowing);
+router.get(
+  "/followers",
+  requireAuth,
+  validate(listOwnFollowUsersSchema),
+  listFollowers,
+);
+router.get(
+  "/following",
+  requireAuth,
+  validate(listOwnFollowUsersSchema),
+  listFollowing,
+);
 
-router.get("/users/:userId/followers", requireAuth, listFollowersByUserId);
-router.get("/users/:userId/following", requireAuth, listFollowingByUserId);
+router.get(
+  "/users/:userId/followers",
+  requireAuth,
+  validate(listUserFollowUsersSchema),
+  listFollowersByUserId,
+);
+router.get(
+  "/users/:userId/following",
+  requireAuth,
+  validate(listUserFollowUsersSchema),
+  listFollowingByUserId,
+);
 
-router.post("/:userId", requireAuth, followUser);
-router.delete("/:userId", requireAuth, unfollowUser);
-router.get("/:userId/status", requireAuth, getFollowStatus);
+router.post("/:userId", requireAuth, validate(followUserParamsSchema), followUser);
+router.delete(
+  "/:userId",
+  requireAuth,
+  validate(followUserParamsSchema),
+  unfollowUser,
+);
+router.get(
+  "/:userId/status",
+  requireAuth,
+  validate(followUserParamsSchema),
+  getFollowStatus,
+);
 
 export default router;

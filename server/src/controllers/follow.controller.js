@@ -1,385 +1,167 @@
-import mongoose from "mongoose";
+import * as followService from "../services/follow.service.js";
 
-import Follow from "../models/Follow.js";
-import User from "../models/User.js";
-import { createNotification } from "../services/notification.service.js";
-
-function mapUserItem(user, extra = {}) {
-  return {
-    _id: user?._id,
-    name: user?.name || "Traveler",
-    avatarUrl: user?.avatarUrl || "",
-    lastSeenAt: user?.lastSeenAt || null,
-    ...extra,
-  };
-}
-
-function parseLimit(query, fallback = 8, max = 24) {
-  const limitRaw = Number(query.limit ?? fallback);
-  return Number.isFinite(limitRaw)
-    ? Math.min(Math.max(limitRaw, 1), max)
-    : fallback;
-}
-
-function parsePagination(query) {
-  const pageRaw = Number(query.page ?? 1);
-  const limitRaw = Number(query.limit ?? 12);
-
-  const page = Number.isFinite(pageRaw) ? Math.max(pageRaw, 1) : 1;
-  const limit = Number.isFinite(limitRaw)
-    ? Math.min(Math.max(limitRaw, 1), 50)
-    : 12;
-
-  return {
-    page,
-    limit,
-    skip: (page - 1) * limit,
-  };
-}
-
-async function ensureUserExists(userId) {
-  const exists = await User.exists({ _id: userId, isActive: { $ne: false } });
-  return !!exists;
-}
-
-async function countActiveFollowUsers({ matchField, targetUserId, joinField }) {
-  const results = await Follow.aggregate([
-    {
-      $match: {
-        [matchField]: new mongoose.Types.ObjectId(targetUserId),
-      },
-    },
-    {
-      $lookup: {
-        from: "users",
-        localField: joinField,
-        foreignField: "_id",
-        as: "relatedUser",
-      },
-    },
-    { $unwind: "$relatedUser" },
-    { $match: { "relatedUser.isActive": { $ne: false } } },
-    { $count: "total" },
-  ]);
-
-  return results[0]?.total || 0;
-}
-
-async function validateTargetUser(userId, res) {
-  if (!mongoose.isValidObjectId(userId)) {
-    res.status(400).json({ message: "Invalid userId" });
-    return false;
+function handleServiceError(res, err) {
+  if (err?.status) {
+    return res.status(err.status).json({ message: err.message });
   }
 
-  const exists = await ensureUserExists(userId);
-  if (!exists) {
-    res.status(404).json({ message: "User not found" });
-    return false;
-  }
-
-  return true;
-}
-
-async function listFollowUsers({
-  targetUserId,
-  viewerId,
-  mode,
-  page = 1,
-  limit = 12,
-}) {
-  const isFollowersMode = mode === "followers";
-
-  const baseFilter = isFollowersMode
-    ? { followingId: targetUserId }
-    : { followerId: targetUserId };
-
-  const populatePath = isFollowersMode ? "followerId" : "followingId";
-
-  const [docs, total] = await Promise.all([
-    Follow.find(baseFilter)
-      .populate(populatePath, "_id name avatarUrl isActive")
-      .sort({ createdAt: -1, _id: -1 })
-      .skip((page - 1) * limit)
-      .limit(limit)
-      .lean(),
-    countActiveFollowUsers({
-      matchField: isFollowersMode ? "followingId" : "followerId",
-      targetUserId,
-      joinField: isFollowersMode ? "followerId" : "followingId",
-    }),
-  ]);
-
-  const users = docs
-    .map((doc) => doc?.[populatePath])
-    .filter(Boolean)
-    .filter((user) => user?.isActive !== false)
-    .filter((user) => user?._id?.toString() !== targetUserId);
-
-  const relatedUserIds = users.map((user) => user._id);
-
-  const myFollowDocs =
-    viewerId && relatedUserIds.length
-      ? await Follow.find({
-          followerId: viewerId,
-          followingId: { $in: relatedUserIds },
-        })
-          .select("followingId")
-          .lean()
-      : [];
-
-  const followedSet = new Set(
-    myFollowDocs.map((item) => item.followingId.toString()),
-  );
-
-  const items = users.map((user) =>
-    mapUserItem(user, {
-      id: user?._id,
-      followedByMe:
-        viewerId && user?._id?.toString() !== viewerId
-          ? followedSet.has(user._id.toString())
-          : false,
-    }),
-  );
-
-  return {
-    items,
-    meta: {
-      page,
-      limit,
-      total,
-      totalPages: Math.max(1, Math.ceil(total / limit)),
-      hasMore: page * limit < total,
-    },
-  };
+  throw err;
 }
 
 export async function followUser(req, res, next) {
   try {
-    const followerId = req.user.userId;
-    const followingId = req.params.userId;
-
-    const isValidTarget = await validateTargetUser(followingId, res);
-    if (!isValidTarget) return;
-
-    if (followerId === followingId) {
-      return res.status(400).json({ message: "Cannot follow yourself" });
-    }
-
-    await Follow.create({ followerId, followingId });
-    await createNotification({
-      recipientUserId: followingId,
-      actorUserId: followerId,
-      type: "follow",
+    const payload = await followService.followUser({
+      followerId: req.user.userId,
+      followingId: req.validated?.params?.userId || req.params.userId,
     });
 
-    res.status(201).json({ followed: true });
+    res.status(201).json(payload);
   } catch (err) {
-    if (err?.code === 11000) {
-      return res.status(200).json({ followed: true });
+    try {
+      handleServiceError(res, err);
+    } catch (error) {
+      next(error);
     }
-    next(err);
   }
 }
 
 export async function unfollowUser(req, res, next) {
   try {
-    const followerId = req.user.userId;
-    const followingId = req.params.userId;
+    const payload = await followService.unfollowUser({
+      followerId: req.user.userId,
+      followingId: req.validated?.params?.userId || req.params.userId,
+    });
 
-    const isValidTarget = await validateTargetUser(followingId, res);
-    if (!isValidTarget) return;
-
-    if (followerId === followingId) {
-      return res.status(400).json({ message: "Cannot unfollow yourself" });
-    }
-
-    await Follow.deleteOne({ followerId, followingId });
-
-    res.json({ followed: false });
+    res.json(payload);
   } catch (err) {
-    next(err);
+    try {
+      handleServiceError(res, err);
+    } catch (error) {
+      next(error);
+    }
   }
 }
 
 export async function getFollowStatus(req, res, next) {
   try {
-    const followerId = req.user.userId;
-    const followingId = req.params.userId;
+    const payload = await followService.getFollowStatus({
+      followerId: req.user.userId,
+      followingId: req.validated?.params?.userId || req.params.userId,
+    });
 
-    const isValidTarget = await validateTargetUser(followingId, res);
-    if (!isValidTarget) return;
-
-    const doc = await Follow.findOne({ followerId, followingId })
-      .select("_id")
-      .lean();
-
-    res.json({ followed: !!doc });
+    res.json(payload);
   } catch (err) {
-    next(err);
+    try {
+      handleServiceError(res, err);
+    } catch (error) {
+      next(error);
+    }
   }
 }
 
 export async function getFollowSummary(req, res, next) {
   try {
-    const userId = req.user.userId;
-
-    const [followersCount, followingCount] = await Promise.all([
-      countActiveFollowUsers({
-        matchField: "followingId",
-        targetUserId: userId,
-        joinField: "followerId",
-      }),
-      countActiveFollowUsers({
-        matchField: "followerId",
-        targetUserId: userId,
-        joinField: "followingId",
-      }),
-    ]);
-
-    res.json({
-      followersCount,
-      followingCount,
+    const payload = await followService.getFollowSummary({
+      userId: req.user.userId,
     });
+
+    res.json(payload);
   } catch (err) {
-    next(err);
+    try {
+      handleServiceError(res, err);
+    } catch (error) {
+      next(error);
+    }
   }
 }
 
 export async function listMutualFollows(req, res, next) {
   try {
-    const userId = req.user.userId;
-    const limit = parseLimit(req.query, 10, 200);
-
-    const followingDocs = await Follow.find({ followerId: userId })
-      .select("followingId")
-      .lean();
-
-    const followingIds = followingDocs
-      .map((item) => item?.followingId?.toString?.())
-      .filter(Boolean);
-
-    if (!followingIds.length) {
-      return res.json({
-        items: [],
-        meta: {
-          limit,
-          total: 0,
-        },
-      });
-    }
-
-    const mutualDocs = await Follow.find({
-      followingId: userId,
-      followerId: { $in: followingIds },
-    })
-      .populate("followerId", "_id name email avatarUrl isActive lastSeenAt")
-      .sort({ createdAt: -1, _id: -1 })
-      .limit(limit)
-      .lean();
-
-    const items = mutualDocs
-      .map((doc) => doc?.followerId)
-      .filter(Boolean)
-      .filter((item) => item?.isActive !== false)
-      .map((item) =>
-        mapUserItem(item, {
-          id: item?._id,
-          email: item?.email || "",
-        }),
-      );
-
-    return res.json({
-      items,
-      meta: {
-        limit,
-        total: items.length,
-      },
+    const payload = await followService.listMutualFollows({
+      userId: req.user.userId,
+      limit: req.validated?.query?.limit ?? 10,
     });
+
+    res.json(payload);
   } catch (err) {
-    next(err);
+    try {
+      handleServiceError(res, err);
+    } catch (error) {
+      next(error);
+    }
   }
 }
 
 export async function listFollowers(req, res, next) {
   try {
-    const currentUserId = req.user.userId;
-    const { page, limit } = parsePagination(req.query);
-
-    const result = await listFollowUsers({
-      targetUserId: currentUserId,
-      viewerId: currentUserId,
-      mode: "followers",
-      page,
-      limit,
+    const payload = await followService.listFollowers({
+      currentUserId: req.user.userId,
+      page: req.validated?.query?.page ?? 1,
+      limit: req.validated?.query?.limit ?? 12,
     });
 
-    res.json(result);
+    res.json(payload);
   } catch (err) {
-    next(err);
+    try {
+      handleServiceError(res, err);
+    } catch (error) {
+      next(error);
+    }
   }
 }
 
 export async function listFollowing(req, res, next) {
   try {
-    const currentUserId = req.user.userId;
-    const { page, limit } = parsePagination(req.query);
-
-    const result = await listFollowUsers({
-      targetUserId: currentUserId,
-      viewerId: currentUserId,
-      mode: "following",
-      page,
-      limit,
+    const payload = await followService.listFollowing({
+      currentUserId: req.user.userId,
+      page: req.validated?.query?.page ?? 1,
+      limit: req.validated?.query?.limit ?? 12,
     });
 
-    res.json(result);
+    res.json(payload);
   } catch (err) {
-    next(err);
+    try {
+      handleServiceError(res, err);
+    } catch (error) {
+      next(error);
+    }
   }
 }
 
 export async function listFollowersByUserId(req, res, next) {
   try {
-    const viewerId = req.user.userId;
-    const targetUserId = req.params.userId;
-    const { page, limit } = parsePagination(req.query);
-
-    const isValidTarget = await validateTargetUser(targetUserId, res);
-    if (!isValidTarget) return;
-
-    const result = await listFollowUsers({
-      targetUserId,
-      viewerId,
-      mode: "followers",
-      page,
-      limit,
+    const payload = await followService.listFollowersByUserId({
+      viewerId: req.user.userId,
+      targetUserId: req.validated?.params?.userId || req.params.userId,
+      page: req.validated?.query?.page ?? 1,
+      limit: req.validated?.query?.limit ?? 12,
     });
 
-    res.json(result);
+    res.json(payload);
   } catch (err) {
-    next(err);
+    try {
+      handleServiceError(res, err);
+    } catch (error) {
+      next(error);
+    }
   }
 }
 
 export async function listFollowingByUserId(req, res, next) {
   try {
-    const viewerId = req.user.userId;
-    const targetUserId = req.params.userId;
-    const { page, limit } = parsePagination(req.query);
-
-    const isValidTarget = await validateTargetUser(targetUserId, res);
-    if (!isValidTarget) return;
-
-    const result = await listFollowUsers({
-      targetUserId,
-      viewerId,
-      mode: "following",
-      page,
-      limit,
+    const payload = await followService.listFollowingByUserId({
+      viewerId: req.user.userId,
+      targetUserId: req.validated?.params?.userId || req.params.userId,
+      page: req.validated?.query?.page ?? 1,
+      limit: req.validated?.query?.limit ?? 12,
     });
 
-    res.json(result);
+    res.json(payload);
   } catch (err) {
-    next(err);
+    try {
+      handleServiceError(res, err);
+    } catch (error) {
+      next(error);
+    }
   }
 }

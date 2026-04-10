@@ -1,11 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { io } from "socket.io-client";
 
 import { chatApi } from "../api/chat.api";
 import { useAuth } from "../auth/useAuth";
+import { useSocket } from "../socket/useSocket";
 import { ChatContext } from "./chat-context";
-
-const SOCKET_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 function getConversationId(conversation) {
   return conversation?._id || conversation?.id || "";
@@ -120,6 +118,7 @@ function applyReadReceiptToMessages(existing, payload) {
 
 export function ChatProvider({ children }) {
   const { user, bootstrapping } = useAuth();
+  const { socket } = useSocket();
 
   const [conversations, setConversations] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -134,7 +133,6 @@ export function ChatProvider({ children }) {
   const [onlineUserIds, setOnlineUserIds] = useState([]);
   const [presenceByUserId, setPresenceByUserId] = useState({});
 
-  const socketRef = useRef(null);
   const openConversationRequestRef = useRef(0);
   const loadedMessagesRef = useRef(new Set());
   const markingReadRef = useRef(new Set());
@@ -630,22 +628,11 @@ export function ChatProvider({ children }) {
   }, [bootstrapping, refreshConversations, resetChat, user?.id]);
 
   useEffect(() => {
-    if (bootstrapping || !user?.id) {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
+    if (bootstrapping || !user?.id || !socket) {
       return undefined;
     }
 
-    const socket = io(SOCKET_URL, {
-      withCredentials: true,
-      transports: ["websocket", "polling"],
-    });
-
-    socketRef.current = socket;
-
-    socket.on("chat:conversation:update", async (payload) => {
+    const handleConversationUpdate = async (payload) => {
       const conversation = payload?.conversation;
       const message = payload?.message;
       const conversationId = getConversationId(conversation);
@@ -682,9 +669,9 @@ export function ChatProvider({ children }) {
       ) {
         await markConversationRead(conversationId, { force: true });
       }
-    });
+    };
 
-    socket.on("chat:messages:read", (payload) => {
+    const handleMessagesRead = (payload) => {
       const conversationId = payload?.conversationId || "";
       if (!conversationId) return;
 
@@ -695,9 +682,9 @@ export function ChatProvider({ children }) {
           payload,
         ),
       }));
-    });
+    };
 
-    socket.on("presence:snapshot", (payload) => {
+    const handlePresenceSnapshot = (payload) => {
       const nextOnlineUserIds = Array.isArray(payload?.onlineUserIds)
         ? payload.onlineUserIds.filter(Boolean)
         : [];
@@ -716,9 +703,9 @@ export function ChatProvider({ children }) {
 
         return next;
       });
-    });
+    };
 
-    socket.on("presence:update", (payload) => {
+    const handlePresenceUpdate = (payload) => {
       const targetUserId = payload?.userId || "";
       if (!targetUserId) return;
 
@@ -741,22 +728,30 @@ export function ChatProvider({ children }) {
             payload?.lastSeenAt || prev[targetUserId]?.lastSeenAt || null,
         },
       }));
-    });
+    };
 
-    socket.on("connect", () => {
+    const handleConnect = () => {
       refreshConversations();
-    });
+    };
+
+    socket.on("chat:conversation:update", handleConversationUpdate);
+    socket.on("chat:messages:read", handleMessagesRead);
+    socket.on("presence:snapshot", handlePresenceSnapshot);
+    socket.on("presence:update", handlePresenceUpdate);
+    socket.on("connect", handleConnect);
 
     return () => {
-      socket.disconnect();
-      if (socketRef.current === socket) {
-        socketRef.current = null;
-      }
+      socket.off("chat:conversation:update", handleConversationUpdate);
+      socket.off("chat:messages:read", handleMessagesRead);
+      socket.off("presence:snapshot", handlePresenceSnapshot);
+      socket.off("presence:update", handlePresenceUpdate);
+      socket.off("connect", handleConnect);
     };
   }, [
     bootstrapping,
     markConversationRead,
     refreshConversations,
+    socket,
     user?.id,
   ]);
 

@@ -34,7 +34,32 @@ const CommentSchema = new mongoose.Schema(
       reactions: { type: Number, default: 0 },
     },
 
-    content: { type: String, required: true, trim: true, maxlength: 1000 },
+    content: { type: String, default: "", trim: true, maxlength: 1000 },
+    image: {
+      url: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      publicId: {
+        type: String,
+        default: "",
+        trim: true,
+      },
+      width: {
+        type: Number,
+        default: null,
+      },
+      height: {
+        type: Number,
+        default: null,
+      },
+      mediaType: {
+        type: String,
+        enum: ["image", "gif"],
+        default: "image",
+      },
+    },
   },
   { timestamps: true },
 );
@@ -46,6 +71,19 @@ CommentSchema.index({
   parentCommentId: 1,
   createdAt: -1,
   _id: -1,
+});
+
+CommentSchema.pre("validate", function ensureCommentContent() {
+  const hasContent =
+    typeof this.content === "string" && this.content.trim().length > 0;
+  const hasImage =
+    this.image &&
+    typeof this.image.url === "string" &&
+    this.image.url.trim().length > 0;
+
+  if (!hasContent && !hasImage) {
+    this.invalidate("content", "Comment must contain text or media.");
+  }
 });
 
 export default mongoose.model("Comment", CommentSchema);

@@ -1,747 +1,157 @@
-import mongoose from "mongoose";
-import { unlink } from "fs/promises";
+import * as chatService from "../services/chat.service.js";
 
-import Conversation from "../models/Conversation.js";
-import Message from "../models/Message.js";
-import User from "../models/User.js";
-import { cloudinary } from "../config/cloudinary.js";
-import { emitToUser } from "../socket/index.js";
-
-function toIdString(value) {
-  if (!value) return "";
-  if (typeof value === "string") return value;
-  return value?.toString?.() || "";
-}
-
-function buildParticipantKey(userA, userB) {
-  return [toIdString(userA), toIdString(userB)].sort().join(":");
-}
-
-function mapUserSummary(user) {
-  return {
-    _id: user?._id,
-    id: user?._id,
-    name: user?.name || "Traveler",
-    email: user?.email || "",
-    avatarUrl: user?.avatarUrl || "",
-    lastSeenAt: user?.lastSeenAt || null,
-  };
-}
-
-function getConversationUnreadCount(conversation, userId) {
-  const unreadCounts = conversation?.unreadCounts || {};
-  const rawValue = unreadCounts?.[userId];
-  const parsed = Number(rawValue || 0);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function getConversationClearedAt(conversation, userId) {
-  const clearedAtByUser = conversation?.clearedAtByUser || {};
-  const rawValue = clearedAtByUser?.[userId];
-  if (!rawValue) return null;
-
-  const date = new Date(rawValue);
-  return Number.isNaN(date.getTime()) ? null : date;
-}
-
-function isConversationVisibleForUser(conversation, userId) {
-  const clearedAt = getConversationClearedAt(conversation, userId);
-  if (!clearedAt) return true;
-
-  const lastMessageAt = conversation?.lastMessageAt
-    ? new Date(conversation.lastMessageAt)
-    : null;
-
-  if (!lastMessageAt || Number.isNaN(lastMessageAt.getTime())) {
-    return false;
+function resolveErrorResponse(res, err) {
+  if (err?.status) {
+    return res.status(err.status).json({ message: err.message });
   }
 
-  return lastMessageAt.getTime() > clearedAt.getTime();
-}
-
-function mapConversationSummary(conversation, viewerId) {
-  const participants = Array.isArray(conversation?.participants)
-    ? conversation.participants
-    : [];
-
-  const otherUser =
-    participants.find((item) => toIdString(item?._id || item) !== viewerId) ||
-    participants[0] ||
-    null;
-
-  return {
-    _id: conversation?._id,
-    id: conversation?._id,
-    participant: mapUserSummary(otherUser),
-    lastMessageText: conversation?.lastMessageText || "",
-    lastMessageAt: conversation?.lastMessageAt || conversation?.updatedAt,
-    lastMessageSenderId: toIdString(
-      conversation?.lastMessageSenderId?._id || conversation?.lastMessageSenderId,
-    ),
-    unreadCount: getConversationUnreadCount(conversation, viewerId),
-    updatedAt: conversation?.updatedAt,
-    createdAt: conversation?.createdAt,
-  };
-}
-
-function mapMessagePayload(message) {
-  return {
-    _id: message?._id,
-    id: message?._id,
-    conversationId: message?.conversationId,
-    senderId: message?.senderId?._id || message?.senderId,
-    recipientId: message?.recipientId?._id || message?.recipientId,
-    sender: message?.senderId?.name
-      ? mapUserSummary(message.senderId)
-      : null,
-    text: message?.text || "",
-    image:
-      message?.image?.url
-        ? {
-            url: message.image.url,
-            publicId: message.image.publicId || "",
-            width: message.image.width ?? null,
-            height: message.image.height ?? null,
-            mediaType: message.image.mediaType || "image",
-          }
-        : null,
-    readAt: message?.readAt || null,
-    createdAt: message?.createdAt,
-    updatedAt: message?.updatedAt,
-  };
-}
-
-function uploadFilePathToCloudinary(filePath, options) {
-  return cloudinary.uploader.upload(filePath, options);
-}
-
-async function countUnreadMessages(userId) {
-  const conversations = await Conversation.find({
-    participants: userId,
-  }).select("unreadCounts");
-
-  return conversations.reduce(
-    (sum, conversation) => sum + getConversationUnreadCount(conversation, userId),
-    0,
-  );
-}
-
-async function findConversationForUser(conversationId, userId) {
-  if (!mongoose.isValidObjectId(conversationId)) {
-    return null;
-  }
-
-  return Conversation.findOne({
-    _id: conversationId,
-    participants: userId,
-  })
-    .populate("participants", "_id name email avatarUrl isActive lastSeenAt")
-    .populate("lastMessageSenderId", "_id name email avatarUrl")
-    .lean();
-}
-
-async function emitConversationToUser(userId, conversation, message = null) {
-  const unreadCount = await countUnreadMessages(userId);
-
-  emitToUser(userId, "chat:conversation:update", {
-    conversation: mapConversationSummary(conversation, userId),
-    message: message ? mapMessagePayload(message) : null,
-    unreadCount,
-  });
-}
-
-function buildReadReceiptPayload({ conversationId, messageIds, readAt, readerId }) {
-  return {
-    conversationId,
-    messageIds,
-    readAt,
-    readerId,
-  };
-}
-
-async function ensureDirectConversation(viewerId, targetUserId) {
-  const participantKey = buildParticipantKey(viewerId, targetUserId);
-
-  let conversation = await Conversation.findOne({ participantKey });
-
-  if (!conversation) {
-    conversation = await Conversation.create({
-      participantKey,
-      participants: [viewerId, targetUserId],
-      unreadCounts: {
-        [toIdString(viewerId)]: 0,
-        [toIdString(targetUserId)]: 0,
-      },
-    });
-  }
-
-  return Conversation.findById(conversation._id)
-    .populate("participants", "_id name email avatarUrl isActive lastSeenAt")
-    .populate("lastMessageSenderId", "_id name email avatarUrl")
-    .lean();
+  throw err;
 }
 
 export async function listConversations(req, res, next) {
   try {
-    const userId = req.user.userId;
-
-    const docs = await Conversation.find({
-      participants: userId,
-    })
-      .populate("participants", "_id name email avatarUrl isActive lastSeenAt")
-      .populate("lastMessageSenderId", "_id name email avatarUrl")
-      .sort({ lastMessageAt: -1, updatedAt: -1, _id: -1 })
-      .lean();
-
-    const items = docs
-      .filter((conversation) =>
-        conversation.participants.some((item) => item?.isActive !== false) &&
-        isConversationVisibleForUser(conversation, userId),
-      )
-      .map((conversation) => mapConversationSummary(conversation, userId));
-
-    const unreadCount = items.reduce(
-      (sum, conversation) => sum + Number(conversation?.unreadCount || 0),
-      0,
-    );
-
-    res.json({
-      items,
-      meta: {
-        unreadCount,
-      },
+    const payload = await chatService.listConversations({
+      userId: req.user.userId,
     });
+
+    res.json(payload);
   } catch (err) {
-    next(err);
+    try {
+      resolveErrorResponse(res, err);
+    } catch (error) {
+      next(error);
+    }
   }
 }
 
 export async function getConversationMessages(req, res, next) {
   try {
-    const userId = req.user.userId;
-    const conversationId = req.params.conversationId;
-    const limitRaw = Number(req.query.limit ?? 40);
-    const limit = Number.isFinite(limitRaw)
-      ? Math.min(Math.max(limitRaw, 1), 100)
-      : 40;
-
-    const conversation = await findConversationForUser(conversationId, userId);
-
-    if (!conversation) {
-      res.status(404).json({ message: "Conversation not found." });
-      return;
-    }
-
-    const clearedAt = getConversationClearedAt(conversation, userId);
-    const messageQuery = {
-      conversationId,
-    };
-
-    if (clearedAt) {
-      messageQuery.createdAt = { $gt: clearedAt };
-    }
-
-    const messages = await Message.find(messageQuery)
-      .populate("senderId", "_id name email avatarUrl")
-      .sort({ createdAt: -1, _id: -1 })
-      .limit(limit)
-      .lean();
-
-    res.json({
-      conversation: mapConversationSummary(conversation, userId),
-      items: messages.reverse().map((message) => mapMessagePayload(message)),
+    const payload = await chatService.getConversationMessages({
+      userId: req.user.userId,
+      conversationId:
+        req.validated?.params?.conversationId || req.params.conversationId,
+      limit: req.validated?.query?.limit ?? 40,
     });
+
+    res.json(payload);
   } catch (err) {
-    next(err);
+    try {
+      resolveErrorResponse(res, err);
+    } catch (error) {
+      next(error);
+    }
   }
 }
 
 export async function openDirectConversation(req, res, next) {
   try {
-    const viewerId = req.user.userId;
-    const targetUserId = req.params.userId;
-
-    if (!mongoose.isValidObjectId(targetUserId)) {
-      res.status(400).json({ message: "Invalid userId" });
-      return;
-    }
-
-    if (viewerId === targetUserId) {
-      res.status(400).json({ message: "Cannot open chat with yourself." });
-      return;
-    }
-
-    const targetUser = await User.findById(targetUserId).select(
-      "_id name email avatarUrl isActive lastSeenAt",
-    );
-
-    if (!targetUser || targetUser.isActive === false) {
-      res.status(404).json({ message: "User not found." });
-      return;
-    }
-
-    const conversation = await ensureDirectConversation(viewerId, targetUserId);
-
-    res.json({
-      conversation: mapConversationSummary(conversation, viewerId),
+    const payload = await chatService.openDirectConversation({
+      viewerId: req.user.userId,
+      targetUserId: req.validated?.params?.userId || req.params.userId,
     });
+
+    res.json(payload);
   } catch (err) {
-    if (err?.code === 11000) {
-      try {
-        const conversation = await ensureDirectConversation(
-          req.user.userId,
-          req.params.userId,
-        );
-
-        res.json({
-          conversation: mapConversationSummary(conversation, req.user.userId),
-        });
-        return;
-      } catch (retryError) {
-        next(retryError);
-        return;
-      }
+    try {
+      resolveErrorResponse(res, err);
+    } catch (error) {
+      next(error);
     }
-
-    next(err);
   }
 }
 
 export async function sendMessage(req, res, next) {
   try {
-    const senderId = req.user.userId;
-    const conversationId = req.params.conversationId;
-    const text = typeof req.body?.text === "string" ? req.body.text.trim() : "";
-
-    if (!text) {
-      res.status(400).json({ message: "Message cannot be empty." });
-      return;
-    }
-
-    const conversationDoc = await Conversation.findOne({
-      _id: conversationId,
-      participants: senderId,
+    const payload = await chatService.sendMessage({
+      senderId: req.user.userId,
+      conversationId:
+        req.validated?.params?.conversationId || req.params.conversationId,
+      text: req.validated?.body?.text || "",
     });
 
-    if (!conversationDoc) {
-      res.status(404).json({ message: "Conversation not found." });
-      return;
-    }
-
-    const participants = conversationDoc.participants.map((item) =>
-      toIdString(item),
-    );
-    const recipientId = participants.find((item) => item !== senderId);
-
-    if (!recipientId) {
-      res.status(400).json({ message: "Recipient not found." });
-      return;
-    }
-
-    const created = await Message.create({
-      conversationId,
-      senderId,
-      recipientId,
-      text,
-    });
-
-    const unreadCounts = {
-      ...(conversationDoc.unreadCounts || {}),
-      [senderId]: 0,
-      [recipientId]:
-        getConversationUnreadCount(conversationDoc, recipientId) + 1,
-    };
-
-    conversationDoc.clearedAtByUser = {
-      ...(conversationDoc.clearedAtByUser || {}),
-    };
-    conversationDoc.lastMessageText = text;
-    conversationDoc.lastMessageAt = created.createdAt;
-    conversationDoc.lastMessageSenderId = senderId;
-    conversationDoc.unreadCounts = unreadCounts;
-    await conversationDoc.save();
-
-    const [hydratedMessage, senderConversation, recipientConversation] =
-      await Promise.all([
-        Message.findById(created._id)
-          .populate("senderId", "_id name email avatarUrl")
-          .lean(),
-        findConversationForUser(conversationId, senderId),
-        findConversationForUser(conversationId, recipientId),
-      ]);
-
-    if (recipientConversation) {
-      await emitConversationToUser(recipientId, recipientConversation, hydratedMessage);
-    }
-
-    res.status(201).json({
-      ok: true,
-      conversation: senderConversation
-        ? mapConversationSummary(senderConversation, senderId)
-        : null,
-      message: hydratedMessage ? mapMessagePayload(hydratedMessage) : null,
-      unreadCount: await countUnreadMessages(senderId),
-    });
+    res.status(201).json(payload);
   } catch (err) {
-    next(err);
+    try {
+      resolveErrorResponse(res, err);
+    } catch (error) {
+      next(error);
+    }
   }
 }
 
 export async function sendImageMessage(req, res, next) {
-  let uploadedImage = null;
-
   try {
-    const senderId = req.user.userId;
-    const conversationId = req.params.conversationId;
-    const text = typeof req.body?.text === "string" ? req.body.text.trim() : "";
-    const imageFile = req.file;
-
-    if (!imageFile) {
-      res.status(400).json({ message: "Image is required." });
-      return;
-    }
-
-    const conversationDoc = await Conversation.findOne({
-      _id: conversationId,
-      participants: senderId,
+    const payload = await chatService.sendImageMessage({
+      senderId: req.user.userId,
+      conversationId:
+        req.validated?.params?.conversationId || req.params.conversationId,
+      text: req.validated?.body?.text || "",
+      imageFile: req.file,
     });
 
-    if (!conversationDoc) {
-      await unlink(imageFile.path).catch(() => {});
-      res.status(404).json({ message: "Conversation not found." });
-      return;
-    }
-
-    const participants = conversationDoc.participants.map((item) =>
-      toIdString(item),
-    );
-    const recipientId = participants.find((item) => item !== senderId);
-
-    if (!recipientId) {
-      await unlink(imageFile.path).catch(() => {});
-      res.status(400).json({ message: "Recipient not found." });
-      return;
-    }
-
-    try {
-      const result = await uploadFilePathToCloudinary(imageFile.path, {
-        folder: `chat/${conversationId}`,
-        resource_type: "image",
-      });
-
-      uploadedImage = {
-        url: result.secure_url,
-        publicId: result.public_id,
-        width: result.width ?? null,
-        height: result.height ?? null,
-      };
-    } finally {
-      await unlink(imageFile.path).catch(() => {});
-    }
-
-    const created = await Message.create({
-      conversationId,
-      senderId,
-      recipientId,
-      text,
-      image: uploadedImage,
-    });
-
-    const unreadCounts = {
-      ...(conversationDoc.unreadCounts || {}),
-      [senderId]: 0,
-      [recipientId]:
-        getConversationUnreadCount(conversationDoc, recipientId) + 1,
-    };
-
-    conversationDoc.clearedAtByUser = {
-      ...(conversationDoc.clearedAtByUser || {}),
-    };
-    conversationDoc.lastMessageText = text || "Đã gửi ảnh";
-    conversationDoc.lastMessageAt = created.createdAt;
-    conversationDoc.lastMessageSenderId = senderId;
-    conversationDoc.unreadCounts = unreadCounts;
-    await conversationDoc.save();
-
-    const [hydratedMessage, senderConversation, recipientConversation] =
-      await Promise.all([
-        Message.findById(created._id)
-          .populate("senderId", "_id name email avatarUrl")
-          .lean(),
-        findConversationForUser(conversationId, senderId),
-        findConversationForUser(conversationId, recipientId),
-      ]);
-
-    if (recipientConversation) {
-      await emitConversationToUser(
-        recipientId,
-        recipientConversation,
-        hydratedMessage,
-      );
-    }
-
-    res.status(201).json({
-      ok: true,
-      conversation: senderConversation
-        ? mapConversationSummary(senderConversation, senderId)
-        : null,
-      message: hydratedMessage ? mapMessagePayload(hydratedMessage) : null,
-      unreadCount: await countUnreadMessages(senderId),
-    });
+    res.status(201).json(payload);
   } catch (err) {
-    console.error("Chat image upload failed:", err);
-
-    if (uploadedImage?.publicId) {
-      await cloudinary.uploader
-        .destroy(uploadedImage.publicId, { resource_type: "image" })
-        .catch(() => {});
+    try {
+      resolveErrorResponse(res, err);
+    } catch (error) {
+      next(error);
     }
-
-    if (req.file?.path) {
-      await unlink(req.file.path).catch(() => {});
-    }
-
-    next(err);
   }
 }
 
 export async function sendGifMessage(req, res, next) {
   try {
-    const senderId = req.user.userId;
-    const conversationId = req.params.conversationId;
-    const text = typeof req.body?.text === "string" ? req.body.text.trim() : "";
-    const gifUrl =
-      typeof req.body?.gifUrl === "string" ? req.body.gifUrl.trim() : "";
-    const widthRaw = Number(req.body?.width);
-    const heightRaw = Number(req.body?.height);
-
-    if (!gifUrl) {
-      res.status(400).json({ message: "GIF is required." });
-      return;
-    }
-
-    const conversationDoc = await Conversation.findOne({
-      _id: conversationId,
-      participants: senderId,
+    const payload = await chatService.sendGifMessage({
+      senderId: req.user.userId,
+      conversationId:
+        req.validated?.params?.conversationId || req.params.conversationId,
+      text: req.validated?.body?.text || "",
+      gifUrl: req.validated?.body?.gifUrl || "",
+      width: req.validated?.body?.width ?? null,
+      height: req.validated?.body?.height ?? null,
     });
 
-    if (!conversationDoc) {
-      res.status(404).json({ message: "Conversation not found." });
-      return;
-    }
-
-    const participants = conversationDoc.participants.map((item) =>
-      toIdString(item),
-    );
-    const recipientId = participants.find((item) => item !== senderId);
-
-    if (!recipientId) {
-      res.status(400).json({ message: "Recipient not found." });
-      return;
-    }
-
-    const created = await Message.create({
-      conversationId,
-      senderId,
-      recipientId,
-      text,
-      image: {
-        url: gifUrl,
-        publicId: "",
-        width: Number.isFinite(widthRaw) ? widthRaw : null,
-        height: Number.isFinite(heightRaw) ? heightRaw : null,
-        mediaType: "gif",
-      },
-    });
-
-    const unreadCounts = {
-      ...(conversationDoc.unreadCounts || {}),
-      [senderId]: 0,
-      [recipientId]:
-        getConversationUnreadCount(conversationDoc, recipientId) + 1,
-    };
-
-    conversationDoc.clearedAtByUser = {
-      ...(conversationDoc.clearedAtByUser || {}),
-    };
-    conversationDoc.lastMessageText = text || "Đã gửi GIF";
-    conversationDoc.lastMessageAt = created.createdAt;
-    conversationDoc.lastMessageSenderId = senderId;
-    conversationDoc.unreadCounts = unreadCounts;
-    await conversationDoc.save();
-
-    const [hydratedMessage, senderConversation, recipientConversation] =
-      await Promise.all([
-        Message.findById(created._id)
-          .populate("senderId", "_id name email avatarUrl")
-          .lean(),
-        findConversationForUser(conversationId, senderId),
-        findConversationForUser(conversationId, recipientId),
-      ]);
-
-    if (recipientConversation) {
-      await emitConversationToUser(
-        recipientId,
-        recipientConversation,
-        hydratedMessage,
-      );
-    }
-
-    res.status(201).json({
-      ok: true,
-      conversation: senderConversation
-        ? mapConversationSummary(senderConversation, senderId)
-        : null,
-      message: hydratedMessage ? mapMessagePayload(hydratedMessage) : null,
-      unreadCount: await countUnreadMessages(senderId),
-    });
+    res.status(201).json(payload);
   } catch (err) {
-    next(err);
+    try {
+      resolveErrorResponse(res, err);
+    } catch (error) {
+      next(error);
+    }
   }
 }
 
 export async function markConversationRead(req, res, next) {
   try {
-    const userId = req.user.userId;
-    const conversationId = req.params.conversationId;
-
-    const conversationDoc = await Conversation.findOne({
-      _id: conversationId,
-      participants: userId,
+    const payload = await chatService.markConversationRead({
+      userId: req.user.userId,
+      conversationId:
+        req.validated?.params?.conversationId || req.params.conversationId,
     });
 
-    if (!conversationDoc) {
-      res.status(404).json({ message: "Conversation not found." });
-      return;
-    }
-
-    const now = new Date();
-    const unreadMessages = await Message.find({
-      conversationId,
-      recipientId: userId,
-      readAt: null,
-    })
-      .select("_id senderId")
-      .lean();
-
-    await Message.updateMany(
-      {
-        conversationId,
-        recipientId: userId,
-        readAt: null,
-      },
-      {
-        $set: { readAt: now },
-      },
-    );
-
-    conversationDoc.unreadCounts = {
-      ...(conversationDoc.unreadCounts || {}),
-      [userId]: 0,
-    };
-    await conversationDoc.save();
-
-    const senderIds = [
-      ...new Set(
-        unreadMessages
-          .map((message) => toIdString(message?.senderId))
-          .filter(Boolean),
-      ),
-    ];
-
-    await Promise.all(
-      senderIds.map((senderId) =>
-        emitToUser(
-          senderId,
-          "chat:messages:read",
-          buildReadReceiptPayload({
-            conversationId,
-            messageIds: unreadMessages
-              .filter((message) => toIdString(message?.senderId) === senderId)
-              .map((message) => toIdString(message?._id))
-              .filter(Boolean),
-            readAt: now,
-            readerId: userId,
-          }),
-        ),
-      ),
-    );
-
-    const [conversation, senderConversation] = await Promise.all([
-      findConversationForUser(conversationId, userId),
-      senderIds[0] ? findConversationForUser(conversationId, senderIds[0]) : null,
-    ]);
-
-    if (senderIds[0] && senderConversation) {
-      await emitConversationToUser(senderIds[0], senderConversation, null);
-    }
-
-    res.json({
-      ok: true,
-      conversation: conversation
-        ? mapConversationSummary(conversation, userId)
-        : null,
-      unreadCount: await countUnreadMessages(userId),
-    });
+    res.json(payload);
   } catch (err) {
-    next(err);
+    try {
+      resolveErrorResponse(res, err);
+    } catch (error) {
+      next(error);
+    }
   }
 }
 
 export async function deleteSelectedConversations(req, res, next) {
   try {
-    const userId = req.user.userId;
-    const normalizedIds = Array.isArray(req.body?.conversationIds)
-      ? [
-          ...new Set(
-            req.body.conversationIds
-              .map((item) => toIdString(item))
-              .filter((item) => mongoose.isValidObjectId(item)),
-          ),
-        ]
-      : [];
-
-    if (!normalizedIds.length) {
-      res.status(400).json({ message: "No conversations selected." });
-      return;
-    }
-
-    const docs = await Conversation.find({
-      _id: { $in: normalizedIds },
-      participants: userId,
+    const payload = await chatService.deleteSelectedConversations({
+      userId: req.user.userId,
+      conversationIds: req.validated?.body?.conversationIds || [],
     });
 
-    if (!docs.length) {
-      res.json({
-        ok: true,
-        deletedIds: [],
-        unreadCount: await countUnreadMessages(userId),
-      });
-      return;
-    }
-
-    const now = new Date();
-
-    await Promise.all(
-      docs.map(async (conversationDoc) => {
-        conversationDoc.clearedAtByUser = {
-          ...(conversationDoc.clearedAtByUser || {}),
-          [userId]: now,
-        };
-        conversationDoc.unreadCounts = {
-          ...(conversationDoc.unreadCounts || {}),
-          [userId]: 0,
-        };
-        await conversationDoc.save();
-      }),
-    );
-
-    res.json({
-      ok: true,
-      deletedIds: docs.map((doc) => toIdString(doc?._id)).filter(Boolean),
-      unreadCount: await countUnreadMessages(userId),
-    });
+    res.json(payload);
   } catch (err) {
-    next(err);
+    try {
+      resolveErrorResponse(res, err);
+    } catch (error) {
+      next(error);
+    }
   }
 }

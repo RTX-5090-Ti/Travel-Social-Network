@@ -93,6 +93,18 @@ export const tripApi = {
     return api.post(`/api/trips/${id}/comments`, payload);
   },
 
+  createCommentGif(id, payload) {
+    return api.post(`/api/trips/${id}/comments/gif`, payload);
+  },
+
+  createCommentImage(id, payload) {
+    return api.post(`/api/trips/${id}/comments/image`, payload, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+  },
+
   updateComment(commentId, payload) {
     return api.patch(`/api/comments/${commentId}`, payload);
   },

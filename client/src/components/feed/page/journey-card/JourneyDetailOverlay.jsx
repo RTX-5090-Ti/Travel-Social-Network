@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
+import { GiphyFetch } from "@giphy/js-fetch-api";
 
 import {
   tripApi,
@@ -9,6 +10,8 @@ import {
 } from "../../../../api/trip.api";
 import { useToast } from "../../../../toast/useToast";
 import { useAuth } from "../../../../auth/useAuth";
+import LazyEmojiPicker from "../../../shared/LazyEmojiPicker";
+import LazyGiphyGrid from "../../../shared/LazyGiphyGrid";
 import {
   getInitials,
   formatFeedTime,
@@ -30,6 +33,10 @@ import JourneyMetaChip from "./JourneyMetaChip";
 import JourneySectionTitle from "./JourneySectionTitle";
 import { normalizeMediaItems } from "./journeyMedia.utils";
 
+const MAX_COMMENT_IMAGE_SIZE = 10 * 1024 * 1024;
+const GIPHY_API_KEY = "1nkeWo3uBJD4LMdiMqEo8aHHkr4Lrxvq";
+const gf = new GiphyFetch(GIPHY_API_KEY);
+
 function getUserAvatar(user) {
   return (
     user?.avatarUrl ||
@@ -37,6 +44,60 @@ function getUserAvatar(user) {
     user?.profile?.avatarUrl ||
     user?.profile?.avatar ||
     ""
+  );
+}
+
+function CommentMediaDraftPreview({
+  previewUrl,
+  uploading = false,
+  clickable = true,
+  onRemove,
+  onOpen,
+}) {
+  return (
+    <div className="mb-3 rounded-[18px] border border-zinc-200/80 bg-white/90 p-2 shadow-[0_8px_18px_rgba(15,23,42,0.05)]">
+      <div className="relative inline-flex overflow-hidden rounded-[14px] border border-zinc-200/80 bg-zinc-50">
+        {clickable ? (
+          <button
+            type="button"
+            onClick={onOpen}
+            className="cursor-pointer transition hover:opacity-95"
+          >
+            <img
+              src={previewUrl}
+              alt="Comment media preview"
+              className="h-[96px] w-[96px] object-cover"
+            />
+          </button>
+        ) : (
+          <img
+            src={previewUrl}
+            alt="Comment media preview"
+            className="h-[96px] w-[96px] object-cover"
+          />
+        )}
+
+        {uploading ? (
+          <div className="absolute inset-0 flex items-center justify-center bg-zinc-950/42 backdrop-blur-[1px]">
+            <span className="h-7 w-7 animate-spin rounded-full border-[3px] border-violet-200 border-t-violet-500 bg-white/78 shadow-[0_8px_18px_rgba(15,23,42,0.12)]" />
+          </div>
+        ) : null}
+
+        <button
+          type="button"
+          aria-label="Remove comment media"
+          onClick={onRemove}
+          disabled={uploading}
+          className={`absolute right-1.5 top-1.5 inline-flex h-6 w-6 items-center justify-center rounded-full bg-zinc-950/72 text-white shadow-[0_8px_18px_rgba(15,23,42,0.18)] transition hover:scale-105 hover:bg-zinc-950/84 ${
+            uploading ? "cursor-not-allowed opacity-60" : "cursor-pointer"
+          }`}
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-3.5 w-3.5">
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -113,6 +174,8 @@ export default function JourneyDetailOverlay({
   const { showToast } = useToast();
   const currentUserId = user?._id?.toString?.() || user?.id?.toString?.() || "";
   const [commentText, setCommentText] = useState("");
+  const [commentImageDraft, setCommentImageDraft] = useState(null);
+  const [commentGifDraft, setCommentGifDraft] = useState(null);
   const [commentItems, setCommentItems] = useState([]);
   const [commentsLoading, setCommentsLoading] = useState(true);
   const [commentsError, setCommentsError] = useState("");
@@ -120,6 +183,8 @@ export default function JourneyDetailOverlay({
   const [replyingToCommentId, setReplyingToCommentId] = useState("");
   const [replyTarget, setReplyTarget] = useState(null);
   const [replyText, setReplyText] = useState("");
+  const [replyImageDraft, setReplyImageDraft] = useState(null);
+  const [replyGifDraft, setReplyGifDraft] = useState(null);
   const [replySubmittingCommentId, setReplySubmittingCommentId] = useState("");
   const [editingCommentId, setEditingCommentId] = useState("");
   const [editingText, setEditingText] = useState("");
@@ -134,7 +199,16 @@ export default function JourneyDetailOverlay({
   const [commentsHasMore, setCommentsHasMore] = useState(false);
   const [commentsLoadingMore, setCommentsLoadingMore] = useState(false);
   const [highlightedCommentId, setHighlightedCommentId] = useState("");
+  const [commentEmojiPickerOpen, setCommentEmojiPickerOpen] = useState(false);
+  const [commentGifPickerOpen, setCommentGifPickerOpen] = useState(false);
+  const [commentGifQuery, setCommentGifQuery] = useState("");
+  const [replyEmojiPickerOpen, setReplyEmojiPickerOpen] = useState(false);
+  const [replyGifPickerOpen, setReplyGifPickerOpen] = useState(false);
+  const [replyGifQuery, setReplyGifQuery] = useState("");
   const commentTextareaRef = useRef(null);
+  const commentImageInputRef = useRef(null);
+  const replyTextareaRef = useRef(null);
+  const replyImageInputRef = useRef(null);
   const commentListEndRef = useRef(null);
   const overlayContentRef = useRef(null);
   const shouldScrollToNewestCommentRef = useRef(false);
@@ -146,6 +220,12 @@ export default function JourneyDetailOverlay({
   const hydratedReplyThreadsRef = useRef(new Set());
   const onCloseRef = useRef(onClose);
   const showToastRef = useRef(showToast);
+  const commentEmojiPickerRef = useRef(null);
+  const commentGifPickerRef = useRef(null);
+  const commentSelectionRef = useRef({ start: 0, end: 0 });
+  const replyEmojiPickerRef = useRef(null);
+  const replyGifPickerRef = useRef(null);
+  const replySelectionRef = useRef({ start: 0, end: 0 });
 
   const currentUserName =
     user?.name || user?.fullName || user?.username || "You";
@@ -178,6 +258,56 @@ export default function JourneyDetailOverlay({
     showToastRef.current = showToast;
   }, [showToast]);
 
+  useEffect(() => {
+    return () => {
+      if (commentImageDraft?.previewUrl) {
+        URL.revokeObjectURL(commentImageDraft.previewUrl);
+      }
+    };
+  }, [commentImageDraft]);
+
+  useEffect(() => {
+    return () => {
+      if (replyImageDraft?.previewUrl) {
+        URL.revokeObjectURL(replyImageDraft.previewUrl);
+      }
+    };
+  }, [replyImageDraft]);
+
+  useEffect(() => {
+    if (
+      !commentEmojiPickerOpen &&
+      !commentGifPickerOpen &&
+      !replyEmojiPickerOpen &&
+      !replyGifPickerOpen
+    ) {
+      return undefined;
+    }
+
+    function handlePointerDown(event) {
+      const target = event.target;
+      if (commentEmojiPickerRef.current?.contains(target)) return;
+      if (commentGifPickerRef.current?.contains(target)) return;
+      if (replyEmojiPickerRef.current?.contains(target)) return;
+      if (replyGifPickerRef.current?.contains(target)) return;
+      setCommentEmojiPickerOpen(false);
+      setCommentGifPickerOpen(false);
+      setReplyEmojiPickerOpen(false);
+      setReplyGifPickerOpen(false);
+    }
+
+    document.addEventListener("mousedown", handlePointerDown);
+
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+    };
+  }, [
+    commentEmojiPickerOpen,
+    commentGifPickerOpen,
+    replyEmojiPickerOpen,
+    replyGifPickerOpen,
+  ]);
+
   function resizeCommentTextarea() {
     const node = commentTextareaRef.current;
     if (!node) return;
@@ -187,6 +317,287 @@ export default function JourneyDetailOverlay({
     const nextHeight = Math.min(node.scrollHeight, 200);
     node.style.height = `${nextHeight}px`;
     node.style.overflowY = node.scrollHeight > 200 ? "auto" : "hidden";
+  }
+
+  function clearCommentImageDraft() {
+    setCommentImageDraft((prev) => {
+      if (prev?.previewUrl) {
+        URL.revokeObjectURL(prev.previewUrl);
+      }
+      return null;
+    });
+
+    if (commentImageInputRef.current) {
+      commentImageInputRef.current.value = "";
+    }
+  }
+
+  function clearCommentGifDraft() {
+    setCommentGifDraft(null);
+  }
+
+  function clearReplyImageDraft() {
+    setReplyImageDraft((prev) => {
+      if (prev?.previewUrl) {
+        URL.revokeObjectURL(prev.previewUrl);
+      }
+      return null;
+    });
+
+    if (replyImageInputRef.current) {
+      replyImageInputRef.current.value = "";
+    }
+  }
+
+  function clearReplyGifDraft() {
+    setReplyGifDraft(null);
+  }
+
+  function handleCommentComposerSelect(event) {
+    commentSelectionRef.current = {
+      start: event.target.selectionStart ?? 0,
+      end: event.target.selectionEnd ?? 0,
+    };
+  }
+
+  function handleReplyComposerSelect(event) {
+    replySelectionRef.current = {
+      start: event.target.selectionStart ?? 0,
+      end: event.target.selectionEnd ?? 0,
+    };
+  }
+
+  function handleToggleCommentEmojiPicker() {
+    setCommentEmojiPickerOpen((prev) => !prev);
+    setCommentGifPickerOpen(false);
+    commentTextareaRef.current?.focus();
+  }
+
+  function handleToggleCommentGifPicker() {
+    setCommentGifPickerOpen((prev) => !prev);
+    setCommentEmojiPickerOpen(false);
+  }
+
+  function handleToggleReplyEmojiPicker() {
+    setReplyEmojiPickerOpen((prev) => !prev);
+    setReplyGifPickerOpen(false);
+    replyTextareaRef.current?.focus();
+  }
+
+  function handleToggleReplyGifPicker() {
+    setReplyGifPickerOpen((prev) => !prev);
+    setReplyEmojiPickerOpen(false);
+  }
+
+  function handleCommentEmojiSelect(emojiData) {
+    const emoji = emojiData?.emoji || "";
+    if (!emoji) return;
+
+    const textarea = commentTextareaRef.current;
+    const currentValue = commentText || "";
+    const selectionStart =
+      textarea?.selectionStart ??
+      commentSelectionRef.current.start ??
+      currentValue.length;
+    const selectionEnd =
+      textarea?.selectionEnd ?? commentSelectionRef.current.end ?? selectionStart;
+    const nextValue =
+      currentValue.slice(0, selectionStart) +
+      emoji +
+      currentValue.slice(selectionEnd);
+    const nextCaretPosition = selectionStart + emoji.length;
+
+    setCommentText(nextValue);
+    commentSelectionRef.current = {
+      start: nextCaretPosition,
+      end: nextCaretPosition,
+    };
+
+    window.requestAnimationFrame(() => {
+      resizeCommentTextarea();
+      const nextTextarea = commentTextareaRef.current;
+      if (!nextTextarea) return;
+      nextTextarea.focus();
+      nextTextarea.setSelectionRange(nextCaretPosition, nextCaretPosition);
+    });
+  }
+
+  function handleReplyEmojiSelect(emojiData) {
+    const emoji = emojiData?.emoji || "";
+    if (!emoji) return;
+
+    const textarea = replyTextareaRef.current;
+    const currentValue = replyText || "";
+    const selectionStart =
+      textarea?.selectionStart ??
+      replySelectionRef.current.start ??
+      currentValue.length;
+    const selectionEnd =
+      textarea?.selectionEnd ?? replySelectionRef.current.end ?? selectionStart;
+    const nextValue =
+      currentValue.slice(0, selectionStart) +
+      emoji +
+      currentValue.slice(selectionEnd);
+    const nextCaretPosition = selectionStart + emoji.length;
+
+    setReplyText(nextValue);
+    replySelectionRef.current = {
+      start: nextCaretPosition,
+      end: nextCaretPosition,
+    };
+
+    window.requestAnimationFrame(() => {
+      const nextTextarea = replyTextareaRef.current;
+      if (!nextTextarea) return;
+      nextTextarea.focus();
+      nextTextarea.setSelectionRange(nextCaretPosition, nextCaretPosition);
+    });
+  }
+
+  function fetchCommentGifs(offset) {
+    if (commentGifQuery.trim()) {
+      return gf.search(commentGifQuery.trim(), {
+        offset,
+        limit: 12,
+        rating: "pg-13",
+      });
+    }
+
+    return gf.trending({
+      offset,
+      limit: 12,
+      rating: "pg-13",
+    });
+  }
+
+  function fetchReplyGifs(offset) {
+    if (replyGifQuery.trim()) {
+      return gf.search(replyGifQuery.trim(), {
+        offset,
+        limit: 12,
+        rating: "pg-13",
+      });
+    }
+
+    return gf.trending({
+      offset,
+      limit: 12,
+      rating: "pg-13",
+    });
+  }
+
+  function handleSelectCommentGif(gif) {
+    if (!gif?.images) return;
+
+    const previewUrl =
+      gif.images.fixed_width?.url ||
+      gif.images.preview_gif?.url ||
+      gif.images.original?.url ||
+      "";
+    const gifUrl =
+      gif.images.original?.url || gif.images.fixed_width?.url || previewUrl;
+
+    if (!gifUrl || !previewUrl) return;
+
+    setCommentGifDraft({
+      gifUrl,
+      previewUrl,
+      width:
+        Number(gif.images.original?.width || gif.images.fixed_width?.width) || null,
+      height:
+        Number(gif.images.original?.height || gif.images.fixed_width?.height) ||
+        null,
+    });
+    clearCommentImageDraft();
+    setCommentGifPickerOpen(false);
+  }
+
+  function handleSelectReplyGif(gif) {
+    if (!gif?.images) return;
+
+    const previewUrl =
+      gif.images.fixed_width?.url ||
+      gif.images.preview_gif?.url ||
+      gif.images.original?.url ||
+      "";
+    const gifUrl =
+      gif.images.original?.url || gif.images.fixed_width?.url || previewUrl;
+
+    if (!gifUrl || !previewUrl) return;
+
+    setReplyGifDraft({
+      gifUrl,
+      previewUrl,
+      width:
+        Number(gif.images.original?.width || gif.images.fixed_width?.width) || null,
+      height:
+        Number(gif.images.original?.height || gif.images.fixed_width?.height) ||
+        null,
+    });
+    clearReplyImageDraft();
+    setReplyGifPickerOpen(false);
+  }
+
+  function handlePickCommentImage() {
+    commentImageInputRef.current?.click();
+  }
+
+  function handlePickReplyImage() {
+    replyImageInputRef.current?.click();
+  }
+
+  function handleCommentImageChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type?.startsWith("image/")) {
+      setCommentsError("Chỉ được chọn file ảnh cho comment.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_COMMENT_IMAGE_SIZE) {
+      setCommentsError("Ảnh comment quá lớn. Vui lòng chọn ảnh nhỏ hơn 10MB.");
+      event.target.value = "";
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setCommentsError("");
+    clearCommentGifDraft();
+    setCommentImageDraft((prev) => {
+      if (prev?.previewUrl) {
+        URL.revokeObjectURL(prev.previewUrl);
+      }
+      return { file, previewUrl };
+    });
+  }
+
+  function handleReplyImageChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type?.startsWith("image/")) {
+      setCommentsError("Chỉ được chọn file ảnh cho reply.");
+      event.target.value = "";
+      return;
+    }
+
+    if (file.size > MAX_COMMENT_IMAGE_SIZE) {
+      setCommentsError("Ảnh reply quá lớn. Vui lòng chọn ảnh nhỏ hơn 10MB.");
+      event.target.value = "";
+      return;
+    }
+
+    const previewUrl = URL.createObjectURL(file);
+    setCommentsError("");
+    clearReplyGifDraft();
+    setReplyImageDraft((prev) => {
+      if (prev?.previewUrl) {
+        URL.revokeObjectURL(prev.previewUrl);
+      }
+      return { file, previewUrl };
+    });
   }
 
   function openLightbox(media, index = 0) {
@@ -626,13 +1037,35 @@ export default function JourneyDetailOverlay({
     e.preventDefault();
 
     const content = commentText.trim();
-    if (!content || commentSubmitting || !trip?._id) return;
+    if (
+      (!content && !commentImageDraft?.file && !commentGifDraft?.gifUrl) ||
+      commentSubmitting ||
+      !trip?._id
+    ) {
+      return;
+    }
 
     try {
       setCommentSubmitting(true);
       setCommentsError("");
 
-      const res = await tripApi.createComment(trip._id, { content });
+      const res = commentImageDraft?.file
+        ? await (() => {
+            const formData = new FormData();
+            formData.append("image", commentImageDraft.file);
+            if (content) {
+              formData.append("content", content);
+            }
+            return tripApi.createCommentImage(trip._id, formData);
+          })()
+        : commentGifDraft?.gifUrl
+          ? await tripApi.createCommentGif(trip._id, {
+              content,
+              gifUrl: commentGifDraft.gifUrl,
+              width: commentGifDraft.width,
+              height: commentGifDraft.height,
+            })
+          : await tripApi.createComment(trip._id, { content });
       const createdComment = res.data?.comment;
 
       if (!createdComment) {
@@ -642,6 +1075,10 @@ export default function JourneyDetailOverlay({
       shouldScrollToNewestCommentRef.current = true;
       setCommentItems((prev) => [...prev, createdComment]);
       setCommentText("");
+      setCommentEmojiPickerOpen(false);
+      setCommentGifPickerOpen(false);
+      clearCommentImageDraft();
+      clearCommentGifDraft();
       onCommentCreated?.(createdComment);
     } catch (err) {
       if (isTripUnavailableError(err)) {
@@ -1053,12 +1490,20 @@ export default function JourneyDetailOverlay({
       setReplyingToCommentId("");
       setReplyTarget(null);
       setReplyText("");
+      clearReplyImageDraft();
+      clearReplyGifDraft();
+      setReplyEmojiPickerOpen(false);
+      setReplyGifPickerOpen(false);
       return;
     }
 
     setReplyingToCommentId(commentId);
     setReplyTarget(nextTarget);
     setReplyText("");
+    clearReplyImageDraft();
+    clearReplyGifDraft();
+    setReplyEmojiPickerOpen(false);
+    setReplyGifPickerOpen(false);
     setEditingCommentId("");
     setEditingText("");
   }
@@ -1075,6 +1520,10 @@ export default function JourneyDetailOverlay({
     setReplyingToCommentId("");
     setReplyTarget(null);
     setReplyText("");
+    clearReplyImageDraft();
+    clearReplyGifDraft();
+    setReplyEmojiPickerOpen(false);
+    setReplyGifPickerOpen(false);
   }
 
   function handleCancelEditing() {
@@ -1089,6 +1538,10 @@ export default function JourneyDetailOverlay({
     setReplyingToCommentId("");
     setReplyTarget(null);
     setReplyText("");
+    clearReplyImageDraft();
+    clearReplyGifDraft();
+    setReplyEmojiPickerOpen(false);
+    setReplyGifPickerOpen(false);
     setEditingCommentId("");
     setEditingText("");
     setDeleteConfirmComment(targetComment);
@@ -1178,7 +1631,12 @@ export default function JourneyDetailOverlay({
   async function handleSubmitReply(commentId) {
     const content = replyText.trim();
 
-    if (!content || !trip?._id || !commentId || replySubmittingCommentId) {
+    if (
+      (!content && !replyImageDraft?.file && !replyGifDraft?.gifUrl) ||
+      !trip?._id ||
+      !commentId ||
+      replySubmittingCommentId
+    ) {
       return;
     }
 
@@ -1186,10 +1644,28 @@ export default function JourneyDetailOverlay({
       setReplySubmittingCommentId(commentId);
       setCommentsError("");
 
-      const res = await tripApi.createComment(trip._id, {
-        content,
-        parentCommentId: commentId,
-      });
+      const res = replyImageDraft?.file
+        ? await (() => {
+            const formData = new FormData();
+            formData.append("image", replyImageDraft.file);
+            formData.append("parentCommentId", commentId);
+            if (content) {
+              formData.append("content", content);
+            }
+            return tripApi.createCommentImage(trip._id, formData);
+          })()
+        : replyGifDraft?.gifUrl
+          ? await tripApi.createCommentGif(trip._id, {
+              content,
+              parentCommentId: commentId,
+              gifUrl: replyGifDraft.gifUrl,
+              width: replyGifDraft.width,
+              height: replyGifDraft.height,
+            })
+          : await tripApi.createComment(trip._id, {
+              content,
+              parentCommentId: commentId,
+            });
 
       const createdReply = res.data?.comment;
 
@@ -1221,6 +1697,10 @@ export default function JourneyDetailOverlay({
       setReplyText("");
       setReplyingToCommentId("");
       setReplyTarget(null);
+      clearReplyImageDraft();
+      clearReplyGifDraft();
+      setReplyEmojiPickerOpen(false);
+      setReplyGifPickerOpen(false);
       onCommentCreated?.(createdReply);
     } catch (err) {
       if (isTripUnavailableError(err)) {
@@ -1607,6 +2087,11 @@ export default function JourneyDetailOverlay({
                           visibleReplyCounts={visibleReplyCounts}
                           activeReplyId={replyingToCommentId}
                           replyText={replyText}
+                          replyImageDraft={replyImageDraft}
+                          replyGifDraft={replyGifDraft}
+                          replyEmojiPickerOpen={replyEmojiPickerOpen}
+                          replyGifPickerOpen={replyGifPickerOpen}
+                          replyGifQuery={replyGifQuery}
                           replySubmitting={!!replySubmittingCommentId}
                           replyTargetName={replyTarget?.name || ""}
                           currentUserId={currentUserId}
@@ -1628,13 +2113,29 @@ export default function JourneyDetailOverlay({
                             editSubmittingCommentId === editingCommentId
                           }
                           onReplyTextChange={setReplyText}
+                          onReplyTextSelect={handleReplyComposerSelect}
                           onReplySubmit={(event) => {
                             event.preventDefault();
                             handleSubmitReply(replyingToCommentId);
                           }}
+                          onReplyPickImage={handlePickReplyImage}
+                          onReplyImageChange={handleReplyImageChange}
+                          onReplyImageRemove={clearReplyImageDraft}
+                          onReplyGifRemove={clearReplyGifDraft}
+                          onReplyToggleEmojiPicker={handleToggleReplyEmojiPicker}
+                          onReplyEmojiSelect={handleReplyEmojiSelect}
+                          onReplyToggleGifPicker={handleToggleReplyGifPicker}
+                          onReplyGifQueryChange={setReplyGifQuery}
+                          onReplyFetchGifs={fetchReplyGifs}
+                          onReplySelectGif={handleSelectReplyGif}
+                          replyTextareaRef={replyTextareaRef}
+                          replyImageInputRef={replyImageInputRef}
+                          replyEmojiPickerRef={replyEmojiPickerRef}
+                          replyGifPickerRef={replyGifPickerRef}
                           onEditTextChange={setEditingText}
                           onEditCancel={handleCancelEditing}
                           onEditSubmit={handleEditSubmit}
+                          onOpenMedia={openLightbox}
                         />
                       ))}
                       <div ref={commentListEndRef} />
@@ -1656,6 +2157,13 @@ export default function JourneyDetailOverlay({
           onSubmit={handleSubmitComment}
           className="theme-comment-panel shrink-0 border-t border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,248,255,0.98))] px-4 py-4 backdrop-blur sm:px-6 sm:py-5"
         >
+          <input
+            ref={commentImageInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleCommentImageChange}
+            className="hidden"
+          />
           <div className="flex items-end gap-3">
             <CommentComposerAvatar
               src={currentUserAvatar}
@@ -1667,8 +2175,13 @@ export default function JourneyDetailOverlay({
               <textarea
                 ref={commentTextareaRef}
                 value={commentText}
+                onSelect={handleCommentComposerSelect}
                 onChange={(e) => {
                   setCommentText(e.target.value);
+                  commentSelectionRef.current = {
+                    start: e.target.selectionStart ?? e.target.value.length,
+                    end: e.target.selectionEnd ?? e.target.value.length,
+                  };
                   requestAnimationFrame(() => {
                     resizeCommentTextarea();
                   });
@@ -1679,21 +2192,126 @@ export default function JourneyDetailOverlay({
                 style={{ height: "40px" }}
               />
 
+              {commentImageDraft?.previewUrl ? (
+                <CommentMediaDraftPreview
+                  previewUrl={commentImageDraft.previewUrl}
+                  uploading={commentSubmitting}
+                  onRemove={clearCommentImageDraft}
+                  onOpen={() =>
+                    openLightbox([{ type: "image", url: commentImageDraft.previewUrl }], 0)
+                  }
+                />
+              ) : null}
+
+              {!commentImageDraft?.previewUrl && commentGifDraft?.previewUrl ? (
+                <CommentMediaDraftPreview
+                  previewUrl={commentGifDraft.previewUrl}
+                  uploading={commentSubmitting}
+                  clickable={false}
+                  onRemove={clearCommentGifDraft}
+                />
+              ) : null}
+
               <div className="flex items-center justify-between gap-3 mt-1">
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <CommentComposerActionButton ariaLabel="Emoji">
+                  <div className="relative">
+                    <CommentComposerActionButton
+                      ariaLabel="Emoji"
+                      onClick={handleToggleCommentEmojiPicker}
+                      className={
+                        commentEmojiPickerOpen
+                          ? "bg-[linear-gradient(135deg,rgba(102,126,234,0.16),rgba(118,75,162,0.18))] text-violet-600 shadow-[0_10px_22px_rgba(102,126,234,0.12)]"
+                          : ""
+                      }
+                    >
                     <CommentSmileIcon className="h-[22px] w-[22px]" />
-                  </CommentComposerActionButton>
+                    </CommentComposerActionButton>
 
-                  <CommentComposerActionButton ariaLabel="Camera">
+                    <AnimatePresence>
+                      {commentEmojiPickerOpen ? (
+                        <motion.div
+                          ref={commentEmojiPickerRef}
+                          initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                          transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                          className="absolute bottom-[calc(100%+8px)] left-0 z-20 overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80"
+                        >
+                          <LazyEmojiPicker
+                            onEmojiClick={handleCommentEmojiSelect}
+                            lazyLoadEmojis
+                            previewConfig={{ showPreview: false }}
+                            searchDisabled={false}
+                            skinTonesDisabled
+                            width={320}
+                            height={380}
+                            fallbackWidth={320}
+                            fallbackHeight={380}
+                          />
+                        </motion.div>
+                      ) : null}
+                    </AnimatePresence>
+                  </div>
+
+                  <CommentComposerActionButton ariaLabel="Camera" onClick={handlePickCommentImage}>
                     <CommentCameraIcon className="h-[22px] w-[22px]" />
                   </CommentComposerActionButton>
 
-                  <CommentComposerActionButton ariaLabel="GIF">
+                  <div className="relative">
+                    <CommentComposerActionButton
+                      ariaLabel="GIF"
+                      onClick={handleToggleCommentGifPicker}
+                      className={
+                        commentGifPickerOpen
+                          ? "bg-[linear-gradient(135deg,rgba(102,126,234,0.16),rgba(118,75,162,0.18))] text-violet-600 shadow-[0_10px_22px_rgba(102,126,234,0.12)]"
+                          : ""
+                      }
+                    >
                     <span className="text-[13px] font-bold tracking-[0.08em]">
                       GIF
                     </span>
-                  </CommentComposerActionButton>
+                    </CommentComposerActionButton>
+
+                    <AnimatePresence>
+                      {commentGifPickerOpen ? (
+                        <motion.div
+                          ref={commentGifPickerRef}
+                          initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: 8, scale: 0.98 }}
+                          transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
+                          className="absolute bottom-[calc(100%+8px)] left-0 z-20 overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80"
+                        >
+                          <div className="border-b border-zinc-200/70 px-3 py-3">
+                            <input
+                              type="text"
+                              value={commentGifQuery}
+                              onChange={(event) => setCommentGifQuery(event.target.value)}
+                              placeholder="Tìm GIF trên Giphy..."
+                              className="w-full rounded-[14px] border border-zinc-200/80 bg-white px-3 py-2 text-[13px] text-zinc-700 outline-none placeholder:text-zinc-400"
+                            />
+                          </div>
+                          <div className="h-[320px] w-[320px] overflow-y-auto px-2 py-2">
+                            <LazyGiphyGrid
+                              width={296}
+                              columns={2}
+                              gutter={8}
+                              fetchGifs={fetchCommentGifs}
+                              key={commentGifQuery.trim() || "trending-comments"}
+                              onGifClick={(gif, event) => {
+                                event.preventDefault();
+                                handleSelectCommentGif(gif);
+                              }}
+                              hideAttribution
+                              noLink
+                              fallbackWidth={296}
+                              fallbackHeight={320}
+                            />
+                          </div>
+                        </motion.div>
+                      ) : null}
+                    </AnimatePresence>
+                  </div>
 
                   <CommentComposerActionButton ariaLabel="Sticker">
                     <CommentStickerIcon className="h-[22px] w-[22px]" />
@@ -1702,9 +2320,16 @@ export default function JourneyDetailOverlay({
 
                 <button
                   type="submit"
-                  disabled={!commentText.trim() || commentSubmitting}
+                  disabled={
+                    (!commentText.trim() &&
+                      !commentImageDraft?.file &&
+                      !commentGifDraft?.gifUrl) ||
+                    commentSubmitting
+                  }
                   className={`inline-flex h-11 w-11 items-center justify-center rounded-full transition ${
-                    commentText.trim()
+                    commentText.trim() ||
+                    commentImageDraft?.file ||
+                    commentGifDraft?.gifUrl
                       ? "cursor-pointer bg-[linear-gradient(135deg,#667eea_0%,#8b5cf6_48%,#7c3aed_100%)] text-white shadow-[0_14px_28px_rgba(124,58,237,0.28)] hover:-translate-y-0.5 hover:shadow-[0_18px_32px_rgba(124,58,237,0.35)]"
                       : "cursor-not-allowed bg-white/80 text-zinc-300 ring-1 ring-zinc-200/80"
                   }`}

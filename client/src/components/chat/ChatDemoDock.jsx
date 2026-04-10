@@ -7,13 +7,13 @@ import {
   useMotionValue,
 } from "framer-motion";
 import { GiphyFetch } from "@giphy/js-fetch-api";
-import { Grid } from "@giphy/react-components";
-import EmojiPicker from "emoji-picker-react";
 import { MessageCircleMore, Minimize2, SendHorizonal, X } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
 import { useAuth } from "../../auth/useAuth";
 import { useChat } from "../../chat/useChat";
+import LazyEmojiPicker from "../shared/LazyEmojiPicker";
+import LazyGiphyGrid from "../shared/LazyGiphyGrid";
 import CommentComposerActionButton from "../feed/page/journey-card/CommentComposerActionButton";
 import {
   CommentCameraIcon,
@@ -1013,7 +1013,7 @@ export default function ChatDemoDock() {
                         transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
                         className="absolute bottom-[calc(100%+8px)] left-0 z-20 overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80"
                       >
-                        <EmojiPicker
+                        <LazyEmojiPicker
                           onEmojiClick={handleEmojiSelect}
                           lazyLoadEmojis
                           previewConfig={{ showPreview: false }}
@@ -1021,6 +1021,8 @@ export default function ChatDemoDock() {
                           skinTonesDisabled
                           width={320}
                           height={380}
+                          fallbackWidth={320}
+                          fallbackHeight={380}
                         />
                       </motion.div>
                     ) : null}
@@ -1046,7 +1048,7 @@ export default function ChatDemoDock() {
                           />
                         </div>
                         <div className="h-[320px] w-[320px] overflow-y-auto px-2 py-2">
-                          <Grid
+                          <LazyGiphyGrid
                             width={296}
                             columns={2}
                             gutter={8}
@@ -1058,6 +1060,8 @@ export default function ChatDemoDock() {
                             }}
                             hideAttribution
                             noLink
+                            fallbackWidth={296}
+                            fallbackHeight={320}
                           />
                         </div>
                       </motion.div>

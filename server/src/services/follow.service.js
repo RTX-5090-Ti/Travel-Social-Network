@@ -1,0 +1,302 @@
+import mongoose from "mongoose";
+
+import Follow from "../models/Follow.js";
+import User from "../models/User.js";
+import { createNotification } from "./notification.service.js";
+
+function createHttpError(status, message) {
+  const error = new Error(message);
+  error.status = status;
+  return error;
+}
+
+function mapUserItem(user, extra = {}) {
+  return {
+    _id: user?._id,
+    name: user?.name || "Traveler",
+    avatarUrl: user?.avatarUrl || "",
+    lastSeenAt: user?.lastSeenAt || null,
+    ...extra,
+  };
+}
+
+async function ensureUserExists(userId) {
+  const exists = await User.exists({ _id: userId, isActive: { $ne: false } });
+  return !!exists;
+}
+
+async function countActiveFollowUsers({ matchField, targetUserId, joinField }) {
+  const results = await Follow.aggregate([
+    {
+      $match: {
+        [matchField]: new mongoose.Types.ObjectId(targetUserId),
+      },
+    },
+    {
+      $lookup: {
+        from: "users",
+        localField: joinField,
+        foreignField: "_id",
+        as: "relatedUser",
+      },
+    },
+    { $unwind: "$relatedUser" },
+    { $match: { "relatedUser.isActive": { $ne: false } } },
+    { $count: "total" },
+  ]);
+
+  return results[0]?.total || 0;
+}
+
+async function validateTargetUser(userId) {
+  if (!mongoose.isValidObjectId(userId)) {
+    throw createHttpError(400, "Invalid userId");
+  }
+
+  const exists = await ensureUserExists(userId);
+  if (!exists) {
+    throw createHttpError(404, "User not found");
+  }
+}
+
+async function listFollowUsers({
+  targetUserId,
+  viewerId,
+  mode,
+  page = 1,
+  limit = 12,
+}) {
+  const isFollowersMode = mode === "followers";
+
+  const baseFilter = isFollowersMode
+    ? { followingId: targetUserId }
+    : { followerId: targetUserId };
+
+  const populatePath = isFollowersMode ? "followerId" : "followingId";
+
+  const [docs, total] = await Promise.all([
+    Follow.find(baseFilter)
+      .populate(populatePath, "_id name avatarUrl isActive")
+      .sort({ createdAt: -1, _id: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .lean(),
+    countActiveFollowUsers({
+      matchField: isFollowersMode ? "followingId" : "followerId",
+      targetUserId,
+      joinField: isFollowersMode ? "followerId" : "followingId",
+    }),
+  ]);
+
+  const users = docs
+    .map((doc) => doc?.[populatePath])
+    .filter(Boolean)
+    .filter((user) => user?.isActive !== false)
+    .filter((user) => user?._id?.toString() !== targetUserId);
+
+  const relatedUserIds = users.map((user) => user._id);
+
+  const myFollowDocs =
+    viewerId && relatedUserIds.length
+      ? await Follow.find({
+          followerId: viewerId,
+          followingId: { $in: relatedUserIds },
+        })
+          .select("followingId")
+          .lean()
+      : [];
+
+  const followedSet = new Set(
+    myFollowDocs.map((item) => item.followingId.toString()),
+  );
+
+  const items = users.map((user) =>
+    mapUserItem(user, {
+      id: user?._id,
+      followedByMe:
+        viewerId && user?._id?.toString() !== viewerId
+          ? followedSet.has(user._id.toString())
+          : false,
+    }),
+  );
+
+  return {
+    items,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.max(1, Math.ceil(total / limit)),
+      hasMore: page * limit < total,
+    },
+  };
+}
+
+export async function followUser({ followerId, followingId }) {
+  await validateTargetUser(followingId);
+
+  if (followerId === followingId) {
+    throw createHttpError(400, "Cannot follow yourself");
+  }
+
+  try {
+    await Follow.create({ followerId, followingId });
+    await createNotification({
+      recipientUserId: followingId,
+      actorUserId: followerId,
+      type: "follow",
+    });
+  } catch (err) {
+    if (err?.code === 11000) {
+      return { followed: true };
+    }
+
+    throw err;
+  }
+
+  return { followed: true };
+}
+
+export async function unfollowUser({ followerId, followingId }) {
+  await validateTargetUser(followingId);
+
+  if (followerId === followingId) {
+    throw createHttpError(400, "Cannot unfollow yourself");
+  }
+
+  await Follow.deleteOne({ followerId, followingId });
+
+  return { followed: false };
+}
+
+export async function getFollowStatus({ followerId, followingId }) {
+  await validateTargetUser(followingId);
+
+  const doc = await Follow.findOne({ followerId, followingId })
+    .select("_id")
+    .lean();
+
+  return { followed: !!doc };
+}
+
+export async function getFollowSummary({ userId }) {
+  const [followersCount, followingCount] = await Promise.all([
+    countActiveFollowUsers({
+      matchField: "followingId",
+      targetUserId: userId,
+      joinField: "followerId",
+    }),
+    countActiveFollowUsers({
+      matchField: "followerId",
+      targetUserId: userId,
+      joinField: "followingId",
+    }),
+  ]);
+
+  return {
+    followersCount,
+    followingCount,
+  };
+}
+
+export async function listMutualFollows({ userId, limit = 10 }) {
+  const followingDocs = await Follow.find({ followerId: userId })
+    .select("followingId")
+    .lean();
+
+  const followingIds = followingDocs
+    .map((item) => item?.followingId?.toString?.())
+    .filter(Boolean);
+
+  if (!followingIds.length) {
+    return {
+      items: [],
+      meta: {
+        limit,
+        total: 0,
+      },
+    };
+  }
+
+  const mutualDocs = await Follow.find({
+    followingId: userId,
+    followerId: { $in: followingIds },
+  })
+    .populate("followerId", "_id name email avatarUrl isActive lastSeenAt")
+    .sort({ createdAt: -1, _id: -1 })
+    .limit(limit)
+    .lean();
+
+  const items = mutualDocs
+    .map((doc) => doc?.followerId)
+    .filter(Boolean)
+    .filter((item) => item?.isActive !== false)
+    .map((item) =>
+      mapUserItem(item, {
+        id: item?._id,
+        email: item?.email || "",
+      }),
+    );
+
+  return {
+    items,
+    meta: {
+      limit,
+      total: items.length,
+    },
+  };
+}
+
+export async function listFollowers({ currentUserId, page = 1, limit = 12 }) {
+  return listFollowUsers({
+    targetUserId: currentUserId,
+    viewerId: currentUserId,
+    mode: "followers",
+    page,
+    limit,
+  });
+}
+
+export async function listFollowing({ currentUserId, page = 1, limit = 12 }) {
+  return listFollowUsers({
+    targetUserId: currentUserId,
+    viewerId: currentUserId,
+    mode: "following",
+    page,
+    limit,
+  });
+}
+
+export async function listFollowersByUserId({
+  viewerId,
+  targetUserId,
+  page = 1,
+  limit = 12,
+}) {
+  await validateTargetUser(targetUserId);
+
+  return listFollowUsers({
+    targetUserId,
+    viewerId,
+    mode: "followers",
+    page,
+    limit,
+  });
+}
+
+export async function listFollowingByUserId({
+  viewerId,
+  targetUserId,
+  page = 1,
+  limit = 12,
+}) {
+  await validateTargetUser(targetUserId);
+
+  return listFollowUsers({
+    targetUserId,
+    viewerId,
+    mode: "following",
+    page,
+    limit,
+  });
+}
