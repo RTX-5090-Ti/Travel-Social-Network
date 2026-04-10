@@ -1,8 +1,10 @@
 import mongoose from "mongoose";
+import { unlink } from "fs/promises";
 
 import Conversation from "../models/Conversation.js";
 import Message from "../models/Message.js";
 import User from "../models/User.js";
+import { cloudinary } from "../config/cloudinary.js";
 import { emitToUser } from "../socket/index.js";
 
 function toIdString(value) {
@@ -22,6 +24,7 @@ function mapUserSummary(user) {
     name: user?.name || "Traveler",
     email: user?.email || "",
     avatarUrl: user?.avatarUrl || "",
+    lastSeenAt: user?.lastSeenAt || null,
   };
 }
 
@@ -30,6 +33,30 @@ function getConversationUnreadCount(conversation, userId) {
   const rawValue = unreadCounts?.[userId];
   const parsed = Number(rawValue || 0);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function getConversationClearedAt(conversation, userId) {
+  const clearedAtByUser = conversation?.clearedAtByUser || {};
+  const rawValue = clearedAtByUser?.[userId];
+  if (!rawValue) return null;
+
+  const date = new Date(rawValue);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function isConversationVisibleForUser(conversation, userId) {
+  const clearedAt = getConversationClearedAt(conversation, userId);
+  if (!clearedAt) return true;
+
+  const lastMessageAt = conversation?.lastMessageAt
+    ? new Date(conversation.lastMessageAt)
+    : null;
+
+  if (!lastMessageAt || Number.isNaN(lastMessageAt.getTime())) {
+    return false;
+  }
+
+  return lastMessageAt.getTime() > clearedAt.getTime();
 }
 
 function mapConversationSummary(conversation, viewerId) {
@@ -68,10 +95,24 @@ function mapMessagePayload(message) {
       ? mapUserSummary(message.senderId)
       : null,
     text: message?.text || "",
+    image:
+      message?.image?.url
+        ? {
+            url: message.image.url,
+            publicId: message.image.publicId || "",
+            width: message.image.width ?? null,
+            height: message.image.height ?? null,
+            mediaType: message.image.mediaType || "image",
+          }
+        : null,
     readAt: message?.readAt || null,
     createdAt: message?.createdAt,
     updatedAt: message?.updatedAt,
   };
+}
+
+function uploadFilePathToCloudinary(filePath, options) {
+  return cloudinary.uploader.upload(filePath, options);
 }
 
 async function countUnreadMessages(userId) {
@@ -94,7 +135,7 @@ async function findConversationForUser(conversationId, userId) {
     _id: conversationId,
     participants: userId,
   })
-    .populate("participants", "_id name email avatarUrl isActive")
+    .populate("participants", "_id name email avatarUrl isActive lastSeenAt")
     .populate("lastMessageSenderId", "_id name email avatarUrl")
     .lean();
 }
@@ -135,7 +176,7 @@ async function ensureDirectConversation(viewerId, targetUserId) {
   }
 
   return Conversation.findById(conversation._id)
-    .populate("participants", "_id name email avatarUrl isActive")
+    .populate("participants", "_id name email avatarUrl isActive lastSeenAt")
     .populate("lastMessageSenderId", "_id name email avatarUrl")
     .lean();
 }
@@ -147,14 +188,15 @@ export async function listConversations(req, res, next) {
     const docs = await Conversation.find({
       participants: userId,
     })
-      .populate("participants", "_id name email avatarUrl isActive")
+      .populate("participants", "_id name email avatarUrl isActive lastSeenAt")
       .populate("lastMessageSenderId", "_id name email avatarUrl")
       .sort({ lastMessageAt: -1, updatedAt: -1, _id: -1 })
       .lean();
 
     const items = docs
       .filter((conversation) =>
-        conversation.participants.some((item) => item?.isActive !== false),
+        conversation.participants.some((item) => item?.isActive !== false) &&
+        isConversationVisibleForUser(conversation, userId),
       )
       .map((conversation) => mapConversationSummary(conversation, userId));
 
@@ -190,9 +232,16 @@ export async function getConversationMessages(req, res, next) {
       return;
     }
 
-    const messages = await Message.find({
+    const clearedAt = getConversationClearedAt(conversation, userId);
+    const messageQuery = {
       conversationId,
-    })
+    };
+
+    if (clearedAt) {
+      messageQuery.createdAt = { $gt: clearedAt };
+    }
+
+    const messages = await Message.find(messageQuery)
       .populate("senderId", "_id name email avatarUrl")
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit)
@@ -223,7 +272,7 @@ export async function openDirectConversation(req, res, next) {
     }
 
     const targetUser = await User.findById(targetUserId).select(
-      "_id name email avatarUrl isActive",
+      "_id name email avatarUrl isActive lastSeenAt",
     );
 
     if (!targetUser || targetUser.isActive === false) {
@@ -303,6 +352,9 @@ export async function sendMessage(req, res, next) {
         getConversationUnreadCount(conversationDoc, recipientId) + 1,
     };
 
+    conversationDoc.clearedAtByUser = {
+      ...(conversationDoc.clearedAtByUser || {}),
+    };
     conversationDoc.lastMessageText = text;
     conversationDoc.lastMessageAt = created.createdAt;
     conversationDoc.lastMessageSenderId = senderId;
@@ -320,6 +372,219 @@ export async function sendMessage(req, res, next) {
 
     if (recipientConversation) {
       await emitConversationToUser(recipientId, recipientConversation, hydratedMessage);
+    }
+
+    res.status(201).json({
+      ok: true,
+      conversation: senderConversation
+        ? mapConversationSummary(senderConversation, senderId)
+        : null,
+      message: hydratedMessage ? mapMessagePayload(hydratedMessage) : null,
+      unreadCount: await countUnreadMessages(senderId),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function sendImageMessage(req, res, next) {
+  let uploadedImage = null;
+
+  try {
+    const senderId = req.user.userId;
+    const conversationId = req.params.conversationId;
+    const text = typeof req.body?.text === "string" ? req.body.text.trim() : "";
+    const imageFile = req.file;
+
+    if (!imageFile) {
+      res.status(400).json({ message: "Image is required." });
+      return;
+    }
+
+    const conversationDoc = await Conversation.findOne({
+      _id: conversationId,
+      participants: senderId,
+    });
+
+    if (!conversationDoc) {
+      await unlink(imageFile.path).catch(() => {});
+      res.status(404).json({ message: "Conversation not found." });
+      return;
+    }
+
+    const participants = conversationDoc.participants.map((item) =>
+      toIdString(item),
+    );
+    const recipientId = participants.find((item) => item !== senderId);
+
+    if (!recipientId) {
+      await unlink(imageFile.path).catch(() => {});
+      res.status(400).json({ message: "Recipient not found." });
+      return;
+    }
+
+    try {
+      const result = await uploadFilePathToCloudinary(imageFile.path, {
+        folder: `chat/${conversationId}`,
+        resource_type: "image",
+      });
+
+      uploadedImage = {
+        url: result.secure_url,
+        publicId: result.public_id,
+        width: result.width ?? null,
+        height: result.height ?? null,
+      };
+    } finally {
+      await unlink(imageFile.path).catch(() => {});
+    }
+
+    const created = await Message.create({
+      conversationId,
+      senderId,
+      recipientId,
+      text,
+      image: uploadedImage,
+    });
+
+    const unreadCounts = {
+      ...(conversationDoc.unreadCounts || {}),
+      [senderId]: 0,
+      [recipientId]:
+        getConversationUnreadCount(conversationDoc, recipientId) + 1,
+    };
+
+    conversationDoc.clearedAtByUser = {
+      ...(conversationDoc.clearedAtByUser || {}),
+    };
+    conversationDoc.lastMessageText = text || "Đã gửi ảnh";
+    conversationDoc.lastMessageAt = created.createdAt;
+    conversationDoc.lastMessageSenderId = senderId;
+    conversationDoc.unreadCounts = unreadCounts;
+    await conversationDoc.save();
+
+    const [hydratedMessage, senderConversation, recipientConversation] =
+      await Promise.all([
+        Message.findById(created._id)
+          .populate("senderId", "_id name email avatarUrl")
+          .lean(),
+        findConversationForUser(conversationId, senderId),
+        findConversationForUser(conversationId, recipientId),
+      ]);
+
+    if (recipientConversation) {
+      await emitConversationToUser(
+        recipientId,
+        recipientConversation,
+        hydratedMessage,
+      );
+    }
+
+    res.status(201).json({
+      ok: true,
+      conversation: senderConversation
+        ? mapConversationSummary(senderConversation, senderId)
+        : null,
+      message: hydratedMessage ? mapMessagePayload(hydratedMessage) : null,
+      unreadCount: await countUnreadMessages(senderId),
+    });
+  } catch (err) {
+    console.error("Chat image upload failed:", err);
+
+    if (uploadedImage?.publicId) {
+      await cloudinary.uploader
+        .destroy(uploadedImage.publicId, { resource_type: "image" })
+        .catch(() => {});
+    }
+
+    if (req.file?.path) {
+      await unlink(req.file.path).catch(() => {});
+    }
+
+    next(err);
+  }
+}
+
+export async function sendGifMessage(req, res, next) {
+  try {
+    const senderId = req.user.userId;
+    const conversationId = req.params.conversationId;
+    const text = typeof req.body?.text === "string" ? req.body.text.trim() : "";
+    const gifUrl =
+      typeof req.body?.gifUrl === "string" ? req.body.gifUrl.trim() : "";
+    const widthRaw = Number(req.body?.width);
+    const heightRaw = Number(req.body?.height);
+
+    if (!gifUrl) {
+      res.status(400).json({ message: "GIF is required." });
+      return;
+    }
+
+    const conversationDoc = await Conversation.findOne({
+      _id: conversationId,
+      participants: senderId,
+    });
+
+    if (!conversationDoc) {
+      res.status(404).json({ message: "Conversation not found." });
+      return;
+    }
+
+    const participants = conversationDoc.participants.map((item) =>
+      toIdString(item),
+    );
+    const recipientId = participants.find((item) => item !== senderId);
+
+    if (!recipientId) {
+      res.status(400).json({ message: "Recipient not found." });
+      return;
+    }
+
+    const created = await Message.create({
+      conversationId,
+      senderId,
+      recipientId,
+      text,
+      image: {
+        url: gifUrl,
+        publicId: "",
+        width: Number.isFinite(widthRaw) ? widthRaw : null,
+        height: Number.isFinite(heightRaw) ? heightRaw : null,
+        mediaType: "gif",
+      },
+    });
+
+    const unreadCounts = {
+      ...(conversationDoc.unreadCounts || {}),
+      [senderId]: 0,
+      [recipientId]:
+        getConversationUnreadCount(conversationDoc, recipientId) + 1,
+    };
+
+    conversationDoc.clearedAtByUser = {
+      ...(conversationDoc.clearedAtByUser || {}),
+    };
+    conversationDoc.lastMessageText = text || "Đã gửi GIF";
+    conversationDoc.lastMessageAt = created.createdAt;
+    conversationDoc.lastMessageSenderId = senderId;
+    conversationDoc.unreadCounts = unreadCounts;
+    await conversationDoc.save();
+
+    const [hydratedMessage, senderConversation, recipientConversation] =
+      await Promise.all([
+        Message.findById(created._id)
+          .populate("senderId", "_id name email avatarUrl")
+          .lean(),
+        findConversationForUser(conversationId, senderId),
+        findConversationForUser(conversationId, recipientId),
+      ]);
+
+    if (recipientConversation) {
+      await emitConversationToUser(
+        recipientId,
+        recipientConversation,
+        hydratedMessage,
+      );
     }
 
     res.status(201).json({
@@ -416,6 +681,64 @@ export async function markConversationRead(req, res, next) {
       conversation: conversation
         ? mapConversationSummary(conversation, userId)
         : null,
+      unreadCount: await countUnreadMessages(userId),
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function deleteSelectedConversations(req, res, next) {
+  try {
+    const userId = req.user.userId;
+    const normalizedIds = Array.isArray(req.body?.conversationIds)
+      ? [
+          ...new Set(
+            req.body.conversationIds
+              .map((item) => toIdString(item))
+              .filter((item) => mongoose.isValidObjectId(item)),
+          ),
+        ]
+      : [];
+
+    if (!normalizedIds.length) {
+      res.status(400).json({ message: "No conversations selected." });
+      return;
+    }
+
+    const docs = await Conversation.find({
+      _id: { $in: normalizedIds },
+      participants: userId,
+    });
+
+    if (!docs.length) {
+      res.json({
+        ok: true,
+        deletedIds: [],
+        unreadCount: await countUnreadMessages(userId),
+      });
+      return;
+    }
+
+    const now = new Date();
+
+    await Promise.all(
+      docs.map(async (conversationDoc) => {
+        conversationDoc.clearedAtByUser = {
+          ...(conversationDoc.clearedAtByUser || {}),
+          [userId]: now,
+        };
+        conversationDoc.unreadCounts = {
+          ...(conversationDoc.unreadCounts || {}),
+          [userId]: 0,
+        };
+        await conversationDoc.save();
+      }),
+    );
+
+    res.json({
+      ok: true,
+      deletedIds: docs.map((doc) => toIdString(doc?._id)).filter(Boolean),
       unreadCount: await countUnreadMessages(userId),
     });
   } catch (err) {

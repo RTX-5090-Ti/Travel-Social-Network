@@ -98,10 +98,7 @@ export default function JourneyMediaLightbox({
 
         <div className="flex items-center justify-between gap-3 border-t border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(247,242,255,0.76))] px-4 pb-2 pt-2 text-zinc-800 backdrop-blur-xl sm:px-5">
           <div className="min-w-0">
-            <p className="text-sm font-semibold truncate text-zinc-900">
-              {tripTitle}
-            </p>
-            <p className="mt-1 text-xs text-zinc-500">
+            <p className="text-xs text-zinc-500">
               {activeItem.type === "video" ? "Video" : "Photo"}
             </p>
           </div>

@@ -74,7 +74,10 @@ function countReplyNodesUntilTarget(replies = [], targetCommentId = "") {
       continue;
     }
 
-    const nestedResult = countReplyNodesUntilTarget(childReplies, targetCommentId);
+    const nestedResult = countReplyNodesUntilTarget(
+      childReplies,
+      targetCommentId,
+    );
     if (nestedResult.found) {
       return {
         found: true,
@@ -681,7 +684,9 @@ export default function JourneyDetailOverlay({
         return comment;
       }
 
-      const childReplies = Array.isArray(comment?.replies) ? comment.replies : [];
+      const childReplies = Array.isArray(comment?.replies)
+        ? comment.replies
+        : [];
       if (!childReplies.length) continue;
 
       const nestedComment = findCommentInTree(childReplies, targetCommentId);
@@ -720,7 +725,9 @@ export default function JourneyDetailOverlay({
         };
       }
 
-      const childReplies = Array.isArray(comment?.replies) ? comment.replies : [];
+      const childReplies = Array.isArray(comment?.replies)
+        ? comment.replies
+        : [];
       if (!childReplies.length) {
         return comment;
       }
@@ -779,7 +786,9 @@ export default function JourneyDetailOverlay({
       setCommentsError("");
 
       const res = await tripApi.listCommentReplies(commentId);
-      const nextReplies = Array.isArray(res.data?.replies) ? res.data.replies : [];
+      const nextReplies = Array.isArray(res.data?.replies)
+        ? res.data.replies
+        : [];
 
       setCommentItems((prev) =>
         replaceRepliesInTree(prev, commentId, nextReplies),
@@ -1363,7 +1372,7 @@ export default function JourneyDetailOverlay({
             </button>
           </div>
 
-                  <div className="theme-card mt-3 rounded-[20px] border border-zinc-200/80 bg-[linear-gradient(180deg,#ffffff,#fafafb)] px-3.5 py-3 sm:mt-4 sm:rounded-[24px] sm:px-5 sm:py-4">
+          <div className="theme-card mt-3 rounded-[20px] border border-zinc-200/80 bg-[linear-gradient(180deg,#ffffff,#fafafb)] px-3.5 py-3 sm:mt-4 sm:rounded-[24px] sm:px-5 sm:py-4">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-[20px] font-semibold tracking-tight text-zinc-900 sm:text-[24px]">
                 {trip.title}
@@ -1446,7 +1455,7 @@ export default function JourneyDetailOverlay({
                 <JourneySectionTitle
                   eyebrow=""
                   title="Journey timeline"
-                  description="Toàn bộ hành trình được chia theo từng cột mốc để người xem dễ theo dõi hơn."
+                  description=""
                 />
 
                 {detail.milestones?.length > 0 ? (
@@ -1558,7 +1567,7 @@ export default function JourneyDetailOverlay({
                       >
                         {commentsLoadingMore ? (
                           <span className="inline-flex items-center justify-center">
-                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600" />
+                            <span className="w-4 h-4 border-2 rounded-full animate-spin border-zinc-300 border-t-zinc-600" />
                           </span>
                         ) : (
                           "Load older comments"

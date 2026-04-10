@@ -70,6 +70,7 @@ const userSchema = new mongoose.Schema(
 
     //  để sau làm refresh/logout “chuẩn sản phẩm”
     refreshTokenHash: { type: String, default: null },
+    lastSeenAt: { type: Date, default: null, index: true },
   },
   { timestamps: true },
 );

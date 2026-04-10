@@ -9,6 +9,7 @@ function mapUserItem(user, extra = {}) {
     _id: user?._id,
     name: user?.name || "Traveler",
     avatarUrl: user?.avatarUrl || "",
+    lastSeenAt: user?.lastSeenAt || null,
     ...extra,
   };
 }
@@ -271,7 +272,7 @@ export async function listMutualFollows(req, res, next) {
       followingId: userId,
       followerId: { $in: followingIds },
     })
-      .populate("followerId", "_id name email avatarUrl isActive")
+      .populate("followerId", "_id name email avatarUrl isActive lastSeenAt")
       .sort({ createdAt: -1, _id: -1 })
       .limit(limit)
       .lean();

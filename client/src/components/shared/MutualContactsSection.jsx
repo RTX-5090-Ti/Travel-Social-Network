@@ -8,6 +8,7 @@ import { useChat } from "../../chat/useChat";
 
 const SIDEBAR_LIMIT = 10;
 const MODAL_LIMIT = 200;
+const SIDEBAR_SOURCE_LIMIT = 200;
 
 function getAvatarUrl(person) {
   return (
@@ -17,6 +18,10 @@ function getAvatarUrl(person) {
     person?.profile?.avatar ||
     ""
   );
+}
+
+function getUserId(person) {
+  return person?._id || person?.id || "";
 }
 
 function ContactCardSkeleton({ compact = false }) {
@@ -40,8 +45,11 @@ function ContactCardSkeleton({ compact = false }) {
 }
 
 function ContactRow({ person, compact = false }) {
-  const { openConversationWithUser } = useChat();
+  const { openConversationWithUser, onlineUserIds, presenceByUserId } = useChat();
   const avatarUrl = getAvatarUrl(person);
+  const userId = getUserId(person);
+  const presence = presenceByUserId[userId] || {};
+  const isOnline = onlineUserIds.includes(userId) || presence.isOnline;
 
   const handleOpenChat = () => {
     void openConversationWithUser(person);
@@ -66,7 +74,11 @@ function ContactRow({ person, compact = false }) {
               {(person?.name || "T").charAt(0).toUpperCase()}
             </div>
           )}
-          <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-400" />
+          <span
+            className={`absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-white ${
+              isOnline ? "bg-emerald-400" : "bg-zinc-400"
+            }`}
+          />
         </div>
 
         <div className="min-w-0">
@@ -103,18 +115,50 @@ function EmptyState({ boxed = false }) {
 }
 
 export default function MutualContactsSection() {
+  const { onlineUserIds, presenceByUserId } = useChat();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [allItems, setAllItems] = useState([]);
   const [allLoading, setAllLoading] = useState(false);
 
-  const visibleItems = useMemo(() => items.slice(0, SIDEBAR_LIMIT), [items]);
+  const onlineUserIdSet = useMemo(
+    () => new Set((onlineUserIds || []).filter(Boolean)),
+    [onlineUserIds],
+  );
+
+  const sortedItems = useMemo(() => {
+    return [...items].sort((left, right) => {
+      const leftId = getUserId(left);
+      const rightId = getUserId(right);
+      const leftOnline =
+        (leftId && onlineUserIdSet.has(leftId)) ||
+        presenceByUserId[leftId]?.isOnline
+          ? 1
+          : 0;
+      const rightOnline =
+        (rightId && onlineUserIdSet.has(rightId)) ||
+        presenceByUserId[rightId]?.isOnline
+          ? 1
+          : 0;
+
+      if (leftOnline !== rightOnline) {
+        return rightOnline - leftOnline;
+      }
+
+      return 0;
+    });
+  }, [items, onlineUserIdSet, presenceByUserId]);
+
+  const visibleItems = useMemo(
+    () => sortedItems.slice(0, SIDEBAR_LIMIT),
+    [sortedItems],
+  );
 
   const loadMutuals = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await followApi.listMutuals({ limit: SIDEBAR_LIMIT });
+      const res = await followApi.listMutuals({ limit: SIDEBAR_SOURCE_LIMIT });
       setItems(Array.isArray(res.data?.items) ? res.data.items : []);
     } catch {
       setItems([]);
@@ -199,13 +243,31 @@ export default function MutualContactsSection() {
                     />
                   ))
                 ) : allItems.length ? (
-                  allItems.map((person) => (
-                    <ContactRow
-                      key={`all-${person?._id || person?.id}`}
-                      person={person}
-                      compact
-                    />
-                  ))
+                  [...allItems]
+                    .sort((left, right) => {
+                      const leftId = getUserId(left);
+                      const rightId = getUserId(right);
+                      const leftOnline =
+                        (leftId && onlineUserIdSet.has(leftId)) ||
+                        presenceByUserId[leftId]?.isOnline
+                          ? 1
+                          : 0;
+                      const rightOnline =
+                        (rightId && onlineUserIdSet.has(rightId)) ||
+                        presenceByUserId[rightId]?.isOnline
+                          ? 1
+                          : 0;
+                      return rightOnline - leftOnline;
+                    })
+                    .map((person) => (
+                      <motion.div
+                        key={`all-${person?._id || person?.id}`}
+                        layout
+                        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                      >
+                        <ContactRow person={person} compact />
+                      </motion.div>
+                    ))
                 ) : (
                   <EmptyState boxed />
                 )}
@@ -244,7 +306,13 @@ export default function MutualContactsSection() {
             ))
           ) : visibleItems.length ? (
             visibleItems.map((person) => (
-              <ContactRow key={person?._id || person?.id} person={person} />
+              <motion.div
+                key={person?._id || person?.id}
+                layout
+                transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+              >
+                <ContactRow person={person} />
+              </motion.div>
             ))
           ) : (
             <EmptyState />
