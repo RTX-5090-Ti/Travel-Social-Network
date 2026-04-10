@@ -3,7 +3,7 @@ import SearchBar from "./SearchBar";
 
 export default function FeedHeroBar({ onOpenComposer }) {
   return (
-    <section className="overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(135deg,rgba(102,126,234,0.12),rgba(118,75,162,0.16),rgba(255,255,255,0.92))] p-2.5 shadow-[0_12px_28px_rgba(15,23,42,0.04)] ring-1 ring-zinc-200/60 backdrop-blur sm:rounded-[32px] sm:p-5 sm:shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
+    <section className="theme-card overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(135deg,rgba(102,126,234,0.12),rgba(118,75,162,0.16),rgba(255,255,255,0.92))] p-2.5 shadow-[0_12px_28px_rgba(15,23,42,0.04)] ring-1 ring-zinc-200/60 backdrop-blur sm:rounded-[32px] sm:p-5 sm:shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
       <div className="flex flex-col gap-3 sm:gap-5">
         <div className="min-w-0">
           <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-white/80 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#4f7cff] sm:gap-2 sm:px-3 sm:text-[11px] sm:tracking-[0.14em]">
@@ -17,7 +17,7 @@ export default function FeedHeroBar({ onOpenComposer }) {
         </div>
 
         <div className="flex flex-col gap-2.5 md:flex-row md:items-center">
-          <div className="flex-1 rounded-[15px] border border-white/80 bg-white/80 p-1.5 shadow-[0_6px_14px_rgba(15,23,42,0.035)] backdrop-blur sm:rounded-[24px] sm:p-3 sm:shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+          <div className="theme-card flex-1 rounded-[15px] border border-white/80 bg-white/80 p-1.5 shadow-[0_6px_14px_rgba(15,23,42,0.035)] backdrop-blur sm:rounded-[24px] sm:p-3 sm:shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
             <SearchBar />
           </div>
 

@@ -24,7 +24,7 @@ export default function SettingsPasswordSection({
       open={open}
       onToggle={onToggle}
     >
-      <div className="rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(245,247,255,0.95))] p-5 shadow-[0_12px_28px_rgba(15,23,42,0.04)] ring-1 ring-zinc-200/55">
+      <div className="theme-card rounded-[24px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(245,247,255,0.95))] p-5 shadow-[0_12px_28px_rgba(15,23,42,0.04)] ring-1 ring-zinc-200/55">
         <p className="text-[14px] leading-7 text-zinc-500">
           You can change your password here whenever you want.
         </p>
@@ -33,12 +33,12 @@ export default function SettingsPasswordSection({
           <button
             type="button"
             onClick={onOpenPasswordForm}
-            className="mt-4 inline-flex h-10 cursor-pointer items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.24)] transition hover:-translate-y-0.5"
+            className="theme-secondary-button mt-4 inline-flex h-10 cursor-pointer items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.24)] transition hover:-translate-y-0.5"
           >
             Change password
           </button>
         ) : (
-          <div className="mt-5 rounded-[24px] border border-zinc-200/80 bg-white/90 p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+          <div className="theme-card mt-5 rounded-[24px] border border-zinc-200/80 bg-white/90 p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
             <div className="grid gap-3">
               <PasswordField
                 label="Current password"
@@ -86,7 +86,7 @@ export default function SettingsPasswordSection({
               <button
                 type="button"
                 onClick={onCancelPasswordForm}
-                className="inline-flex h-10 cursor-pointer items-center justify-center rounded-2xl border border-zinc-200 bg-white px-5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                className="theme-secondary-button inline-flex h-10 cursor-pointer items-center justify-center rounded-2xl border border-zinc-200 bg-white px-5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
               >
                 Cancel
               </button>
@@ -94,7 +94,7 @@ export default function SettingsPasswordSection({
               <button
                 type="button"
                 onClick={onSavePassword}
-                className="inline-flex h-10 cursor-pointer items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.24)] transition hover:-translate-y-0.5"
+                className="theme-secondary-button inline-flex h-10 cursor-pointer items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-5 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.24)] transition hover:-translate-y-0.5"
               >
                 {isPasswordSaving ? "Saving..." : "Save"}
               </button>

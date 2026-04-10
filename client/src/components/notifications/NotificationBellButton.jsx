@@ -245,7 +245,7 @@ function DeleteActions({
         disabled={selectedCount <= 0 || deletingSelected}
         className={`rounded-[16px] border px-3 py-2.5 text-[12px] font-semibold shadow-[0_8px_18px_rgba(15,23,42,0.06)] transition ${
           selectedCount > 0 && !deletingSelected
-            ? "border-zinc-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,244,245,0.98))] text-zinc-600 hover:-translate-y-[1px] hover:bg-white cursor-pointer"
+            ? "theme-secondary-button border-zinc-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,244,245,0.98))] text-zinc-600 hover:-translate-y-[1px] hover:bg-white cursor-pointer"
             : "border-zinc-200/70 bg-zinc-100/90 text-zinc-400 cursor-not-allowed"
         }`}
       >
@@ -263,7 +263,7 @@ function DeleteActions({
         className={`rounded-[16px] border px-3 py-2.5 text-[12px] font-semibold shadow-[0_8px_18px_rgba(244,63,94,0.08)] transition ${
           deletingAll
             ? "border-rose-200/70 bg-rose-100/90 text-rose-300 cursor-not-allowed"
-            : "border-rose-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(255,241,242,0.98))] text-rose-600 hover:-translate-y-[1px] hover:bg-white cursor-pointer"
+            : "theme-secondary-button border-rose-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(255,241,242,0.98))] text-rose-600 hover:-translate-y-[1px] hover:bg-white cursor-pointer"
         }`}
       >
         {deletingAll ? "Đang xoá..." : "Xoá tất cả"}
@@ -513,7 +513,7 @@ export default function NotificationBellButton() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -8, scale: 0.985 }}
           transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-          className="fixed z-[9999] overflow-hidden rounded-[28px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,247,255,0.95),rgba(243,238,255,0.94))] shadow-[0_26px_70px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/70 backdrop-blur-xl"
+          className="theme-popover fixed z-[9999] overflow-hidden rounded-[28px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,247,255,0.95),rgba(243,238,255,0.94))] shadow-[0_26px_70px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/70 backdrop-blur-xl"
           style={panelStyle}
         >
           <div className="border-b border-zinc-200/70 px-4 py-4">

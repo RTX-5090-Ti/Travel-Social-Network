@@ -242,7 +242,7 @@ export default function ProfilePage() {
     mediaLightboxIndex < mediaItems.length;
 
   return (
-    <div className="relative min-h-screen bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-4">
+    <div className="theme-page-shell relative min-h-screen bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-4">
       <div className="absolute inset-0 pointer-events-none">
         <FloatingShape
           className="left-[8%] top-[10%] h-20 w-20"
@@ -273,7 +273,7 @@ export default function ProfilePage() {
         </FloatingShape>
       </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden rounded-[34px] border border-white/60 bg-[#fafafb] shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
+      <div className="theme-app-shell relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden rounded-[34px] border border-white/60 bg-[#fafafb] shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
         <div className="grid min-h-[900px] grid-cols-1 lg:h-full lg:min-h-0 lg:grid-cols-[312px_minmax(0,1fr)_344px]">
           <ProfileLeftSidebar
             user={displayUser}
@@ -281,7 +281,7 @@ export default function ProfilePage() {
             onOpenConnections={handleOpenConnections}
           />
 
-          <main className="profile-main-scroll min-w-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,250,251,0.96))] px-5 py-6 sm:px-7 sm:py-8 lg:h-full lg:overflow-y-auto lg:overflow-x-hidden lg:border-r lg:px-9 xl:px-10 border-zinc-200/80">
+          <main className="theme-main-pane profile-main-scroll min-w-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,250,251,0.96))] px-5 py-6 sm:px-7 sm:py-8 lg:h-full lg:overflow-y-auto lg:overflow-x-hidden lg:border-r lg:px-9 xl:px-10 border-zinc-200/80">
             <div className="mx-auto w-full max-w-[920px]">
               <ProfileHero
                 user={displayUser}
@@ -300,7 +300,7 @@ export default function ProfilePage() {
               />
 
               <section className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-                <div className="rounded-[30px] border border-white/70 bg-white/80 p-4 shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur sm:p-5">
+                <div className="theme-card rounded-[30px] border border-white/70 bg-white/80 p-4 shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur sm:p-5">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
@@ -359,7 +359,7 @@ export default function ProfilePage() {
               </section>
 
               {!isVisitorProfile ? (
-                <div className="mt-6 overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.74),rgba(244,247,255,0.90),rgba(243,238,255,0.88))] shadow-[0_18px_42px_rgba(15,23,42,0.06)] ring-1 ring-zinc-200/60 backdrop-blur">
+                <div className="theme-card mt-6 overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.74),rgba(244,247,255,0.90),rgba(243,238,255,0.88))] shadow-[0_18px_42px_rgba(15,23,42,0.06)] ring-1 ring-zinc-200/60 backdrop-blur">
                   <div className="relative px-4 py-4 overflow-hidden sm:px-5 sm:py-5">
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.10),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.10),transparent_30%)]" />
                     <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.95),transparent)]" />
@@ -389,7 +389,7 @@ export default function ProfilePage() {
                         </span>
 
                         <span className="relative z-10 flex-1 min-w-0">
-                          <span className="flex h-[48px] items-center rounded-full border border-white/70 bg-[linear-gradient(180deg,rgba(241,243,248,0.98),rgba(235,238,244,1))] px-5 text-left text-[15px] font-medium text-zinc-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition duration-300 group-hover:bg-[linear-gradient(180deg,rgba(237,240,247,1),rgba(232,236,243,1))]">
+                          <span className="theme-secondary-button flex h-[48px] items-center rounded-full border border-white/70 bg-[linear-gradient(180deg,rgba(241,243,248,0.98),rgba(235,238,244,1))] px-5 text-left text-[15px] font-medium text-zinc-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition duration-300 group-hover:bg-[linear-gradient(180deg,rgba(237,240,247,1),rgba(232,236,243,1))]">
                             Share your next journey...
                           </span>
                         </span>
@@ -410,7 +410,7 @@ export default function ProfilePage() {
                       <button
                         type="button"
                         onClick={handleOpenCreatePost}
-                        className="group relative inline-flex h-[60px] shrink-0 items-center justify-center gap-3 overflow-hidden rounded-[18px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.96),rgba(243,237,255,0.94))] px-7 text-[15px] font-semibold text-[#5b63f6] shadow-[0_12px_28px_rgba(91,99,246,0.12)] ring-1 ring-zinc-200/60 transition duration-300 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_18px_38px_rgba(91,99,246,0.18)] cursor-pointer"
+                        className="theme-secondary-button group relative inline-flex h-[60px] shrink-0 items-center justify-center gap-3 overflow-hidden rounded-[18px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.96),rgba(243,237,255,0.94))] px-7 text-[15px] font-semibold text-[#5b63f6] shadow-[0_12px_28px_rgba(91,99,246,0.12)] ring-1 ring-zinc-200/60 transition duration-300 hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_18px_38px_rgba(91,99,246,0.18)] cursor-pointer"
                       >
                         <span className="absolute inset-y-0 left-[-100%] w-full bg-[linear-gradient(135deg,rgba(102,126,234,0.10),rgba(118,75,162,0.14),rgba(78,205,196,0.10),rgba(69,183,209,0.10))] transition-all duration-500 group-hover:left-0" />
                         <span className="absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.10),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.10),transparent_38%)]" />
@@ -437,7 +437,7 @@ export default function ProfilePage() {
                     </div>
                   </div>
 
-                  <div className="inline-flex w-fit rounded-[18px] border border-white/70 bg-white/85 p-1.5 shadow-[0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
+                  <div className="theme-card inline-flex w-fit rounded-[18px] border border-white/70 bg-white/85 p-1.5 shadow-[0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
                     {PROFILE_TABS.map((tab) => (
                       <ProfileTabButton
                         key={tab.key}

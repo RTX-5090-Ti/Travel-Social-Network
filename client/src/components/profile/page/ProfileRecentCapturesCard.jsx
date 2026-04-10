@@ -12,7 +12,7 @@ export default function ProfileRecentCapturesCard({
 
   if (loading) {
     return (
-      <div className="overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.90),rgba(246,247,255,0.92),rgba(243,239,255,0.90))] p-5 shadow-[0_12px_28px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
+      <div className="theme-card overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.90),rgba(246,247,255,0.92),rgba(243,239,255,0.90))] p-5 shadow-[0_12px_28px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
         <div className="animate-pulse">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0 flex-1">
@@ -42,7 +42,7 @@ export default function ProfileRecentCapturesCard({
   }
 
   return (
-    <div className="overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.90),rgba(246,247,255,0.92),rgba(243,239,255,0.90))] p-5 shadow-[0_12px_28px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
+    <div className="theme-card overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.90),rgba(246,247,255,0.92),rgba(243,239,255,0.90))] p-5 shadow-[0_12px_28px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
@@ -78,7 +78,7 @@ export default function ProfileRecentCapturesCard({
         <button
           type="button"
           onClick={onShareJourney}
-          className="mt-5 inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.24)] transition hover:-translate-y-0.5"
+          className="theme-secondary-button mt-5 inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-4 py-3 text-sm font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.24)] transition hover:-translate-y-0.5"
         >
           <Plus className="w-4 h-4" />
           Share your first journey

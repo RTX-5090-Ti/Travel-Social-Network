@@ -579,7 +579,7 @@ export default function ShareJourneyModal({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 14, scale: 0.98 }}
                 transition={{ duration: 0.24, ease: "easeOut" }}
-                className="relative flex h-screen max-h-screen w-full max-w-none flex-col overflow-hidden rounded-none border-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] shadow-none sm:h-auto sm:max-h-[92vh] sm:max-w-6xl sm:rounded-[32px] sm:border sm:border-white/60 sm:bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.96))] sm:shadow-[0_40px_120px_rgba(15,23,42,0.28)]"
+                className="theme-popover relative flex h-screen max-h-screen w-full max-w-none flex-col overflow-hidden rounded-none border-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] shadow-none sm:h-auto sm:max-h-[92vh] sm:max-w-6xl sm:rounded-[32px] sm:border sm:border-white/60 sm:bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.96))] sm:shadow-[0_40px_120px_rgba(15,23,42,0.28)]"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="sticky top-0 z-20 px-4 py-3 border-b border-zinc-200/80 bg-white/75 backdrop-blur-xl sm:px-7 sm:py-4">
@@ -617,7 +617,7 @@ export default function ShareJourneyModal({
                   className="flex-1 px-4 py-4 overflow-y-auto sm:px-7 sm:py-6"
                 >
                   <div className="grid gap-4 sm:gap-6 xl:grid-cols-[1.02fr_1.34fr]">
-                    <section className="rounded-[22px] border border-zinc-200/80 bg-white/90 p-4 shadow-[0_8px_22px_rgba(15,23,42,0.045)] sm:rounded-[28px] sm:p-6 sm:shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+                    <section className="theme-card rounded-[22px] border border-zinc-200/80 bg-white/90 p-4 shadow-[0_8px_22px_rgba(15,23,42,0.045)] sm:rounded-[28px] sm:p-6 sm:shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
                       <div className="flex items-center justify-between gap-3">
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">
@@ -664,7 +664,7 @@ export default function ShareJourneyModal({
                         </ShareJourneyField>
 
                         <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
-                          <div className="rounded-[18px] border border-zinc-200 bg-zinc-50/70 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
+                          <div className="theme-card rounded-[18px] border border-zinc-200 bg-zinc-50/70 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
                             <p className="text-[11px] font-medium text-zinc-400 sm:text-xs">
                               Milestones
                             </p>
@@ -673,7 +673,7 @@ export default function ShareJourneyModal({
                             </p>
                           </div>
 
-                          <div className="rounded-[18px] border border-zinc-200 bg-zinc-50/70 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
+                          <div className="theme-card rounded-[18px] border border-zinc-200 bg-zinc-50/70 px-3 py-2.5 sm:rounded-2xl sm:px-4 sm:py-3">
                             <p className="text-[11px] font-medium text-zinc-400 sm:text-xs">
                               Media selected
                             </p>
@@ -685,7 +685,7 @@ export default function ShareJourneyModal({
                       </div>
                     </section>
 
-                    <section className="rounded-[22px] border border-zinc-200/80 bg-white/90 p-4 shadow-[0_8px_22px_rgba(15,23,42,0.045)] sm:rounded-[28px] sm:p-6 sm:shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
+                    <section className="theme-card rounded-[22px] border border-zinc-200/80 bg-white/90 p-4 shadow-[0_8px_22px_rgba(15,23,42,0.045)] sm:rounded-[28px] sm:p-6 sm:shadow-[0_10px_30px_rgba(15,23,42,0.05)]">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-400">
@@ -714,7 +714,7 @@ export default function ShareJourneyModal({
                         {milestones.map((item, index) => (
                           <div
                             key={item.id}
-                            className="overflow-hidden rounded-[24px] border border-zinc-200 bg-[linear-gradient(180deg,#ffffff,#fafafb)]"
+                            className="theme-card overflow-hidden rounded-[24px] border border-zinc-200 bg-[linear-gradient(180deg,#ffffff,#fafafb)]"
                           >
                             <div className="flex items-start justify-between gap-3 px-4 py-4 border-b border-zinc-100 sm:px-5">
                               <div className="min-w-0">

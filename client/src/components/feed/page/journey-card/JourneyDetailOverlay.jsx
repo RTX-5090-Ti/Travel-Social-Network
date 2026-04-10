@@ -1363,7 +1363,7 @@ export default function JourneyDetailOverlay({
             </button>
           </div>
 
-          <div className="mt-3 rounded-[20px] border border-zinc-200/80 bg-[linear-gradient(180deg,#ffffff,#fafafb)] px-3.5 py-3 sm:mt-4 sm:rounded-[24px] sm:px-5 sm:py-4">
+                  <div className="theme-card mt-3 rounded-[20px] border border-zinc-200/80 bg-[linear-gradient(180deg,#ffffff,#fafafb)] px-3.5 py-3 sm:mt-4 sm:rounded-[24px] sm:px-5 sm:py-4">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-[20px] font-semibold tracking-tight text-zinc-900 sm:text-[24px]">
                 {trip.title}
@@ -1391,7 +1391,7 @@ export default function JourneyDetailOverlay({
           className="flex-1 min-h-0 px-4 py-4 overflow-y-auto sm:px-6 sm:py-6"
         >
           {detailLoading ? (
-            <div className="rounded-[20px] border border-zinc-200 bg-[linear-gradient(180deg,#fafafa,#ffffff)] p-4 sm:rounded-[24px] sm:p-5">
+            <div className="theme-card rounded-[20px] border border-zinc-200 bg-[linear-gradient(180deg,#fafafa,#ffffff)] p-4 sm:rounded-[24px] sm:p-5">
               <div className="space-y-3 animate-pulse">
                 <div className="w-40 h-4 rounded bg-zinc-200" />
                 <div className="h-24 rounded-2xl bg-zinc-100" />
@@ -1516,7 +1516,7 @@ export default function JourneyDetailOverlay({
                                 </div>
                               ))
                             ) : (
-                              <div className="rounded-[20px] border border-dashed border-zinc-200 bg-zinc-50 px-4 py-4 text-sm italic text-zinc-400">
+                              <div className="theme-card rounded-[20px] border border-dashed border-zinc-200 bg-zinc-50 px-4 py-4 text-sm italic text-zinc-400">
                                 Milestone này chưa có nội dung chi tiết.
                               </div>
                             )}
@@ -1526,7 +1526,7 @@ export default function JourneyDetailOverlay({
                     ))}
                   </div>
                 ) : (
-                  <div className="mt-5 rounded-[24px] border border-dashed border-zinc-200 bg-zinc-50 px-5 py-5 text-sm text-zinc-500">
+                  <div className="theme-card mt-5 rounded-[24px] border border-dashed border-zinc-200 bg-zinc-50 px-5 py-5 text-sm text-zinc-500">
                     Journey này chưa có milestone chi tiết.
                   </div>
                 )}
@@ -1631,7 +1631,7 @@ export default function JourneyDetailOverlay({
                       <div ref={commentListEndRef} />
                     </div>
                   ) : (
-                    <div className="rounded-[20px] border border-dashed border-zinc-200 bg-zinc-50 px-4 py-4 text-sm text-zinc-400">
+                    <div className="theme-card rounded-[20px] border border-dashed border-zinc-200 bg-zinc-50 px-4 py-4 text-sm text-zinc-400">
                       Chưa có comment nào. Hãy là người đầu tiên bắt đầu cuộc
                       trò chuyện.
                       <div ref={commentListEndRef} />
@@ -1645,7 +1645,7 @@ export default function JourneyDetailOverlay({
 
         <form
           onSubmit={handleSubmitComment}
-          className="shrink-0 border-t border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,248,255,0.98))] px-4 py-4 backdrop-blur sm:px-6 sm:py-5"
+          className="theme-comment-panel shrink-0 border-t border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,248,255,0.98))] px-4 py-4 backdrop-blur sm:px-6 sm:py-5"
         >
           <div className="flex items-end gap-3">
             <CommentComposerAvatar
@@ -1654,7 +1654,7 @@ export default function JourneyDetailOverlay({
               name={currentUserName}
             />
 
-            <div className="min-w-0 flex-1 rounded-[30px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.95),rgba(250,247,255,0.96))] px-4 py-3 shadow-[0_14px_34px_rgba(99,102,241,0.10)] ring-1 ring-zinc-200/70 backdrop-blur transition-[box-shadow,border-color,background,transform] duration-200 focus-within:border-[rgba(167,139,250,0.55)] focus-within:bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(242,245,255,0.98),rgba(248,243,255,0.98))] focus-within:shadow-[0_18px_40px_rgba(124,58,237,0.16),0_0_0_4px_rgba(167,139,250,0.10)] focus-within:ring-[rgba(167,139,250,0.30)]">
+            <div className="theme-card min-w-0 flex-1 rounded-[30px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.95),rgba(250,247,255,0.96))] px-4 py-3 shadow-[0_14px_34px_rgba(99,102,241,0.10)] ring-1 ring-zinc-200/70 backdrop-blur transition-[box-shadow,border-color,background,transform] duration-200 focus-within:border-[rgba(167,139,250,0.55)] focus-within:bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(242,245,255,0.98),rgba(248,243,255,0.98))] focus-within:shadow-[0_18px_40px_rgba(124,58,237,0.16),0_0_0_4px_rgba(167,139,250,0.10)] focus-within:ring-[rgba(167,139,250,0.30)]">
               <textarea
                 ref={commentTextareaRef}
                 value={commentText}
@@ -1737,7 +1737,7 @@ export default function JourneyDetailOverlay({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.98 }}
                 transition={{ duration: 0.18 }}
-                className="mx-4 w-full max-w-sm rounded-[26px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(249,245,255,0.98))] p-5 shadow-[0_24px_56px_rgba(76,29,149,0.18)]"
+                className="theme-popover mx-4 w-full max-w-sm rounded-[26px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(249,245,255,0.98))] p-5 shadow-[0_24px_56px_rgba(76,29,149,0.18)]"
               >
                 <p className="text-[18px] font-semibold text-zinc-900">
                   Xoá bình luận?

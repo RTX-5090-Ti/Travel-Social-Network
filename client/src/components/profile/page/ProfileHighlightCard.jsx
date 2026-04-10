@@ -42,7 +42,7 @@ export default function ProfileHighlightCard({ trip, onOpen }) {
     <button
       type="button"
       onClick={onOpen}
-      className="group w-full overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,#ffffff,#fbfbff)] text-left shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_44px_rgba(15,23,42,0.08)] cursor-pointer"
+      className="theme-card group w-full overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,#ffffff,#fbfbff)] text-left shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_44px_rgba(15,23,42,0.08)] cursor-pointer"
     >
       <div className="relative h-[220px] overflow-hidden bg-[linear-gradient(135deg,rgba(102,126,234,0.18),rgba(118,75,162,0.16),rgba(255,255,255,0.45))]">
         {displayUrl ? (

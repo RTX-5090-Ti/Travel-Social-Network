@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, Send, X } from "lucide-react";
 
 import { followApi } from "../../api/follow.api";
+import { useChat } from "../../chat/useChat";
 
 const SIDEBAR_LIMIT = 10;
 const MODAL_LIMIT = 200;
@@ -21,7 +22,7 @@ function getAvatarUrl(person) {
 function ContactCardSkeleton({ compact = false }) {
   return (
     <div
-      className={`flex items-center justify-between gap-3 rounded-[18px] bg-white px-3 py-3 shadow-[0_8px_20px_rgba(15,23,42,0.03)] ring-1 ring-zinc-200/60 ${
+      className={`theme-card flex items-center justify-between gap-3 rounded-[18px] bg-white px-3 py-3 shadow-[0_8px_20px_rgba(15,23,42,0.03)] ring-1 ring-zinc-200/60 ${
         compact ? "" : "border border-white/70"
       }`}
     >
@@ -39,11 +40,16 @@ function ContactCardSkeleton({ compact = false }) {
 }
 
 function ContactRow({ person, compact = false }) {
+  const { openConversationWithUser } = useChat();
   const avatarUrl = getAvatarUrl(person);
+
+  const handleOpenChat = () => {
+    void openConversationWithUser(person);
+  };
 
   return (
     <div
-      className={`flex items-center justify-between gap-3 rounded-[18px] bg-white px-3 py-3 shadow-[0_8px_20px_rgba(15,23,42,0.03)] ring-1 ring-zinc-200/60 ${
+      className={`theme-card flex items-center justify-between gap-3 rounded-[18px] bg-white px-3 py-3 shadow-[0_8px_20px_rgba(15,23,42,0.03)] ring-1 ring-zinc-200/60 ${
         compact ? "" : "border border-white/70"
       }`}
     >
@@ -73,7 +79,11 @@ function ContactRow({ person, compact = false }) {
         </div>
       </div>
 
-      <button className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition hover:bg-zinc-200 hover:text-zinc-700">
+      <button
+        type="button"
+        onClick={handleOpenChat}
+        className="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-full bg-zinc-100 text-zinc-500 transition hover:bg-zinc-200 hover:text-zinc-700"
+      >
         <Send className="h-4 w-4" />
       </button>
     </div>
@@ -83,7 +93,7 @@ function ContactRow({ person, compact = false }) {
 function EmptyState({ boxed = false }) {
   return (
     <div
-      className={`rounded-[18px] bg-white px-4 py-5 text-center text-[13px] text-zinc-400 shadow-[0_8px_20px_rgba(15,23,42,0.03)] ring-1 ring-zinc-200/60 ${
+      className={`theme-card rounded-[18px] bg-white px-4 py-5 text-center text-[13px] text-zinc-400 shadow-[0_8px_20px_rgba(15,23,42,0.03)] ring-1 ring-zinc-200/60 ${
         boxed ? "border border-white/70" : ""
       }`}
     >
@@ -158,7 +168,7 @@ export default function MutualContactsSection() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 14, scale: 0.985 }}
             transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-            className="flex max-h-[80vh] w-full max-w-[560px] flex-col overflow-hidden rounded-[28px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(246,247,255,0.96),rgba(243,238,255,0.95))] shadow-[0_30px_80px_rgba(15,23,42,0.22)] ring-1 ring-zinc-200/70"
+            className="theme-popover flex max-h-[80vh] w-full max-w-[560px] flex-col overflow-hidden rounded-[28px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(246,247,255,0.96),rgba(243,238,255,0.95))] shadow-[0_30px_80px_rgba(15,23,42,0.22)] ring-1 ring-zinc-200/70"
           >
             <div className="flex items-center justify-between border-b border-zinc-200/70 px-5 py-4">
               <div>
@@ -173,7 +183,7 @@ export default function MutualContactsSection() {
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-zinc-200/80 bg-white/80 text-zinc-500 shadow-[0_8px_18px_rgba(15,23,42,0.06)] transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-700"
+                className="theme-card inline-flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-zinc-200/80 bg-white/80 text-zinc-500 shadow-[0_8px_18px_rgba(15,23,42,0.06)] transition hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-700"
               >
                 <X className="h-4 w-4" />
               </button>
@@ -220,7 +230,7 @@ export default function MutualContactsSection() {
             onClick={() => setIsModalOpen(true)}
             whileHover={{ y: -1 }}
             whileTap={{ scale: 0.97 }}
-            className="group inline-flex cursor-pointer items-center gap-1.5 rounded-full px-2 py-1 text-[13px] font-medium text-[#4f7cff] transition-colors hover:bg-blue-50/80 hover:text-[#3f6fff]"
+            className="theme-secondary-button group inline-flex cursor-pointer items-center gap-1.5 rounded-full px-2 py-1 text-[13px] font-medium text-[#4f7cff] transition-colors hover:bg-blue-50/80 hover:text-[#3f6fff]"
           >
             <span>View all</span>
             <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />

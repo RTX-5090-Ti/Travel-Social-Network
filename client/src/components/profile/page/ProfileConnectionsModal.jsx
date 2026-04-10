@@ -61,14 +61,14 @@ export default function ProfileConnectionsModal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.985 }}
             transition={{ duration: 0.26, ease: [0.22, 1, 0.36, 1] }}
-            className="relative z-[1] w-full max-w-[840px] overflow-hidden rounded-[30px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,247,255,0.96),rgba(246,241,255,0.94))] shadow-[0_30px_80px_rgba(76,82,160,0.22)] ring-1 ring-[rgba(255,255,255,0.6)]"
+            className="theme-popover relative z-[1] w-full max-w-[840px] overflow-hidden rounded-[30px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,247,255,0.96),rgba(246,241,255,0.94))] shadow-[0_30px_80px_rgba(76,82,160,0.22)] ring-1 ring-[rgba(255,255,255,0.6)]"
           >
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.10),transparent_32%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.10),transparent_28%)]" />
             <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.95),transparent)]" />
 
             <div className="relative z-10 px-5 py-4 border-b border-white/60 sm:px-6">
               <div className="flex items-center justify-between gap-4">
-                <div className="inline-flex rounded-[18px] border border-white/70 bg-white/75 p-1.5 shadow-[0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
+                <div className="theme-card inline-flex rounded-[18px] border border-white/70 bg-white/75 p-1.5 shadow-[0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
                   {["followers", "following"].map((tab) => {
                     const isActive = activeTab === tab;
 
@@ -103,7 +103,7 @@ export default function ProfileConnectionsModal({
                 <button
                   type="button"
                   onClick={onClose}
-                  className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/80 bg-white/82 text-zinc-500 shadow-[0_12px_28px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:text-zinc-900 cursor-pointer"
+                  className="theme-card inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/80 bg-white/82 text-zinc-500 shadow-[0_12px_28px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:text-zinc-900 cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -115,7 +115,7 @@ export default function ProfileConnectionsModal({
                   value={searchValue}
                   onChange={(e) => onSearchChange(e.target.value)}
                   placeholder={`Tìm trong ${TAB_SEARCH_META[activeTab]}...`}
-                  className="h-12 w-full rounded-[18px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(240,243,252,0.96))] pl-11 pr-4 text-sm text-zinc-700 outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-zinc-200/50 placeholder:text-zinc-400 focus:border-[rgba(139,92,246,0.28)] focus:ring-[rgba(139,92,246,0.16)]"
+                  className="theme-card h-12 w-full rounded-[18px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(240,243,252,0.96))] pl-11 pr-4 text-sm text-zinc-700 outline-none shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-zinc-200/50 placeholder:text-zinc-400 focus:border-[rgba(139,92,246,0.28)] focus:ring-[rgba(139,92,246,0.16)]"
                 />
               </div>
             </div>
@@ -152,7 +152,7 @@ export default function ProfileConnectionsModal({
                       {Array.from({ length: 6 }).map((_, index) => (
                         <div
                           key={index}
-                          className="flex items-center justify-between gap-3 rounded-[22px] border border-white/70 bg-white/72 px-4 py-3 shadow-[0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/50"
+                          className="theme-card flex items-center justify-between gap-3 rounded-[22px] border border-white/70 bg-white/72 px-4 py-3 shadow-[0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/50"
                         >
                           <div className="flex items-center gap-3">
                             <div className="rounded-full h-14 w-14 animate-pulse bg-zinc-200/70" />
@@ -187,7 +187,7 @@ export default function ProfileConnectionsModal({
                         return (
                           <div
                             key={personId || `connection-${person?.name || "traveler"}`}
-                            className="group flex items-center justify-between gap-4 rounded-[22px] border border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.88),rgba(245,247,255,0.94),rgba(244,239,255,0.90))] px-4 py-3 shadow-[0_12px_28px_rgba(15,23,42,0.06)] ring-1 ring-zinc-200/55 transition hover:-translate-y-[1px] hover:shadow-[0_18px_36px_rgba(91,99,246,0.10)]"
+                            className="theme-card group flex items-center justify-between gap-4 rounded-[22px] border border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.88),rgba(245,247,255,0.94),rgba(244,239,255,0.90))] px-4 py-3 shadow-[0_12px_28px_rgba(15,23,42,0.06)] ring-1 ring-zinc-200/55 transition hover:-translate-y-[1px] hover:shadow-[0_18px_36px_rgba(91,99,246,0.10)]"
                           >
                             <div className="flex items-center min-w-0 gap-3">
                               {avatar ? (
@@ -242,7 +242,7 @@ export default function ProfileConnectionsModal({
                     </div>
                   ) : (
                     <div className="flex items-center justify-center h-full">
-                      <div className="w-full max-w-md rounded-[24px] border border-white/70 bg-white/80 px-5 py-8 text-center shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60">
+                      <div className="theme-card w-full max-w-md rounded-[24px] border border-white/70 bg-white/80 px-5 py-8 text-center shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60">
                         <p className="text-lg font-semibold text-zinc-900">
                           {activeTab === "followers"
                             ? "Chưa có follower nào"

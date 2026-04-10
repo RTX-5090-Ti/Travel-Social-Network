@@ -171,7 +171,7 @@ export default function LeftSidebar({
         </div>
       </div>
 
-      <aside className="hidden border-r border-zinc-200/80 bg-white/80 px-6 py-7 backdrop-blur lg:block lg:self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:rounded-l-[34px] feed-side-scroll">
+      <aside className="theme-sidebar hidden border-r border-zinc-200/80 bg-white/80 px-6 py-7 backdrop-blur lg:block lg:self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:rounded-l-[34px] feed-side-scroll">
       <div>
         <div className="flex items-center justify-center gap-3">
           <div className="relative flex items-center justify-center w-16 h-16 shrink-0">
@@ -363,7 +363,7 @@ export default function LeftSidebar({
                       delay: 0.05,
                       ease: [0.22, 1, 0.36, 1],
                     }}
-                    className="mt-5 grid grid-cols-3 gap-2 rounded-[24px] bg-white/82 p-3 shadow-[0_12px_30px_rgba(20,20,43,0.05)] ring-1 ring-zinc-200/60 backdrop-blur"
+                    className="theme-card mt-5 grid grid-cols-3 gap-2 rounded-[24px] bg-white/82 p-3 shadow-[0_12px_30px_rgba(20,20,43,0.05)] ring-1 ring-zinc-200/60 backdrop-blur"
                   >
                     {sidebarStats.map((stat) => (
                       <motion.div
@@ -394,7 +394,7 @@ export default function LeftSidebar({
                     }}
                     whileHover={{ y: -2, scale: 1.01 }}
                     whileTap={{ scale: 0.99 }}
-                    className="group relative mt-4 inline-flex h-[54px] w-full shrink-0 items-center justify-center gap-3 overflow-hidden rounded-[20px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(244,247,255,0.97),rgba(243,237,255,0.95))] px-6 text-[14px] font-semibold text-[#5b63f6] shadow-[0_14px_30px_rgba(91,99,246,0.14)] ring-1 ring-zinc-200/60 transition duration-300 hover:shadow-[0_20px_42px_rgba(91,99,246,0.20)] cursor-pointer"
+                    className="theme-secondary-button group relative mt-4 inline-flex h-[54px] w-full shrink-0 items-center justify-center gap-3 overflow-hidden rounded-[20px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(244,247,255,0.97),rgba(243,237,255,0.95))] px-6 text-[14px] font-semibold text-[#5b63f6] shadow-[0_14px_30px_rgba(91,99,246,0.14)] ring-1 ring-zinc-200/60 transition duration-300 hover:shadow-[0_20px_42px_rgba(91,99,246,0.20)] cursor-pointer"
                   >
                     <span className="absolute inset-y-0 left-[-120%] w-full bg-[linear-gradient(100deg,transparent,rgba(255,255,255,0.7),transparent)] transition-all duration-700 group-hover:left-[120%]" />
                     <span className="absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.10),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.10),transparent_38%)]" />

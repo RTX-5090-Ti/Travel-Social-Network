@@ -22,16 +22,18 @@ import {
   formatLargeNumber,
 } from "../components/profile/page/profile-page.helpers";
 import { useProfileData } from "../components/profile/page/useProfileData";
+import { useTheme } from "../theme/useTheme";
 import { useToast } from "../toast/useToast";
 
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { user, clearAuth } = useAuth();
+  const { themeMode: persistedThemeMode, setThemeMode: applyThemeMode } = useTheme();
   const { showToast } = useToast();
   const [openSection, setOpenSection] = useState("");
   const [messagePermission, setMessagePermission] = useState("everyone");
   const [language, setLanguage] = useState("english");
-  const [themeMode, setThemeMode] = useState("system");
+  const [themeMode, setThemeMode] = useState(persistedThemeMode);
   const [isPasswordFormOpen, setIsPasswordFormOpen] = useState(false);
   const [isDeactivateConfirmOpen, setIsDeactivateConfirmOpen] = useState(false);
   const [isDeactivateSuccess, setIsDeactivateSuccess] = useState(false);
@@ -72,6 +74,10 @@ export default function SettingsPage() {
   const isConfirmMatched =
     passwordForm.confirmPassword.trim().length > 0 &&
     passwordForm.confirmPassword === passwordForm.newPassword;
+
+  useEffect(() => {
+    setThemeMode(persistedThemeMode);
+  }, [persistedThemeMode]);
 
   useEffect(() => {
     if (openSection !== "password") {
@@ -308,8 +314,13 @@ export default function SettingsPage() {
     }
   }
 
+  function handleSaveSettings() {
+    applyThemeMode(themeMode);
+    showToast("Đã lưu giao diện hiển thị.", "success");
+  }
+
   return (
-    <div className="relative min-h-screen bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-4">
+    <div className="theme-page-shell relative min-h-screen bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-4">
       <div className="absolute inset-0 pointer-events-none">
         <FloatingShape
           className="left-[8%] top-[10%] h-20 w-20"
@@ -340,11 +351,11 @@ export default function SettingsPage() {
         </FloatingShape>
       </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden rounded-[34px] border border-white/60 bg-[#fafafb] shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
+      <div className="theme-app-shell relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden rounded-[34px] border border-white/60 bg-[#fafafb] shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
         <div className="grid min-h-[900px] grid-cols-1 lg:h-full lg:min-h-0 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
           <ProfileLeftSidebar user={displayUser} stats={sidebarStats} />
 
-          <main className="profile-main-scroll min-w-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,250,251,0.96))] px-5 py-6 sm:px-7 sm:py-8 lg:h-full lg:overflow-y-auto lg:overflow-x-hidden lg:border-r lg:px-9 xl:px-10 border-zinc-200/80">
+          <main className="theme-main-pane profile-main-scroll min-w-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,250,251,0.96))] px-5 py-6 sm:px-7 sm:py-8 lg:h-full lg:overflow-y-auto lg:overflow-x-hidden lg:border-r lg:px-9 xl:px-10 border-zinc-200/80">
             <div className="mx-auto w-full max-w-[920px]">
               <ProfileHero
                 user={displayUser}
@@ -501,7 +512,6 @@ export default function SettingsPage() {
                           options={[
                             { value: "light", label: "Light" },
                             { value: "dark", label: "Dark" },
-                            { value: "system", label: "System" },
                           ]}
                         />
                       </SettingsAccordion>
@@ -509,6 +519,7 @@ export default function SettingsPage() {
                       <div className="flex justify-end pt-2">
                         <button
                           type="button"
+                          onClick={handleSaveSettings}
                           className="inline-flex h-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-15 py-6 text-l font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.24)] transition hover:-translate-y-0.5 cursor-pointer"
                         >
                           Save

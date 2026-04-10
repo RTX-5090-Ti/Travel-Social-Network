@@ -275,7 +275,7 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-white md:bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] md:px-3 md:py-3 lg:px-4 lg:py-4">
+    <div className="theme-page-shell relative min-h-screen bg-white md:bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] md:px-3 md:py-3 lg:px-4 lg:py-4">
       <div className="absolute inset-0 hidden pointer-events-none md:block">
         <FloatingShape
           className="left-[10%] top-[10%] h-20 w-20"
@@ -313,7 +313,7 @@ export default function FeedPage() {
         </FloatingShape>
       </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden bg-[#fafafb] md:rounded-[34px] md:border md:border-white/60 md:shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
+      <div className="theme-app-shell relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden bg-[#fafafb] md:rounded-[34px] md:border md:border-white/60 md:shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
         <div className="grid min-h-screen grid-cols-1 md:min-h-[900px] lg:h-full lg:min-h-0 lg:grid-cols-[312px_minmax(0,1fr)_344px]">
           <LeftSidebar
             previewUser={previewUser}

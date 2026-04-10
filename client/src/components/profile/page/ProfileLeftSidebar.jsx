@@ -85,7 +85,7 @@ export default function ProfileLeftSidebar({
   }
 
   return (
-    <aside className="hidden border-r border-zinc-200/80 bg-white/80 px-6 py-7 backdrop-blur lg:block lg:self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:rounded-l-[34px] feed-side-scroll">
+    <aside className="theme-sidebar hidden border-r border-zinc-200/80 bg-white/80 px-6 py-7 backdrop-blur lg:block lg:self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:rounded-l-[34px] feed-side-scroll">
       <div>
         <div className="flex items-center justify-center gap-3">
           <div className="relative flex items-center justify-center w-16 h-16 shrink-0">
@@ -126,7 +126,7 @@ export default function ProfileLeftSidebar({
           </div>
         </div>
 
-        <div className="mt-8 rounded-[28px] bg-[linear-gradient(180deg,#eef4ff_0%,#ffffff_100%)] p-5 shadow-[0_16px_40px_rgba(76,109,255,0.08)] ring-1 ring-zinc-200/70">
+        <div className="theme-card mt-8 rounded-[28px] bg-[linear-gradient(180deg,#eef4ff_0%,#ffffff_100%)] p-5 shadow-[0_16px_40px_rgba(76,109,255,0.08)] ring-1 ring-zinc-200/70">
           <div className="relative mx-auto h-[110px] w-[110px]">
             {sidebarProfile.avatar ? (
               <img
@@ -150,7 +150,7 @@ export default function ProfileLeftSidebar({
             </p>
           </div>
 
-          <div className="mt-6 grid grid-cols-3 gap-2 rounded-[22px] bg-white p-3 shadow-[0_10px_26px_rgba(20,20,43,0.04)] ring-1 ring-zinc-200/60">
+          <div className="theme-card mt-6 grid grid-cols-3 gap-2 rounded-[22px] bg-white p-3 shadow-[0_10px_26px_rgba(20,20,43,0.04)] ring-1 ring-zinc-200/60">
             {sidebarProfile.stats.map((stat) => {
               const labelKey = String(stat.label || "").toLowerCase();
               const isFollowers = labelKey === "followers";

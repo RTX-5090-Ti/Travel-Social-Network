@@ -198,7 +198,7 @@ export default function ArchivePage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-4">
+    <div className="theme-page-shell relative min-h-screen bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-4">
       <div className="absolute inset-0 pointer-events-none">
         <FloatingShape
           className="left-[8%] top-[10%] h-20 w-20"
@@ -229,11 +229,11 @@ export default function ArchivePage() {
         </FloatingShape>
       </div>
 
-      <div className="relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden rounded-[34px] border border-white/60 bg-[#fafafb] shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
+      <div className="theme-app-shell relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden rounded-[34px] border border-white/60 bg-[#fafafb] shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
         <div className="grid min-h-[900px] grid-cols-1 lg:h-full lg:min-h-0 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
           <ProfileLeftSidebar user={displayUser} stats={sidebarStats} />
 
-          <main className="profile-main-scroll min-w-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,250,251,0.96))] px-5 py-6 sm:px-7 sm:py-8 lg:h-full lg:overflow-y-auto lg:overflow-x-hidden lg:border-r lg:px-9 xl:px-10 border-zinc-200/80">
+          <main className="theme-main-pane profile-main-scroll min-w-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,250,251,0.96))] px-5 py-6 sm:px-7 sm:py-8 lg:h-full lg:overflow-y-auto lg:overflow-x-hidden lg:border-r lg:px-9 xl:px-10 border-zinc-200/80">
             <div className="mx-auto w-full max-w-[920px]">
               <ProfileHero
                 user={displayUser}
@@ -259,7 +259,7 @@ export default function ArchivePage() {
                     </div>
                   </div>
 
-                  <div className="inline-flex w-fit rounded-[18px] border border-white/70 bg-white/85 p-1.5 shadow-[0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
+                  <div className="theme-card inline-flex w-fit rounded-[18px] border border-white/70 bg-white/85 p-1.5 shadow-[0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
                     {ARCHIVE_TABS.map((tab) => (
                       <ProfileTabButton
                         key={tab.key}
@@ -438,7 +438,7 @@ function TrashTripCard({ trip, restoring = false, onRestore }) {
     caption.length > 160 ? `${caption.slice(0, 160).trim()}...` : caption;
 
   return (
-    <article className="rounded-[26px] border border-white/70 bg-white/88 px-5 py-5 shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
+    <article className="theme-card rounded-[26px] border border-white/70 bg-white/88 px-5 py-5 shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="flex-1 min-w-0">
           {/* <div className="inline-flex items-center gap-2 rounded-full border border-rose-100 bg-rose-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-rose-500">
@@ -480,7 +480,7 @@ function UnavailableSavedTripCard({
   onRemove,
 }) {
   return (
-    <article className="rounded-[26px] border border-white/70 bg-white/88 px-5 py-5 shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
+    <article className="theme-card rounded-[26px] border border-white/70 bg-white/88 px-5 py-5 shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
       <div className="flex flex-col gap-4">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-500">
@@ -542,7 +542,7 @@ function ArchiveEmptyPanel({
       : "bg-[linear-gradient(135deg,rgba(102,126,234,0.12),rgba(118,75,162,0.16))] text-violet-600";
 
   return (
-    <div className="rounded-[30px] border border-dashed border-zinc-200 bg-[linear-gradient(180deg,#ffffff,#fbfbff)] px-5 py-12 text-center shadow-[0_16px_34px_rgba(15,23,42,0.04)]">
+    <div className="theme-card rounded-[30px] border border-dashed border-zinc-200 bg-[linear-gradient(180deg,#ffffff,#fbfbff)] px-5 py-12 text-center shadow-[0_16px_34px_rgba(15,23,42,0.04)]">
       <div
         className={`mx-auto inline-flex h-16 w-16 items-center justify-center rounded-[22px] ${toneClasses}`}
       >

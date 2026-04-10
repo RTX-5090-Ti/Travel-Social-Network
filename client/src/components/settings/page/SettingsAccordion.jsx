@@ -10,7 +10,7 @@ export default function SettingsAccordion({
   children,
 }) {
   return (
-    <div className="overflow-hidden rounded-[30px] border border-white/70 bg-[linear-gradient(180deg,#ffffff,#fbfbff)] shadow-[0_16px_34px_rgba(15,23,42,0.04)] ring-1 ring-zinc-200/60">
+    <div className="theme-card overflow-hidden rounded-[30px] border border-white/70 bg-[linear-gradient(180deg,#ffffff,#fbfbff)] shadow-[0_16px_34px_rgba(15,23,42,0.04)] ring-1 ring-zinc-200/60">
       <button
         type="button"
         onClick={onToggle}
@@ -31,7 +31,7 @@ export default function SettingsAccordion({
           </div>
         </div>
 
-        <div className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-200/70 bg-white/80 text-zinc-500 shadow-[0_8px_18px_rgba(15,23,42,0.05)]">
+        <div className="theme-card inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-200/70 bg-white/80 text-zinc-500 shadow-[0_8px_18px_rgba(15,23,42,0.05)]">
           <motion.span
             animate={{ rotate: open ? 180 : 0 }}
             transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}

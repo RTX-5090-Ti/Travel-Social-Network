@@ -42,7 +42,7 @@ export default function ShareJourneyPrivacySelect({
       <button
         type="button"
         onClick={() => setOpen((prev) => !prev)}
-        className={`group relative flex min-h-[60px] w-full cursor-pointer items-center justify-between gap-3 overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,248,250,0.96))] px-3 py-3 text-left shadow-[0_10px_26px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_18px_48px_rgba(15,23,42,0.10)] focus:outline-none focus:ring-4 focus:ring-[#d7c3a3]/25 sm:min-h-[72px] sm:gap-4 sm:rounded-[24px] sm:px-4 sm:py-4 sm:shadow-[0_14px_40px_rgba(15,23,42,0.06)] ${
+        className={`theme-card group relative flex min-h-[60px] w-full cursor-pointer items-center justify-between gap-3 overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,248,250,0.96))] px-3 py-3 text-left shadow-[0_10px_26px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 transition duration-200 hover:-translate-y-[1px] hover:shadow-[0_18px_48px_rgba(15,23,42,0.10)] focus:outline-none focus:ring-4 focus:ring-[#d7c3a3]/25 sm:min-h-[72px] sm:gap-4 sm:rounded-[24px] sm:px-4 sm:py-4 sm:shadow-[0_14px_40px_rgba(15,23,42,0.06)] ${
           open ? "border-[#d7c3a3]/70 ring-[#d7c3a3]/40" : ""
         }`}
       >
@@ -91,7 +91,7 @@ export default function ShareJourneyPrivacySelect({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 8, scale: 0.985 }}
             transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute left-0 right-0 top-[calc(100%+12px)] z-[160] overflow-hidden rounded-[26px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,247,249,0.98))] p-2.5 shadow-[0_28px_70px_rgba(15,23,42,0.16)] ring-1 ring-zinc-200/70 backdrop-blur-xl"
+            className="theme-popover absolute left-0 right-0 top-[calc(100%+12px)] z-[160] overflow-hidden rounded-[26px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,247,249,0.98))] p-2.5 shadow-[0_28px_70px_rgba(15,23,42,0.16)] ring-1 ring-zinc-200/70 backdrop-blur-xl"
           >
             <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(212,175,122,0.85),transparent)]" />
 
@@ -107,7 +107,7 @@ export default function ShareJourneyPrivacySelect({
                       onChange(item.value);
                       setOpen(false);
                     }}
-                    className={`group flex w-full cursor-pointer items-start gap-2.5 rounded-[16px] px-2.5 py-2.5 text-left transition sm:gap-3 sm:rounded-[20px] sm:px-3 sm:py-3.5 ${
+                    className={`theme-card group flex w-full cursor-pointer items-start gap-2.5 rounded-[16px] px-2.5 py-2.5 text-left transition sm:gap-3 sm:rounded-[20px] sm:px-3 sm:py-3.5 ${
                       active
                         ? "bg-[linear-gradient(135deg,rgba(255,247,237,0.95),rgba(245,236,255,0.92))] shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]"
                         : "hover:bg-white/90"
