@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../../auth/useAuth";
+import { useToast } from "../../../toast/useToast";
 import { navItems } from "../../feed/page/feed.constants";
 import ProfileDivider from "./ProfileDivider";
 
@@ -13,6 +14,7 @@ export default function ProfileLeftSidebar({
   const navigate = useNavigate();
   const location = useLocation();
   const { user, logout } = useAuth();
+  const { showToast } = useToast();
   const displayUser = profileUser || user;
 
   const fallbackProfile = {
@@ -28,7 +30,10 @@ export default function ProfileLeftSidebar({
 
   const sidebarProfile = {
     name: displayUser?.name || fallbackProfile.name,
-    email: displayUser?.email || displayUser?.profile?.email || fallbackProfile.email,
+    email:
+      displayUser?.email ||
+      displayUser?.profile?.email ||
+      fallbackProfile.email,
     avatar:
       displayUser?.avatarUrl ||
       displayUser?.avatar ||
@@ -59,6 +64,11 @@ export default function ProfileLeftSidebar({
   });
 
   function handleSidebarNavigate(item) {
+    if (item.label === "Direct") {
+      showToast("Tính năng Direct đang được phát triển.", "info");
+      return;
+    }
+
     if (item.label === "Feed") {
       navigate("/");
       return;
@@ -225,7 +235,7 @@ export default function ProfileLeftSidebar({
                       strokeWidth="1.9"
                       strokeLinecap="round"
                       strokeLinejoin="round"
-                      className="h-5 w-5"
+                      className="w-5 h-5"
                     >
                       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
                       <path d="M16 17l5-5-5-5" />
@@ -240,7 +250,6 @@ export default function ProfileLeftSidebar({
         </nav>
 
         <ProfileDivider />
-
       </div>
     </aside>
   );

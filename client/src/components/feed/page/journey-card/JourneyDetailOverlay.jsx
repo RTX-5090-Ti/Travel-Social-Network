@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
-import { GiphyFetch } from "@giphy/js-fetch-api";
 
 import {
   tripApi,
@@ -32,10 +31,9 @@ import JourneyMediaLightbox from "./JourneyMediaLightbox";
 import JourneyMetaChip from "./JourneyMetaChip";
 import JourneySectionTitle from "./JourneySectionTitle";
 import { normalizeMediaItems } from "./journeyMedia.utils";
+import { giphyFetch as gf } from "../../../../lib/giphy";
 
 const MAX_COMMENT_IMAGE_SIZE = 10 * 1024 * 1024;
-const GIPHY_API_KEY = "1nkeWo3uBJD4LMdiMqEo8aHHkr4Lrxvq";
-const gf = new GiphyFetch(GIPHY_API_KEY);
 
 function getUserAvatar(user) {
   return (

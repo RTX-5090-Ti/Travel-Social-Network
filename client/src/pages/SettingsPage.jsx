@@ -28,7 +28,8 @@ import { useToast } from "../toast/useToast";
 export default function SettingsPage() {
   const navigate = useNavigate();
   const { user, clearAuth } = useAuth();
-  const { themeMode: persistedThemeMode, setThemeMode: applyThemeMode } = useTheme();
+  const { themeMode: persistedThemeMode, setThemeMode: applyThemeMode } =
+    useTheme();
   const { showToast } = useToast();
   const [openSection, setOpenSection] = useState("");
   const [messagePermission, setMessagePermission] = useState("everyone");
@@ -467,7 +468,7 @@ export default function SettingsPage() {
                         onToggle={() =>
                           showToast(
                             "Tính năng này đang được phát triển",
-                            "success",
+                            "info",
                           )
                         }
                       />

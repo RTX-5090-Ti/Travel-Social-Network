@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../auth/useAuth";
+import { useToast } from "../../../toast/useToast";
 import { navItems } from "../page/feed.constants";
 import Divider from "./Divider";
 
@@ -53,6 +54,7 @@ export default function LeftSidebar({
   const navigate = useNavigate();
   const location = useLocation();
   const { logout } = useAuth();
+  const { showToast } = useToast();
 
   const displayUser = previewUser || null;
   const previewAvatar = getPreviewAvatar(displayUser);
@@ -110,6 +112,11 @@ export default function LeftSidebar({
   );
 
   function handleSidebarNavigate(item) {
+    if (item.label === "Direct") {
+      showToast("Tính năng Direct đang được phát triển.", "info");
+      return;
+    }
+
     if (item.label === "Feed") {
       navigate("/");
       return;

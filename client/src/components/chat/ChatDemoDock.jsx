@@ -6,7 +6,6 @@ import {
   useDragControls,
   useMotionValue,
 } from "framer-motion";
-import { GiphyFetch } from "@giphy/js-fetch-api";
 import { MessageCircleMore, Minimize2, SendHorizonal, X } from "lucide-react";
 import { useLocation } from "react-router-dom";
 
@@ -21,6 +20,7 @@ import {
   CommentStickerIcon,
 } from "../feed/page/journey-card/CommentComposerIcons";
 import JourneyMediaLightbox from "../feed/page/journey-card/JourneyMediaLightbox";
+import { giphyFetch as gf } from "../../lib/giphy";
 
 const BUBBLE_SIZE = 48;
 const PANEL_WIDTH = 360;
@@ -29,9 +29,6 @@ const VIEWPORT_PADDING = 24;
 const DRAG_THRESHOLD = 6;
 const MAX_COMPOSER_HEIGHT = 112;
 const MAX_CHAT_IMAGE_SIZE = 10 * 1024 * 1024;
-const GIPHY_API_KEY = "1nkeWo3uBJD4LMdiMqEo8aHHkr4Lrxvq";
-const gf = new GiphyFetch(GIPHY_API_KEY);
-
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
