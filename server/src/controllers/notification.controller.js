@@ -54,11 +54,13 @@ function decodeNotificationCursor(rawCursor) {
 export async function listNotifications(req, res, next) {
   try {
     const userId = req.user?.userId;
-    const limitRaw = Number(req.query.limit ?? 10);
+    const limitRaw = Number(req.validated?.query?.limit ?? req.query.limit ?? 10);
     const limit = Number.isFinite(limitRaw)
       ? Math.min(Math.max(limitRaw, 1), 50)
       : 10;
-    const cursor = decodeNotificationCursor(req.query.cursor);
+    const cursor = decodeNotificationCursor(
+      req.validated?.query?.cursor ?? req.query.cursor,
+    );
 
     const filter = {
       recipientUserId: userId,
@@ -152,7 +154,9 @@ export async function markAllNotificationsRead(req, res, next) {
 export async function markNotificationRead(req, res, next) {
   try {
     const userId = req.user?.userId;
-    const notificationId = toIdString(req.params?.notificationId);
+    const notificationId = toIdString(
+      req.validated?.params?.notificationId || req.params?.notificationId,
+    );
 
     if (!mongoose.isValidObjectId(notificationId)) {
       res.status(400).json({ message: "Notification không hợp lệ." });
@@ -197,9 +201,11 @@ export async function markNotificationRead(req, res, next) {
 export async function deleteSelectedNotifications(req, res, next) {
   try {
     const userId = req.user?.userId;
-    const rawIds = Array.isArray(req.body?.notificationIds)
-      ? req.body.notificationIds
-      : [];
+    const rawIds = Array.isArray(req.validated?.body?.notificationIds)
+      ? req.validated.body.notificationIds
+      : Array.isArray(req.body?.notificationIds)
+        ? req.body.notificationIds
+        : [];
 
     const notificationIds = [
       ...new Set(

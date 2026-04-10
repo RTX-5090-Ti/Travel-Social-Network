@@ -27,7 +27,7 @@ export async function uploadAvatarController(req, res, next) {
 
 export async function getMyTripsController(req, res, next) {
   try {
-    const limitRaw = Number(req.query.limit ?? 50);
+    const limitRaw = Number(req.validated?.query?.limit ?? req.query.limit ?? 50);
     const limit = Number.isFinite(limitRaw)
       ? Math.min(Math.max(limitRaw, 1), 100)
       : 50;
@@ -49,14 +49,14 @@ export async function getMyTripsController(req, res, next) {
 
 export async function getUserProfileController(req, res, next) {
   try {
-    const limitRaw = Number(req.query.limit ?? 50);
+    const limitRaw = Number(req.validated?.query?.limit ?? req.query.limit ?? 50);
     const limit = Number.isFinite(limitRaw)
       ? Math.min(Math.max(limitRaw, 1), 100)
       : 50;
 
     const payload = await userService.getUserProfile({
       viewerId: req.user?.userId,
-      profileUserId: req.params.id,
+      profileUserId: req.validated?.params?.id || req.params.id,
       limit,
     });
 
@@ -74,7 +74,7 @@ export async function getUserSummaryController(req, res, next) {
   try {
     const payload = await userService.getUserSummary({
       viewerId: req.user?.userId,
-      profileUserId: req.params.id,
+      profileUserId: req.validated?.params?.id || req.params.id,
     });
 
     res.json(payload);
@@ -89,7 +89,7 @@ export async function getUserSummaryController(req, res, next) {
 
 export async function getUserProfileMediaController(req, res, next) {
   try {
-    const limitRaw = Number(req.query.limit ?? 0);
+    const limitRaw = Number(req.validated?.query?.limit ?? req.query.limit ?? 0);
     const limit =
       Number.isFinite(limitRaw) && limitRaw > 0
         ? Math.min(Math.max(limitRaw, 1), 200)
@@ -97,7 +97,7 @@ export async function getUserProfileMediaController(req, res, next) {
 
     const payload = await userService.getUserProfileMedia({
       viewerId: req.user?.userId,
-      profileUserId: req.params.id,
+      profileUserId: req.validated?.params?.id || req.params.id,
       limit,
     });
 

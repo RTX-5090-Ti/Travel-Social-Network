@@ -3,6 +3,7 @@ import { requireAuth } from "../middlewares/requireAuth.js";
 import { validate } from "../middlewares/validate.js";
 import {
   createTripSchema,
+  getTripDetailSchema,
   listSavedTripsSchema,
   listTripTrashSchema,
   updateTripHideSchema,
@@ -89,6 +90,6 @@ router.patch(
   restoreTripFromTrash,
 );
 
-router.get("/:id", requireAuth, getTripDetail);
+router.get("/:id", requireAuth, validate(getTripDetailSchema), getTripDetail);
 
 export default router;

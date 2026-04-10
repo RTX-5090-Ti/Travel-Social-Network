@@ -1,4 +1,4 @@
-export function errorHandler(err, req, res, next) {
+export function errorHandler(err, req, res, _next) {
   if (err?.name === "MulterError") {
     const message =
       err.code === "LIMIT_FILE_SIZE"

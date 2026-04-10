@@ -227,7 +227,7 @@ export async function listSavedTrips(req, res, next) {
 export async function getTripDetail(req, res, next) {
   try {
     const payload = await tripService.getTripDetail({
-      tripId: req.params.id,
+      tripId: req.validated?.params?.id || req.params.id,
       viewerId: req.user.userId,
     });
 

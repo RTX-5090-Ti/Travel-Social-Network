@@ -11,17 +11,38 @@ import {
   updateProfileController,
 } from "../controllers/user.controller.js";
 import { validate } from "../middlewares/validate.js";
-import { updateProfileSchema } from "../validations/user.validation.js";
+import {
+  getMyTripsSchema,
+  getUserProfileMediaSchema,
+  getUserProfileSchema,
+  getUserSummarySchema,
+  updateProfileSchema,
+} from "../validations/user.validation.js";
 
 const router = Router();
 
-router.get("/me/trips", requireAuth, getMyTripsController);
+router.get("/me/trips", requireAuth, validate(getMyTripsSchema), getMyTripsController);
 
-router.get("/:id/summary", requireAuth, getUserSummaryController);
+router.get(
+  "/:id/summary",
+  requireAuth,
+  validate(getUserSummarySchema),
+  getUserSummaryController,
+);
 
-router.get("/:id/media", requireAuth, getUserProfileMediaController);
+router.get(
+  "/:id/media",
+  requireAuth,
+  validate(getUserProfileMediaSchema),
+  getUserProfileMediaController,
+);
 
-router.get("/:id/profile", requireAuth, getUserProfileController);
+router.get(
+  "/:id/profile",
+  requireAuth,
+  validate(getUserProfileSchema),
+  getUserProfileController,
+);
 
 router.patch(
   "/me/profile",

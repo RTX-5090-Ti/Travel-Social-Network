@@ -121,3 +121,11 @@ export const listSavedTripsSchema = Joi.object({
   }),
   params: Joi.object(),
 });
+
+export const getTripDetailSchema = Joi.object({
+  body: Joi.object(),
+  query: Joi.object(),
+  params: Joi.object({
+    id: objectIdSchema.required(),
+  }),
+});

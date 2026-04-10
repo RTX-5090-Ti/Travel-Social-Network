@@ -4,6 +4,8 @@ import {
   TRAVEL_STYLE_KEYS,
 } from "../constants/profile.constants.js";
 
+const objectIdSchema = Joi.string().trim().hex().length(24);
+
 export const updateProfileSchema = Joi.object({
   body: Joi.object({
     name: Joi.string().trim().min(2).max(50),
@@ -17,4 +19,40 @@ export const updateProfileSchema = Joi.object({
   }).min(1),
   query: Joi.object(),
   params: Joi.object(),
+});
+
+export const getMyTripsSchema = Joi.object({
+  body: Joi.object(),
+  query: Joi.object({
+    limit: Joi.number().integer().min(1).max(100).optional(),
+  }),
+  params: Joi.object(),
+});
+
+export const getUserSummarySchema = Joi.object({
+  body: Joi.object(),
+  query: Joi.object(),
+  params: Joi.object({
+    id: objectIdSchema.required(),
+  }),
+});
+
+export const getUserProfileSchema = Joi.object({
+  body: Joi.object(),
+  query: Joi.object({
+    limit: Joi.number().integer().min(1).max(100).optional(),
+  }),
+  params: Joi.object({
+    id: objectIdSchema.required(),
+  }),
+});
+
+export const getUserProfileMediaSchema = Joi.object({
+  body: Joi.object(),
+  query: Joi.object({
+    limit: Joi.number().integer().min(1).max(200).optional(),
+  }),
+  params: Joi.object({
+    id: objectIdSchema.required(),
+  }),
 });

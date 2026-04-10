@@ -26,7 +26,7 @@ export async function requireAuth(req, res, next) {
       role: user.role || decoded.role,
     };
     next();
-  } catch (err) {
+  } catch {
     res.status(401);
     next(new Error("Unauthorized"));
   }
