@@ -34,7 +34,6 @@ export function AuthProvider({ children }) {
 
   async function register(payload) {
     const res = await authApi.register(payload);
-    setUser(res.data.user || null);
     return res;
   }
 

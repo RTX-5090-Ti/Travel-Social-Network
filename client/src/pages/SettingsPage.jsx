@@ -307,7 +307,7 @@ export default function SettingsPage() {
     } catch (error) {
       const message =
         error?.response?.data?.message ||
-        "KhÃ´ng vá» hiá»‡u hÃ³a Ä‘Æ°á»£c tÃ i khoáº£n lÃºc nÃ y.";
+        "Không vô hiệu hóa được tài khoản lúc này.";
       showToast(message, "error");
       setIsDeactivateSubmitting(false);
     }
@@ -322,7 +322,7 @@ export default function SettingsPage() {
     } catch (error) {
       const message =
         error?.response?.data?.message ||
-        "KhÃ´ng thá»ƒ yÃªu cáº§u xoÃ¡ tÃ i khoáº£n lÃºc nÃ y.";
+        "Không thể yêu cầu xoá tài khoản lúc này.";
       showToast(message, "error");
       setIsDeleteSubmitting(false);
     }

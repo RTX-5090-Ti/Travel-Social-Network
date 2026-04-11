@@ -1825,7 +1825,7 @@ export default function JourneyDetailOverlay({
         transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-[1] flex h-screen max-h-screen w-full max-w-none flex-col overflow-hidden rounded-none border-0 bg-[linear-gradient(180deg,#ffffff,#fbfbff)] shadow-none sm:h-auto sm:max-h-[95vh] sm:max-w-5xl sm:rounded-[32px] sm:border sm:border-white/70 sm:shadow-[0_30px_80px_rgba(15,23,42,0.28)]"
       >
-        <div className="px-4 py-3 border-b border-zinc-100 sm:px-6 sm:py-4">
+        <div className="px-4 py-3 border-b border-zinc-100 sm:px-6 sm:py-2">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-center min-w-0 gap-3">
               {ownerAvatar ? (
@@ -1860,7 +1860,7 @@ export default function JourneyDetailOverlay({
             </button>
           </div>
 
-          <div className="theme-card mt-3 rounded-[20px] border border-zinc-200/80 bg-[linear-gradient(180deg,#ffffff,#fafafb)] px-3.5 py-3 sm:mt-4 sm:rounded-[24px] sm:px-5 sm:py-4">
+          <div className="theme-card mt-3 rounded-[20px] border border-zinc-200/80 bg-[linear-gradient(180deg,#ffffff,#fafafb)] px-3.5 py-3 sm:mt-2 sm:rounded-[24px] sm:px-5 sm:py-2">
             <div className="flex flex-wrap items-center gap-2">
               <h3 className="text-[20px] font-semibold tracking-tight text-zinc-900 sm:text-[24px]">
                 {trip.title}
@@ -2160,7 +2160,7 @@ export default function JourneyDetailOverlay({
 
         <form
           onSubmit={handleSubmitComment}
-          className="theme-comment-panel shrink-0 border-t border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,248,255,0.98))] px-4 py-4 backdrop-blur sm:px-6 sm:py-5"
+          className="theme-comment-panel shrink-0 border-t border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(247,248,255,0.98))] px-4 py-4 backdrop-blur sm:px-6 sm:py-3"
         >
           <input
             ref={commentImageInputRef}
@@ -2176,7 +2176,7 @@ export default function JourneyDetailOverlay({
               name={currentUserName}
             />
 
-            <div className="theme-card min-w-0 flex-1 rounded-[24px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.95),rgba(250,247,255,0.96))] px-3 py-2.5 shadow-[0_14px_34px_rgba(99,102,241,0.10)] ring-1 ring-zinc-200/70 backdrop-blur transition-[box-shadow,border-color,background,transform] duration-200 focus-within:border-[rgba(167,139,250,0.55)] focus-within:bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(242,245,255,0.98),rgba(248,243,255,0.98))] focus-within:shadow-[0_18px_40px_rgba(124,58,237,0.16),0_0_0_4px_rgba(167,139,250,0.10)] focus-within:ring-[rgba(167,139,250,0.30)] sm:rounded-[30px] sm:px-3 sm:py-4">
+            <div className="theme-card min-w-0 flex-1 rounded-[24px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.95),rgba(250,247,255,0.96))] px-3 py-2.5 shadow-[0_14px_34px_rgba(99,102,241,0.10)] ring-1 ring-zinc-200/70 backdrop-blur transition-[box-shadow,border-color,background,transform] duration-200 focus-within:border-[rgba(167,139,250,0.55)] focus-within:bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(242,245,255,0.98),rgba(248,243,255,0.98))] focus-within:shadow-[0_18px_40px_rgba(124,58,237,0.16),0_0_0_4px_rgba(167,139,250,0.10)] focus-within:ring-[rgba(167,139,250,0.30)] sm:rounded-[30px] sm:px-3 sm:py-2">
               <textarea
                 ref={commentTextareaRef}
                 value={commentText}
@@ -2220,7 +2220,7 @@ export default function JourneyDetailOverlay({
                 />
               ) : null}
 
-              <div className="flex items-center justify-between gap-2 mt-1">
+              <div className="flex items-center justify-between gap-2 ">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <div className="relative">
                     <CommentComposerActionButton
@@ -2246,7 +2246,7 @@ export default function JourneyDetailOverlay({
                             duration: 0.16,
                             ease: [0.22, 1, 0.36, 1],
                           }}
-                          className="absolute bottom-[calc(100%+8px)] right-0 translate-x-[80%] z-20 w-[min(76vw,286px)] overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80 sm:left-0 sm:right-auto sm:w-auto"
+                          className="absolute bottom-[calc(100%+8px)] left-0 z-20 w-[min(76vw,286px)] max-w-[calc(100vw-48px)] overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80 sm:w-auto"
                         >
                           <LazyEmojiPicker
                             onEmojiClick={handleCommentEmojiSelect}
@@ -2297,7 +2297,7 @@ export default function JourneyDetailOverlay({
                             duration: 0.16,
                             ease: [0.22, 1, 0.36, 1],
                           }}
-                          className="absolute bottom-[calc(100%+8px)] right-0 translate-x-1/2 z-20 w-[min(80vw,286px)] overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80 sm:left-0 sm:right-auto sm:w-auto"
+                          className="absolute bottom-[calc(100%+8px)] left-0 z-20 w-[min(80vw,286px)] max-w-[calc(100vw-48px)] overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80 sm:w-auto"
                         >
                           <div className="px-3 py-3 border-b border-zinc-200/70">
                             <input

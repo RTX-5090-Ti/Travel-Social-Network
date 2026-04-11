@@ -263,6 +263,10 @@ export default function LoginPage() {
         });
 
         showToast("Đăng nhập thành công", "success");
+        setSuccess(true);
+        setTimeout(() => {
+          nav("/");
+        }, 800);
       } else {
         await register({
           name: form.fullName,
@@ -271,13 +275,18 @@ export default function LoginPage() {
         });
 
         showToast("Tạo tài khoản thành công", "success");
+        setSuccess(false);
+        setMode("login");
+        setForm((prev) => ({
+          ...prev,
+          loginEmail: form.registerEmail,
+          loginPassword: "",
+          registerPassword: "",
+          confirmPassword: "",
+        }));
+        setErrors(initialErrors);
       }
 
-      setSuccess(true);
-
-      setTimeout(() => {
-        nav("/");
-      }, 800);
     } catch (err) {
       const message =
         err?.response?.data?.message ||
@@ -356,7 +365,7 @@ export default function LoginPage() {
     } catch (err) {
       const message =
         err?.response?.data?.message ||
-        "KhÃ´ng má»Ÿ láº¡i tÃ i khoáº£n Ä‘Æ°á»£c.";
+        "Không mở lại tài khoản được.";
 
       setErrors((prev) => ({
         ...prev,
@@ -588,7 +597,7 @@ export default function LoginPage() {
                     Tài khoản đang chờ xoá vĩnh viễn
                   </p>
                   <p className="mt-1 text-[13px] leading-6 text-zinc-500 dark:text-zinc-400">
-                    {pendingDeletionLabel || "7 days remaining"}. Bạn có thể mở
+                    {pendingDeletionLabel || "Còn 7 ngày"}. Bạn có thể mở
                     lại tài khoản bằng cách đăng nhập ngay bây giờ.
                   </p>
                 </div>

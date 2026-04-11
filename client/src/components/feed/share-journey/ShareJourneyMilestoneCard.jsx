@@ -56,7 +56,7 @@ export default function ShareJourneyMilestoneCard({
                 onUpdateMilestone(item.id, "title", event.target.value)
               }
               type="text"
-              placeholder="VÃ­ dá»¥: SÄƒn mÃ¢y ÄÃ  Láº¡t"
+              placeholder="Ví dụ: Săn mây Đà Lạt"
               className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition focus:border-[#4f7cff] focus:ring-4 focus:ring-blue-100 dark:border-white/10 dark:bg-white/5 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-blue-500/15"
             />
           </ShareJourneyField>
@@ -80,7 +80,7 @@ export default function ShareJourneyMilestoneCard({
               onUpdateMilestone(item.id, "note", event.target.value)
             }
             rows={4}
-            placeholder="Ghi láº¡i cáº£m nháº­n cÃ¡ nhÃ¢n á»Ÿ cá»™t má»‘c nÃ y..."
+            placeholder="Ghi lại cảm nhận cá nhân ở cột mốc này..."
             className="w-full resize-none rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 transition focus:border-[#4f7cff] focus:ring-4 focus:ring-blue-100 dark:border-white/10 dark:bg-white/5 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:ring-blue-500/15"
           />
         </ShareJourneyField>

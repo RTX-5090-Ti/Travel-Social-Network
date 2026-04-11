@@ -125,8 +125,6 @@ export async function register(req, res, next) {
       password,
     });
 
-    await issueSessionForUser(user, res);
-
     res.status(201).json({
       message: "Registered",
       user: buildAuthUserPayload(user),

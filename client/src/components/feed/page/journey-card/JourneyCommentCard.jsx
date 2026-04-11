@@ -651,7 +651,7 @@ function CommentThread({
                                 duration: 0.16,
                                 ease: [0.22, 1, 0.36, 1],
                               }}
-                              className="absolute bottom-[calc(100%+8px)] right-0 translate-x-[70%] z-20 w-[min(76vw,280px)] overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80 sm:left-0 sm:right-auto sm:w-auto"
+                              className="absolute bottom-[calc(100%+8px)] left-0 z-20 w-[min(76vw,280px)] max-w-[calc(100vw-64px)] overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80 sm:w-auto"
                             >
                               <LazyEmojiPicker
                                 onEmojiClick={onReplyEmojiSelect}
@@ -702,7 +702,7 @@ function CommentThread({
                                 duration: 0.16,
                                 ease: [0.22, 1, 0.36, 1],
                               }}
-                              className="absolute bottom-[calc(100%+8px)] right-0 translate-x-1/2 z-20 w-[min(78vw,280px)] overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80 sm:left-0 sm:right-auto sm:w-auto"
+                              className="absolute bottom-[calc(100%+8px)] left-0 z-20 w-[min(78vw,280px)] max-w-[calc(100vw-64px)] overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80 sm:w-auto"
                             >
                               <div className="px-3 py-3 border-b border-zinc-200/70">
                                 <input
