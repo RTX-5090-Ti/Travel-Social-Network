@@ -5,6 +5,7 @@ import {
   followUserParamsSchema,
   listMutualFollowsSchema,
   listOwnFollowUsersSchema,
+  listSuggestedFollowsSchema,
   listUserFollowUsersSchema,
 } from "../validations/follow.validation.js";
 import {
@@ -13,6 +14,7 @@ import {
   getFollowStatus,
   getFollowSummary,
   listMutualFollows,
+  listSuggestedFollows,
   listFollowers,
   listFollowing,
   listFollowersByUserId,
@@ -27,6 +29,12 @@ router.get(
   requireAuth,
   validate(listMutualFollowsSchema),
   listMutualFollows,
+);
+router.get(
+  "/suggestions",
+  requireAuth,
+  validate(listSuggestedFollowsSchema),
+  listSuggestedFollows,
 );
 
 router.get(

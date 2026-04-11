@@ -1,18 +1,21 @@
 import { PlusIcon } from "../page/feed.icons";
+import { useTranslation } from "react-i18next";
 import SearchBar from "./SearchBar";
 
 export default function FeedHeroBar({ onOpenComposer }) {
+  const { t } = useTranslation();
+
   return (
-    <section className="theme-card overflow-hidden rounded-[20px] border border-white/70 bg-[linear-gradient(135deg,rgba(102,126,234,0.12),rgba(118,75,162,0.16),rgba(255,255,255,0.92))] p-2.5 shadow-[0_12px_28px_rgba(15,23,42,0.04)] ring-1 ring-zinc-200/60 backdrop-blur sm:rounded-[32px] sm:p-5 sm:shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
+    <section className="theme-card relative z-30 overflow-visible rounded-[20px] border border-white/70 bg-[linear-gradient(135deg,rgba(102,126,234,0.12),rgba(118,75,162,0.16),rgba(255,255,255,0.92))] p-2.5 shadow-[0_12px_28px_rgba(15,23,42,0.04)] ring-1 ring-zinc-200/60 backdrop-blur sm:rounded-[32px] sm:p-5 sm:shadow-[0_20px_50px_rgba(15,23,42,0.06)]">
       <div className="flex flex-col gap-3 sm:gap-5">
         <div className="min-w-0">
           <div className="inline-flex items-center gap-1.5 rounded-full border border-blue-100 bg-white/80 px-2 py-1 text-[9px] font-semibold uppercase tracking-[0.1em] text-[#4f7cff] sm:gap-2 sm:px-3 sm:text-[11px] sm:tracking-[0.14em]">
             <span className="h-1.5 w-1.5 rounded-full bg-[#4f7cff] sm:h-2 sm:w-2" />
-            Travel Social Feed
+            {t("feed.badge")}
           </div>
 
           <h1 className="mt-2.5 max-w-[760px] text-[18px] font-semibold leading-[1.2] tracking-tight text-zinc-900 sm:mt-3 sm:text-[30px]">
-            Capture memories, then share the journey beautifully.
+            {t("feed.heroTitle")}
           </h1>
         </div>
 
@@ -28,7 +31,7 @@ export default function FeedHeroBar({ onOpenComposer }) {
             <span className="absolute inset-y-0 left-[-100%] w-full bg-[linear-gradient(135deg,#ff6b6b,#4ecdc4,#45b7d1,#6c5ce7)] bg-[length:300%_100%] transition-all duration-500 group-hover:left-0" />
             <span className="relative z-10 inline-flex items-center gap-2.5 md:gap-3">
               <PlusIcon className="h-3.5 w-3.5 md:h-4 md:w-4" />
-              Share Journey
+              {t("feed.shareJourney")}
             </span>
           </button>
         </div>

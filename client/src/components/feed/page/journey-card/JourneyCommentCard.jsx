@@ -104,7 +104,11 @@ function getReplyToName(comment) {
 function CommentHeartIcon({ filled = false }) {
   if (filled) {
     return (
-      <svg viewBox="0 0 24 24" fill="currentColor" className="h-[15px] w-[15px]">
+      <svg
+        viewBox="0 0 24 24"
+        fill="currentColor"
+        className="h-[15px] w-[15px]"
+      >
         <path d="M12 21.35 10.55 20.03C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35Z" />
       </svg>
     );
@@ -139,6 +143,7 @@ function CommentBubble({
   showConnector = false,
   onReply,
   onToggleLike,
+  onOpenMedia,
   currentUserId = "",
   onEdit,
   onDelete,
@@ -230,14 +235,14 @@ function CommentBubble({
 
       <div className="flex-1 min-w-0 group/comment">
         <div className="relative inline-block max-w-full">
-          <div className="inline-block max-w-full rounded-[19px] border border-zinc-200/90 bg-[linear-gradient(180deg,#faf7ff,#f1ebff)] px-3 py-2 shadow-[0_8px_18px_rgba(76,29,149,0.08)] ring-1 ring-white/70">
-            <p className="text-[13px] font-semibold leading-[1.15rem] text-zinc-900">
+          <div className="inline-block max-w-full rounded-[19px] border border-zinc-200/90 bg-[linear-gradient(180deg,#faf7ff,#f1ebff)] px-3 py-2 shadow-[0_8px_18px_rgba(76,29,149,0.08)] ring-1 ring-white/70 dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(30,27,75,0.62),rgba(15,23,42,0.92))] dark:shadow-[0_8px_18px_rgba(2,6,23,0.24)] dark:ring-white/10">
+            <p className="text-[13px] font-semibold leading-[1.15rem] text-zinc-900 dark:text-zinc-50">
               {authorName}
             </p>
 
-            <p className="mt-0.5 whitespace-pre-line break-words text-[13px] leading-[1.35rem] text-zinc-800">
+            <p className="mt-0.5 whitespace-pre-line break-words text-[13px] leading-[1.35rem] text-zinc-800 dark:text-zinc-100">
               {replyToName ? (
-                <span className="mr-1 font-semibold text-zinc-800">
+                <span className="mr-1 font-semibold text-zinc-800 dark:text-zinc-100">
                   {replyToName}
                 </span>
               ) : null}
@@ -247,7 +252,7 @@ function CommentBubble({
             {comment?.image?.url ? (
               comment?.image?.mediaType === "gif" ? (
                 <div
-                  className={`overflow-hidden rounded-[14px] border border-zinc-200/80 ${
+                  className={`overflow-hidden rounded-[14px] border border-zinc-200/80 dark:border-white/10 ${
                     content ? "mt-2.5" : "mt-1.5"
                   }`}
                 >
@@ -271,7 +276,7 @@ function CommentBubble({
                       0,
                     )
                   }
-                  className={`block cursor-pointer overflow-hidden rounded-[14px] border border-zinc-200/80 ${
+                  className={`block cursor-pointer overflow-hidden rounded-[14px] border border-zinc-200/80 dark:border-white/10 ${
                     content ? "mt-2.5" : "mt-1.5"
                   }`}
                 >
@@ -288,7 +293,7 @@ function CommentBubble({
           {isOwnComment ? (
             <div
               ref={menuRootRef}
-              className="absolute left-full top-1/2 ml-2 -translate-y-1/2"
+              className="absolute ml-2 -translate-y-1/2 left-full top-1/2"
             >
               <button
                 type="button"
@@ -379,15 +384,13 @@ function CommentBubble({
               <div className="min-w-0 flex-1 rounded-[21px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.95),rgba(250,247,255,0.96))] px-3 py-1.5 shadow-[0_8px_18px_rgba(99,102,241,0.08)] ring-1 ring-zinc-200/70">
                 <textarea
                   value={editText}
-                  onChange={(event) =>
-                    onEditTextChange?.(event.target.value)
-                  }
+                  onChange={(event) => onEditTextChange?.(event.target.value)}
                   rows={1}
                   placeholder="Edit your comment..."
                   className="min-h-[28px] w-full resize-none overflow-y-hidden border-0 bg-transparent text-[12px] leading-5 text-zinc-700 outline-none placeholder:text-zinc-400"
                 />
 
-                <div className="mt-1 flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-3 mt-1">
                   <button
                     type="button"
                     onClick={onEditCancel}
@@ -514,7 +517,10 @@ function CommentThread({
       : `Xem tất cả ${totalReplies} phản hồi`;
 
   return (
-    <div className="rounded-[24px] bg-transparent" data-comment-id={commentId || undefined}>
+    <div
+      className="rounded-[24px] bg-transparent"
+      data-comment-id={commentId || undefined}
+    >
       <CommentBubble
         comment={comment}
         highlighted={isHighlighted}
@@ -559,14 +565,18 @@ function CommentThread({
                     name={currentUserName}
                   />
 
-                  <div className="min-w-0 flex-1 rounded-[21px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.95),rgba(250,247,255,0.96))] px-3 py-1.5 shadow-[0_8px_18px_rgba(99,102,241,0.08)] ring-1 ring-zinc-200/70">
-                    {(replyImageDraft?.previewUrl || replyGifDraft?.previewUrl) ? (
+                  <div className="min-w-0 flex-1 rounded-[18px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.95),rgba(250,247,255,0.96))] px-2.5 py-1.5 shadow-[0_8px_18px_rgba(99,102,241,0.08)] ring-1 ring-zinc-200/70 sm:rounded-[21px] sm:px-3">
+                    {replyImageDraft?.previewUrl ||
+                    replyGifDraft?.previewUrl ? (
                       <div className="mb-2 rounded-[16px] border border-zinc-200/80 bg-white/90 p-2 shadow-[0_8px_18px_rgba(15,23,42,0.05)]">
                         <div className="relative inline-flex overflow-hidden rounded-[12px] border border-zinc-200/80 bg-zinc-50">
                           <img
-                            src={replyImageDraft?.previewUrl || replyGifDraft?.previewUrl}
+                            src={
+                              replyImageDraft?.previewUrl ||
+                              replyGifDraft?.previewUrl
+                            }
                             alt="Reply media preview"
-                            className="h-[84px] w-[84px] object-cover"
+                            className="h-[72px] w-[72px] object-cover sm:h-[84px] sm:w-[84px]"
                           />
                           <button
                             type="button"
@@ -585,7 +595,13 @@ function CommentThread({
                                 : "cursor-pointer hover:scale-105 hover:bg-zinc-950/84"
                             }`}
                           >
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-3 w-3">
+                            <svg
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2.5"
+                              className="w-3 h-3"
+                            >
                               <path d="M18 6 6 18M6 6l12 12" />
                             </svg>
                           </button>
@@ -593,24 +609,24 @@ function CommentThread({
                       </div>
                     ) : null}
 
-                      <textarea
-                        ref={replyTextareaRef}
-                        value={replyText}
-                        onChange={(event) => {
-                          onReplyTextChange?.(event.target.value);
-                          onReplyTextSelect?.(event);
-                        }}
-                        onSelect={onReplyTextSelect}
+                    <textarea
+                      ref={replyTextareaRef}
+                      value={replyText}
+                      onChange={(event) => {
+                        onReplyTextChange?.(event.target.value);
+                        onReplyTextSelect?.(event);
+                      }}
+                      onSelect={onReplyTextSelect}
                       rows={1}
                       placeholder={
                         replyTargetName
                           ? `Reply to ${replyTargetName}...`
                           : "Write a reply..."
                       }
-                      className="min-h-[28px] w-full resize-none overflow-y-hidden border-0 bg-transparent text-[12px] leading-5 text-zinc-700 outline-none placeholder:text-zinc-400"
+                      className="min-h-[24px] w-full resize-none overflow-y-hidden border-0 bg-transparent text-[12px] leading-5 text-zinc-700 outline-none placeholder:text-zinc-400"
                     />
 
-                    <div className="mb-1.5 mt-1 flex flex-wrap items-center gap-1.5">
+                    <div className="flex flex-wrap items-center gap-1 mt-1 mb-1">
                       <div className="relative">
                         <CommentComposerActionButton
                           ariaLabel="Reply emoji"
@@ -631,8 +647,11 @@ function CommentThread({
                               initial={{ opacity: 0, y: 8, scale: 0.98 }}
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                              transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                              className="absolute bottom-[calc(100%+8px)] left-0 z-20 overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80"
+                              transition={{
+                                duration: 0.16,
+                                ease: [0.22, 1, 0.36, 1],
+                              }}
+                              className="absolute bottom-[calc(100%+8px)] right-0 translate-x-[70%] z-20 w-[min(76vw,280px)] overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80 sm:left-0 sm:right-auto sm:w-auto"
                             >
                               <LazyEmojiPicker
                                 onEmojiClick={onReplyEmojiSelect}
@@ -640,17 +659,20 @@ function CommentThread({
                                 previewConfig={{ showPreview: false }}
                                 searchDisabled={false}
                                 skinTonesDisabled
-                                width={300}
-                                height={360}
-                                fallbackWidth={300}
-                                fallbackHeight={360}
+                                width={280}
+                                height={320}
+                                fallbackWidth={280}
+                                fallbackHeight={320}
                               />
                             </motion.div>
                           ) : null}
                         </AnimatePresence>
                       </div>
 
-                      <CommentComposerActionButton ariaLabel="Reply camera" onClick={onReplyPickImage}>
+                      <CommentComposerActionButton
+                        ariaLabel="Reply camera"
+                        onClick={onReplyPickImage}
+                      >
                         <CommentCameraIcon className="h-[19px] w-[19px]" />
                       </CommentComposerActionButton>
 
@@ -664,7 +686,9 @@ function CommentThread({
                               : ""
                           }
                         >
-                          <span className="text-[11px] font-bold tracking-[0.08em]">GIF</span>
+                          <span className="text-[11px] font-bold tracking-[0.08em]">
+                            GIF
+                          </span>
                         </CommentComposerActionButton>
 
                         <AnimatePresence>
@@ -674,33 +698,41 @@ function CommentThread({
                               initial={{ opacity: 0, y: 8, scale: 0.98 }}
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                              transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                              className="absolute bottom-[calc(100%+8px)] left-0 z-20 overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80"
+                              transition={{
+                                duration: 0.16,
+                                ease: [0.22, 1, 0.36, 1],
+                              }}
+                              className="absolute bottom-[calc(100%+8px)] right-0 translate-x-1/2 z-20 w-[min(78vw,280px)] overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80 sm:left-0 sm:right-auto sm:w-auto"
                             >
-                              <div className="border-b border-zinc-200/70 px-3 py-3">
+                              <div className="px-3 py-3 border-b border-zinc-200/70">
                                 <input
                                   type="text"
                                   value={replyGifQuery}
-                                  onChange={(event) => onReplyGifQueryChange?.(event.target.value)}
+                                  onChange={(event) =>
+                                    onReplyGifQueryChange?.(event.target.value)
+                                  }
                                   placeholder="Tìm GIF trên Giphy..."
                                   className="w-full rounded-[14px] border border-zinc-200/80 bg-white px-3 py-2 text-[13px] text-zinc-700 outline-none placeholder:text-zinc-400"
                                 />
                               </div>
-                              <div className="h-[300px] w-[300px] overflow-y-auto px-2 py-2">
+                              <div className="h-[260px] w-full overflow-y-auto px-2 py-2 sm:h-[300px] sm:w-[300px]">
                                 <LazyGiphyGrid
-                                  width={276}
+                                  width={260}
                                   columns={2}
                                   gutter={8}
                                   fetchGifs={onReplyFetchGifs}
-                                  key={replyGifQuery.trim() || `reply-trending-${commentId}`}
+                                  key={
+                                    replyGifQuery.trim() ||
+                                    `reply-trending-${commentId}`
+                                  }
                                   onGifClick={(gif, event) => {
                                     event.preventDefault();
                                     onReplySelectGif?.(gif);
                                   }}
                                   noLink
                                   hideAttribution
-                                  fallbackWidth={276}
-                                  fallbackHeight={300}
+                                  fallbackWidth={260}
+                                  fallbackHeight={260}
                                 />
                               </div>
                             </motion.div>
@@ -713,7 +745,7 @@ function CommentThread({
                       </CommentComposerActionButton>
                     </div>
 
-                    <div className="mt-1 flex items-center justify-between gap-3">
+                    <div className="mt-0.5 flex items-center justify-between gap-3">
                       <button
                         type="button"
                         onClick={() => onReplyToggle?.(comment)}
@@ -768,7 +800,7 @@ function CommentThread({
                 <div className="space-y-3">
                   {repliesLoading ? (
                     <div className="flex items-center gap-2 pl-1 text-violet-500">
-                      <span className="h-4 w-4 animate-spin rounded-full border-2 border-violet-200 border-t-violet-500" />
+                      <span className="w-4 h-4 border-2 rounded-full animate-spin border-violet-200 border-t-violet-500" />
                     </div>
                   ) : null}
 

@@ -15,9 +15,11 @@
     "axios": "^1.13.6",
     "emoji-picker-react": "^4.18.0",
     "framer-motion": "^12.37.0",
+    "i18next": "^26.0.4",
     "lucide-react": "^0.577.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-i18next": "^17.0.2",
     "react-router-dom": "^7.13.1",
     "socket.io-client": "^4.8.3"
   },

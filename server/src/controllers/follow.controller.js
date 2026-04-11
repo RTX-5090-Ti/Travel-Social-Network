@@ -92,6 +92,23 @@ export async function listMutualFollows(req, res, next) {
   }
 }
 
+export async function listSuggestedFollows(req, res, next) {
+  try {
+    const payload = await followService.listSuggestedFollows({
+      userId: req.user.userId,
+      limit: req.validated?.query?.limit ?? 5,
+    });
+
+    res.json(payload);
+  } catch (err) {
+    try {
+      handleServiceError(res, err);
+    } catch (error) {
+      next(error);
+    }
+  }
+}
+
 export async function listFollowers(req, res, next) {
   try {
     const payload = await followService.listFollowers({

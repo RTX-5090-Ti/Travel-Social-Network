@@ -4,40 +4,72 @@ import { ThemeContext } from "./theme-context";
 
 const STORAGE_KEY = "travel-social-theme-mode";
 
+function getSystemTheme() {
+  if (typeof window === "undefined") {
+    return "light";
+  }
+
+  return window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
 function getInitialThemeMode() {
   if (typeof window === "undefined") {
     return "light";
   }
 
   const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (stored === "dark" || stored === "light") {
+  if (stored === "dark" || stored === "light" || stored === "system") {
     return stored;
   }
 
-  return "light";
+  return "system";
 }
 
 export function ThemeProvider({ children }) {
   const [themeMode, setThemeMode] = useState(getInitialThemeMode);
+  const [resolvedTheme, setResolvedTheme] = useState(() =>
+    getInitialThemeMode() === "system" ? getSystemTheme() : getInitialThemeMode(),
+  );
+
+  useEffect(() => {
+    if (themeMode !== "system") {
+      setResolvedTheme(themeMode);
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const syncTheme = () => {
+      setResolvedTheme(mediaQuery.matches ? "dark" : "light");
+    };
+
+    syncTheme();
+    mediaQuery.addEventListener("change", syncTheme);
+
+    return () => mediaQuery.removeEventListener("change", syncTheme);
+  }, [themeMode]);
 
   useEffect(() => {
     const root = document.documentElement;
     const body = document.body;
 
-    root.dataset.theme = themeMode;
-    body.dataset.theme = themeMode;
-    root.classList.toggle("dark", themeMode === "dark");
-    body.classList.toggle("dark", themeMode === "dark");
+    root.dataset.themeMode = themeMode;
+    body.dataset.themeMode = themeMode;
+    root.dataset.theme = resolvedTheme;
+    body.dataset.theme = resolvedTheme;
+    root.classList.toggle("dark", resolvedTheme === "dark");
+    body.classList.toggle("dark", resolvedTheme === "dark");
     window.localStorage.setItem(STORAGE_KEY, themeMode);
-  }, [themeMode]);
+  }, [resolvedTheme, themeMode]);
 
   const value = useMemo(
     () => ({
       themeMode,
-      resolvedTheme: themeMode,
+      resolvedTheme,
       setThemeMode,
     }),
-    [themeMode],
+    [resolvedTheme, themeMode],
   );
 
   return (

@@ -29,6 +29,15 @@ export const getMyTripsSchema = Joi.object({
   params: Joi.object(),
 });
 
+export const searchUsersSchema = Joi.object({
+  body: Joi.object(),
+  query: Joi.object({
+    q: Joi.string().trim().min(1).max(100).required(),
+    limit: Joi.number().integer().min(1).max(10).optional(),
+  }),
+  params: Joi.object(),
+});
+
 export const getUserSummarySchema = Joi.object({
   body: Joi.object(),
   query: Joi.object(),

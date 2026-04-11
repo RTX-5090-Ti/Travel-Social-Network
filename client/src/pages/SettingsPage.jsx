@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { BellOff, Languages, MoonStar, ShieldCheck } from "lucide-react";
+import { BellOff, Languages, LogOut, MoonStar, ShieldCheck } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/useAuth";
@@ -26,14 +27,21 @@ import { useTheme } from "../theme/useTheme";
 import { useToast } from "../toast/useToast";
 
 export default function SettingsPage() {
+  const { t, i18n } = useTranslation();
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [tabletSidebarOpen, setTabletSidebarOpen] = useState(false);
   const navigate = useNavigate();
-  const { user, clearAuth } = useAuth();
+  const { user, clearAuth, logout } = useAuth();
   const { themeMode: persistedThemeMode, setThemeMode: applyThemeMode } =
     useTheme();
   const { showToast } = useToast();
   const [openSection, setOpenSection] = useState("");
   const [messagePermission, setMessagePermission] = useState("everyone");
-  const [language, setLanguage] = useState("english");
+  const [language, setLanguage] = useState(
+    (i18n.resolvedLanguage || i18n.language || "vi").startsWith("en")
+      ? "en"
+      : "vi",
+  );
   const [themeMode, setThemeMode] = useState(persistedThemeMode);
   const [isPasswordFormOpen, setIsPasswordFormOpen] = useState(false);
   const [isDeactivateConfirmOpen, setIsDeactivateConfirmOpen] = useState(false);
@@ -79,6 +87,11 @@ export default function SettingsPage() {
   useEffect(() => {
     setThemeMode(persistedThemeMode);
   }, [persistedThemeMode]);
+
+  useEffect(() => {
+    const resolvedLanguage = i18n.resolvedLanguage || i18n.language || "vi";
+    setLanguage(resolvedLanguage.startsWith("en") ? "en" : "vi");
+  }, [i18n.language, i18n.resolvedLanguage]);
 
   useEffect(() => {
     if (openSection !== "password") {
@@ -317,12 +330,18 @@ export default function SettingsPage() {
 
   function handleSaveSettings() {
     applyThemeMode(themeMode);
-    showToast("Đã lưu giao diện hiển thị.", "success");
+    void i18n.changeLanguage(language);
+    showToast(t("settings.savedAppearance"), "success");
+  }
+
+  async function handleLogout() {
+    await logout();
+    navigate("/login", { replace: true });
   }
 
   return (
-    <div className="theme-page-shell relative min-h-screen bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-4">
-      <div className="absolute inset-0 pointer-events-none">
+    <div className="theme-page-shell relative min-h-screen bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-0 pt-0 pb-[calc(env(safe-area-inset-bottom,0px)+92px)] md:px-3 md:pt-3 md:pb-3 lg:px-4 lg:pt-4 lg:pb-4">
+      <div className="absolute inset-0 hidden pointer-events-none md:block">
         <FloatingShape
           className="left-[8%] top-[10%] h-20 w-20"
           style={shapeStyles[0]}
@@ -352,9 +371,17 @@ export default function SettingsPage() {
         </FloatingShape>
       </div>
 
-      <div className="theme-app-shell relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden rounded-[34px] border border-white/60 bg-[#fafafb] shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
-        <div className="grid min-h-[900px] grid-cols-1 lg:h-full lg:min-h-0 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
-          <ProfileLeftSidebar user={displayUser} stats={sidebarStats} />
+      <div className="theme-app-shell relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden bg-[#fafafb] md:rounded-[34px] md:border md:border-white/60 md:shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
+        <div className="grid min-h-screen grid-cols-1 md:min-h-[900px] lg:h-full lg:min-h-0 lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)_320px]">
+          <ProfileLeftSidebar
+            user={displayUser}
+            stats={sidebarStats}
+            onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
+            tabletSidebarOpen={tabletSidebarOpen}
+            onToggleTabletSidebar={() =>
+              setTabletSidebarOpen((prev) => !prev)
+            }
+          />
 
           <main className="theme-main-pane profile-main-scroll min-w-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,250,251,0.96))] px-5 py-6 sm:px-7 sm:py-8 lg:h-full lg:overflow-y-auto lg:overflow-x-hidden lg:border-r lg:px-9 xl:px-10 border-zinc-200/80">
             <div className="mx-auto w-full max-w-[920px]">
@@ -374,10 +401,10 @@ export default function SettingsPage() {
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-                        Personal settings
+                        {t("settings.personalSettings")}
                       </p>
                       <h3 className="mt-2 text-[26px] font-semibold tracking-tight text-zinc-900">
-                        Settings
+                        {t("settings.title")}
                       </h3>
                     </div>
                   </div>
@@ -436,8 +463,8 @@ export default function SettingsPage() {
                       />
 
                       <SettingsAccordion
-                        title="Privacy"
-                        description="Control who can message you."
+                        title={t("settings.privacyTitle")}
+                        description={t("settings.privacyDescription")}
                         icon={ShieldCheck}
                         open={openSection === "privacy"}
                         onToggle={() =>
@@ -448,21 +475,30 @@ export default function SettingsPage() {
                       >
                         <div className="grid gap-4">
                           <SettingsOptionGroup
-                            title="Who can message you"
+                            title={t("settings.messagePermissionTitle")}
                             value={messagePermission}
                             onChange={setMessagePermission}
                             options={[
-                              { value: "everyone", label: "Everyone" },
-                              { value: "followers", label: "Followers" },
-                              { value: "nobody", label: "Nobody" },
+                              {
+                                value: "everyone",
+                                label: t("settings.messagePermission.everyone"),
+                              },
+                              {
+                                value: "followers",
+                                label: t("settings.messagePermission.followers"),
+                              },
+                              {
+                                value: "nobody",
+                                label: t("settings.messagePermission.nobody"),
+                              },
                             ]}
                           />
                         </div>
                       </SettingsAccordion>
 
                       <SettingsAccordion
-                        title="Notifications"
-                        description="Turn notification delivery on or off."
+                        title={t("settings.notificationsTitle")}
+                        description={t("settings.notificationsDescription")}
                         icon={BellOff}
                         open={false}
                         onToggle={() =>
@@ -474,8 +510,8 @@ export default function SettingsPage() {
                       />
 
                       <SettingsAccordion
-                        title="Language"
-                        description="Choose the language you want to use in the app."
+                        title={t("settings.languageTitle")}
+                        description={t("settings.languageDescription")}
                         icon={Languages}
                         open={openSection === "language"}
                         onToggle={() =>
@@ -485,19 +521,19 @@ export default function SettingsPage() {
                         }
                       >
                         <SettingsOptionGroup
-                          title="Language preference"
+                          title={t("settings.languagePreferenceTitle")}
                           value={language}
                           onChange={setLanguage}
                           options={[
-                            { value: "english", label: "English" },
-                            { value: "vietnamese", label: "Tiếng Việt" },
+                            { value: "en", label: t("settings.languageOptions.en") },
+                            { value: "vi", label: t("settings.languageOptions.vi") },
                           ]}
                         />
                       </SettingsAccordion>
 
                       <SettingsAccordion
-                        title="Dark mode"
-                        description="Choose how the app appearance should behave."
+                        title={t("settings.themeTitle")}
+                        description={t("settings.themeDescription")}
                         icon={MoonStar}
                         open={openSection === "theme"}
                         onToggle={() =>
@@ -507,23 +543,33 @@ export default function SettingsPage() {
                         }
                       >
                         <SettingsOptionGroup
-                          title="Appearance mode"
+                          title={t("settings.appearanceModeTitle")}
                           value={themeMode}
                           onChange={setThemeMode}
                           options={[
-                            { value: "light", label: "Light" },
-                            { value: "dark", label: "Dark" },
+                            { value: "light", label: t("settings.themeOptions.light") },
+                            { value: "dark", label: t("settings.themeOptions.dark") },
+                            { value: "system", label: t("settings.themeOptions.system") },
                           ]}
                         />
                       </SettingsAccordion>
 
-                      <div className="flex justify-end pt-2">
+                      <div className="flex items-center justify-between gap-3 pt-2">
+                        <button
+                          type="button"
+                          onClick={handleLogout}
+                          className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-8 py-6 text-l font-semibold text-rose-600 shadow-[0_8px_18px_rgba(244,63,94,0.10)] transition hover:-translate-y-0.5 hover:bg-rose-100 cursor-pointer"
+                        >
+                          <LogOut className="h-4.5 w-4.5" />
+                          {t("settings.logout")}
+                        </button>
+
                         <button
                           type="button"
                           onClick={handleSaveSettings}
                           className="inline-flex h-10 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-15 py-6 text-l font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.24)] transition hover:-translate-y-0.5 cursor-pointer"
                         >
-                          Save
+                          {t("settings.save")}
                         </button>
                       </div>
                     </div>
@@ -533,7 +579,12 @@ export default function SettingsPage() {
             </div>
           </main>
 
-          <ProfileRightSidebar />
+          <ProfileRightSidebar
+            mobileOpen={mobileSidebarOpen}
+            onCloseMobile={() => setMobileSidebarOpen(false)}
+            tabletOpen={tabletSidebarOpen}
+            onCloseTablet={() => setTabletSidebarOpen(false)}
+          />
         </div>
       </div>
 

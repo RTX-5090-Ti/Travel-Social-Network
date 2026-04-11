@@ -251,8 +251,8 @@ export default function ProfileHero({
 
   return (
     <>
-      <section className="overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.85),rgba(240,244,255,0.92),rgba(248,244,255,0.96))] shadow-[0_20px_50px_rgba(15,23,42,0.06)] ring-1 ring-zinc-200/60 backdrop-blur">
-        <div className="relative min-h-[320px] overflow-hidden border-b border-white/60 px-5 pb-6 pt-5 sm:px-7 sm:pt-6">
+      <section className="overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.85),rgba(240,244,255,0.92),rgba(248,244,255,0.96))] shadow-[0_20px_50px_rgba(15,23,42,0.06)] ring-1 ring-zinc-200/60 backdrop-blur dark:border-white/10 dark:bg-[linear-gradient(135deg,rgba(17,24,39,0.96),rgba(15,23,42,0.98),rgba(30,27,75,0.94))] dark:shadow-[0_20px_50px_rgba(2,6,23,0.3)] dark:ring-white/10">
+        <div className="relative min-h-[320px] overflow-hidden border-b border-white/60 px-5 pb-6 pt-5 dark:border-white/10 sm:px-7 sm:pt-6">
           <img
             src={coverUrl}
             alt="Profile cover"
@@ -270,13 +270,13 @@ export default function ProfileHero({
               <div className="space-y-3">
                 <button
                   onClick={onBackToFeed}
-                  className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-white/80 bg-white/80 px-4 py-2 text-[13px] font-semibold text-zinc-700 shadow-sm transition hover:bg-white"
+                  className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-white/80 bg-white/80 px-4 py-2 text-[13px] font-semibold text-zinc-700 shadow-sm transition hover:bg-white dark:border-white/10 dark:bg-white/10 dark:text-zinc-100 dark:hover:bg-white/15"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   Back to feed
                 </button>
 
-                <div className="inline-flex items-center gap-2 rounded-full border border-violet-100 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6c5ce7]">
+                <div className="inline-flex items-center gap-2 rounded-full border border-violet-100 bg-white/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#6c5ce7] dark:border-violet-400/20 dark:bg-white/10 dark:text-violet-200">
                   <Sparkles className="h-3.5 w-3.5" />
                   Personal sanctuary
                 </div>
@@ -294,7 +294,7 @@ export default function ProfileHero({
                         : "cursor-pointer"
                     } ${
                       resolvedIsFollowing
-                        ? "border border-white/85 bg-[linear-gradient(135deg,rgba(255,255,255,0.94),rgba(245,247,255,0.96),rgba(242,237,255,0.94))] text-zinc-700 shadow-[0_14px_30px_rgba(91,99,246,0.14)] ring-1 ring-[rgba(167,139,250,0.16)] hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(91,99,246,0.20)]"
+                        ? "border border-white/85 bg-[linear-gradient(135deg,rgba(255,255,255,0.94),rgba(245,247,255,0.96),rgba(242,237,255,0.94))] text-zinc-700 shadow-[0_14px_30px_rgba(91,99,246,0.14)] ring-1 ring-[rgba(167,139,250,0.16)] hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(91,99,246,0.20)] dark:border-white/10 dark:bg-[linear-gradient(135deg,rgba(30,41,59,0.96),rgba(30,27,75,0.92),rgba(17,24,39,0.96))] dark:text-zinc-100 dark:shadow-[0_14px_30px_rgba(2,6,23,0.32)] dark:ring-white/10 dark:hover:shadow-[0_18px_38px_rgba(2,6,23,0.4)]"
                         : "group relative overflow-hidden bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-white shadow-[0_12px_28px_rgba(102,126,234,0.34)] hover:-translate-y-0.5 hover:scale-[1.01] hover:shadow-[0_18px_38px_rgba(102,126,234,0.42)]"
                     }`}
                   >
@@ -359,7 +359,7 @@ export default function ProfileHero({
                       type="button"
                       onClick={handleOpenAvatarPreview}
                       aria-label="Preview avatar"
-                      className="group relative block h-full w-full overflow-hidden rounded-[34px] ring-4 ring-white/70 shadow-[0_22px_40px_rgba(51,65,85,0.12)] cursor-pointer"
+                      className="group relative block h-full w-full overflow-hidden rounded-[34px] ring-4 ring-white/70 shadow-[0_22px_40px_rgba(51,65,85,0.12)] cursor-pointer dark:ring-white/10 dark:shadow-[0_22px_40px_rgba(2,6,23,0.32)]"
                     >
                       <img
                         src={displayAvatar}
@@ -367,10 +367,10 @@ export default function ProfileHero({
                         className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
                       />
 
-                      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(91,99,246,0.10),rgba(15,23,42,0.18))] opacity-0 transition duration-300 group-hover:opacity-100" />
+                      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(91,99,246,0.10),rgba(15,23,42,0.18))] opacity-0 transition duration-300 group-hover:opacity-100 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(139,92,246,0.12),rgba(2,6,23,0.34))]" />
 
-                      <div className="absolute inset-x-0 flex justify-center transition duration-300 opacity-0 pointer-events-none bottom-3 group-hover:opacity-100">
-                        <div className="rounded-full border border-white/80 bg-white/84 px-3 py-1.5 text-[11px] font-semibold text-zinc-800 shadow-[0_10px_24px_rgba(15,23,42,0.14)] backdrop-blur">
+                      <div className="absolute inset-x-0 flex justify-center transition duration-300 opacity-0 pointer-events-none bottom-3 group-hover:opacity-100 ">
+                        <div className="rounded-full border border-white/80 bg-white/84 px-3 py-1.5 text-[11px] font-semibold text-zinc-800 shadow-[0_10px_24px_rgba(15,23,42,0.14)] backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-zinc-100 dark:shadow-[0_10px_24px_rgba(2,6,23,0.32)]">
                           View avatar
                         </div>
                       </div>
@@ -436,14 +436,12 @@ export default function ProfileHero({
                   )}
 
                   <div className="mt-4 flex flex-wrap gap-2.5 text-[13px] text-zinc-500">
-                    {!isVisitorProfile ? (
-                      <div className="w-full">
+                    <div className="w-full">
                       <ProfileMetaPill
                         icon={<Mail className="w-4 h-4" />}
                         text={displayUser?.email || "Chưa cập nhật email"}
                       />
-                      </div>
-                    ) : null}
+                    </div>
                     <div className="w-full">
                       <ProfileMetaPill
                         icon={<MapPin className="w-4 h-4" />}

@@ -184,28 +184,28 @@ export default function ProfileSelectField({
         aria-expanded={open}
         className={`group flex w-full items-center justify-between gap-3 rounded-[20px] border px-4 py-3.5 text-left transition duration-300 cursor-pointer ${
           open
-            ? "border-[rgba(139,92,246,0.24)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,242,255,0.96))] shadow-[0_16px_30px_rgba(124,58,237,0.12)] ring-1 ring-[rgba(139,92,246,0.10)]"
-            : "border-white/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(240,243,252,0.96))] shadow-[0_10px_22px_rgba(15,23,42,0.05)] hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(91,99,246,0.10)]"
+            ? "border-[rgba(139,92,246,0.24)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,242,255,0.96))] shadow-[0_16px_30px_rgba(124,58,237,0.12)] ring-1 ring-[rgba(139,92,246,0.10)] dark:border-violet-400/25 dark:bg-[linear-gradient(180deg,rgba(30,41,59,0.96),rgba(30,27,75,0.94))] dark:shadow-[0_16px_30px_rgba(2,6,23,0.3)] dark:ring-white/10"
+            : "border-white/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(240,243,252,0.96))] shadow-[0_10px_22px_rgba(15,23,42,0.05)] hover:-translate-y-0.5 hover:shadow-[0_14px_28px_rgba(91,99,246,0.10)] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(15,23,42,0.96),rgba(30,41,59,0.94))] dark:shadow-[0_10px_22px_rgba(2,6,23,0.24)] dark:hover:shadow-[0_14px_28px_rgba(2,6,23,0.32)]"
         }`}
       >
         <div className="min-w-0">
           <p
             className={`truncate text-[14px] font-semibold ${
-              selectedOption ? "text-zinc-900" : "text-zinc-400"
+                selectedOption ? "text-zinc-900 dark:text-zinc-50" : "text-zinc-400 dark:text-zinc-500"
             }`}
           >
             {selectedOption?.label || placeholder}
           </p>
 
           {secondaryText ? (
-            <p className="mt-1 truncate text-[12px] text-zinc-500">
+            <p className="mt-1 truncate text-[12px] text-zinc-500 dark:text-zinc-400">
               {secondaryText}
             </p>
           ) : null}
         </div>
 
         <span
-          className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/80 bg-white/85 text-zinc-400 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition duration-300 ${
+          className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/80 bg-white/85 text-zinc-400 shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition duration-300 dark:border-white/10 dark:bg-white/5 dark:text-zinc-400 dark:shadow-[0_8px_20px_rgba(2,6,23,0.24)] ${
             open ? "rotate-180 text-[#7c3aed]" : "group-hover:text-zinc-600"
           }`}
         >
@@ -238,17 +238,17 @@ export default function ProfileSelectField({
                     width: menuStyle.width,
                     zIndex: 500,
                   }}
-                  className="overflow-hidden rounded-[24px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,247,255,0.98),rgba(247,242,255,0.98))] shadow-[0_24px_54px_rgba(76,82,160,0.18)] ring-1 ring-[rgba(255,255,255,0.72)] backdrop-blur-xl"
+                  className="overflow-hidden rounded-[24px] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(244,247,255,0.98),rgba(247,242,255,0.98))] shadow-[0_24px_54px_rgba(76,82,160,0.18)] ring-1 ring-[rgba(255,255,255,0.72)] backdrop-blur-xl dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.98),rgba(30,27,75,0.96))] dark:shadow-[0_24px_54px_rgba(2,6,23,0.45)] dark:ring-white/10"
                 >
                   {searchable ? (
-                    <div className="px-3 py-3 border-b border-white/70">
-                      <div className="flex items-center gap-2 rounded-[18px] border border-white/75 bg-white/85 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-zinc-200/55">
-                        <Search className="w-4 h-4 shrink-0 text-zinc-400" />
+                    <div className="px-3 py-3 border-b border-white/70 dark:border-white/10">
+                      <div className="flex items-center gap-2 rounded-[18px] border border-white/75 bg-white/85 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ring-1 ring-zinc-200/55 dark:border-white/10 dark:bg-white/5 dark:shadow-none dark:ring-white/10">
+                        <Search className="w-4 h-4 shrink-0 text-zinc-400 dark:text-zinc-500" />
                         <input
                           value={query}
                           onChange={(e) => setQuery(e.target.value)}
                           placeholder={searchPlaceholder}
-                          className="w-full border-0 bg-transparent text-[14px] text-zinc-700 outline-none placeholder:text-zinc-400"
+                          className="w-full border-0 bg-transparent text-[14px] text-zinc-700 outline-none placeholder:text-zinc-400 dark:text-zinc-100 dark:placeholder:text-zinc-500"
                         />
                       </div>
                     </div>
@@ -269,17 +269,17 @@ export default function ProfileSelectField({
                             onClick={() => handleSelect(option.value)}
                             className={`mb-2 w-full rounded-[18px] px-3.5 py-3 text-left transition last:mb-0 cursor-pointer ${
                               isSelected
-                                ? "bg-[linear-gradient(135deg,rgba(247,242,255,0.98),rgba(238,245,255,0.96))] ring-1 ring-[rgba(139,92,246,0.14)] shadow-[0_10px_22px_rgba(124,58,237,0.10)]"
-                                : "hover:bg-white/85"
+                                ? "bg-[linear-gradient(135deg,rgba(247,242,255,0.98),rgba(238,245,255,0.96))] ring-1 ring-[rgba(139,92,246,0.14)] shadow-[0_10px_22px_rgba(124,58,237,0.10)] dark:bg-[linear-gradient(135deg,rgba(30,41,59,0.96),rgba(30,27,75,0.92))] dark:ring-violet-400/20 dark:shadow-[0_10px_22px_rgba(2,6,23,0.28)]"
+                                : "hover:bg-white/85 dark:hover:bg-white/5"
                             }`}
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
-                                <p className="truncate text-[14px] font-semibold text-zinc-900">
+                                <p className="truncate text-[14px] font-semibold text-zinc-900 dark:text-zinc-50">
                                   {option.label}
                                 </p>
                                 {option.description ? (
-                                  <p className="mt-1 text-[12px] leading-5 text-zinc-500">
+                                  <p className="mt-1 text-[12px] leading-5 text-zinc-500 dark:text-zinc-400">
                                     {option.description}
                                   </p>
                                 ) : null}
@@ -288,8 +288,8 @@ export default function ProfileSelectField({
                               <span
                                 className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full border ${
                                   isSelected
-                                    ? "border-[#c4b5fd] bg-white/85 text-[#7c3aed]"
-                                    : "border-white/80 bg-white/80 text-transparent"
+                                    ? "border-[#c4b5fd] bg-white/85 text-[#7c3aed] dark:border-violet-400/25 dark:bg-white/10 dark:text-violet-200"
+                                    : "border-white/80 bg-white/80 text-transparent dark:border-white/10 dark:bg-white/5"
                                 }`}
                               >
                                 <Check className="h-3.5 w-3.5" />
@@ -300,7 +300,7 @@ export default function ProfileSelectField({
                       })
                     ) : (
                       <div className="px-3 py-8 text-center">
-                        <p className="text-[13px] font-medium text-zinc-500">
+                        <p className="text-[13px] font-medium text-zinc-500 dark:text-zinc-400">
                           {emptyMessage}
                         </p>
                       </div>

@@ -27,20 +27,20 @@ export default function JourneyFeedCardFooter({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h4 className="text-[19px] font-semibold tracking-tight text-zinc-900 sm:text-[22px]">
+            <h4 className="text-[19px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50 sm:text-[22px]">
               {tripTitle}
             </h4>
-            <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-600 sm:px-3 sm:text-[12px]">
+            <span className="rounded-full bg-violet-50 px-2.5 py-1 text-[11px] font-semibold text-violet-600 dark:bg-violet-500/10 dark:text-violet-200 sm:px-3 sm:text-[12px]">
               Journey
             </span>
           </div>
 
           {caption ? (
-            <p className="mt-2.5 whitespace-pre-line text-[13px] leading-6 text-zinc-600 sm:mt-3 sm:text-[14px] sm:leading-7">
+            <p className="mt-2.5 whitespace-pre-line text-[13px] leading-6 text-zinc-600 dark:text-zinc-300 sm:mt-3 sm:text-[14px] sm:leading-7">
               {expanded ? caption : previewCaption}
             </p>
           ) : (
-            <p className="mt-2.5 text-[13px] italic leading-6 text-zinc-400 sm:mt-3 sm:text-[14px] sm:leading-7">
+            <p className="mt-2.5 text-[13px] italic leading-6 text-zinc-400 dark:text-zinc-500 sm:mt-3 sm:text-[14px] sm:leading-7">
               Chưa có phần intro cho journey này.
             </p>
           )}
@@ -64,7 +64,7 @@ export default function JourneyFeedCardFooter({
         ) : null}
       </div>
 
-      <div className="mt-5 flex flex-col gap-3 border-t border-zinc-100 pt-4 sm:mt-6 sm:flex-row sm:items-center sm:justify-between sm:pt-5">
+      <div className="mt-5 flex flex-col gap-3 border-t border-zinc-100 pt-4 dark:border-white/10 sm:mt-6 sm:flex-row sm:items-center sm:justify-between sm:pt-5">
         <div className="mt-2 grid grid-cols-3 gap-1.5 border-zinc-200/80 pt-1 sm:mt-3 sm:gap-2 sm:pt-2">
           <button
             type="button"
@@ -72,8 +72,8 @@ export default function JourneyFeedCardFooter({
             disabled={likeLoading}
             className={`inline-flex h-10 items-center justify-center gap-1.5 rounded-xl text-[13px] font-medium transition active:scale-[0.98] sm:h-11 sm:gap-2 sm:text-[15px] ${
               liked
-                ? "bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-600"
-                : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+                ? "bg-rose-50 text-rose-500 hover:bg-rose-100 hover:text-rose-600 dark:bg-rose-500/10 dark:text-rose-300 dark:hover:bg-rose-500/15 dark:hover:text-rose-200"
+                : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-zinc-100"
             } ${likeLoading ? "cursor-not-allowed opacity-70" : "cursor-pointer"}`}
           >
             <HeartIcon
@@ -89,7 +89,7 @@ export default function JourneyFeedCardFooter({
             type="button"
             onClick={onToggleShow}
             disabled={detailLoading}
-            className="inline-flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-6 text-[13px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 active:scale-[0.98] sm:h-11 sm:gap-2 sm:px-10 sm:text-[15px]"
+            className="inline-flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-6 text-[13px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-zinc-100 sm:h-11 sm:gap-2 sm:px-10 sm:text-[15px]"
           >
             <CommentIcon className="h-[18px] w-[18px] sm:h-[20px] sm:w-[20px]" />
             <span>Comment</span>
@@ -97,7 +97,7 @@ export default function JourneyFeedCardFooter({
 
           <button
             type="button"
-            className="inline-flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl text-[13px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 active:scale-[0.98] sm:h-11 sm:gap-2 sm:text-[15px]"
+            className="inline-flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-xl text-[13px] font-medium text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 active:scale-[0.98] dark:text-zinc-300 dark:hover:bg-white/10 dark:hover:text-zinc-100 sm:h-11 sm:gap-2 sm:text-[15px]"
           >
             <ShareIcon className="h-[18px] w-[18px] sm:h-[20px] sm:w-[20px]" />
             <span>Share</span>

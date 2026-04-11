@@ -11,6 +11,11 @@ import LeftSidebar from "../components/feed/layout/LeftSidebar";
 import MainFeed from "../components/feed/layout/MainFeed";
 import RightSidebar from "../components/feed/layout/RightSidebar";
 
+const FEED_MODE = {
+  TRENDING: "trending",
+  LATEST: "latest",
+};
+
 function formatLargeNumber(value = 0) {
   if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
   if (value >= 1000) return `${(value / 1000).toFixed(1)}K`;
@@ -44,15 +49,18 @@ function mergeFeedItems(existingItems = [], incomingItems = []) {
   [...existingItems, ...incomingItems].forEach((item) => {
     const itemId = getTripId(item);
     if (!itemId) return;
-    nextMap.set(itemId, item);
+    nextMap.set(itemId, {
+      ...nextMap.get(itemId),
+      ...item,
+    });
   });
 
-  return [...nextMap.values()].sort(
-    (a, b) => new Date(b?.createdAt || 0) - new Date(a?.createdAt || 0),
-  );
+  return [...nextMap.values()];
 }
 
 export default function FeedPage() {
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [tabletSidebarOpen, setTabletSidebarOpen] = useState(false);
   const [openComposer, setOpenComposer] = useState(false);
   const [feedItems, setFeedItems] = useState([]);
   const [feedLoading, setFeedLoading] = useState(true);
@@ -60,6 +68,7 @@ export default function FeedPage() {
   const [feedError, setFeedError] = useState("");
   const [feedCursor, setFeedCursor] = useState(null);
   const [feedHasMore, setFeedHasMore] = useState(false);
+  const [feedMode, setFeedMode] = useState(FEED_MODE.TRENDING);
   const [previewUser, setPreviewUser] = useState(null);
 
   const [previewStats, setPreviewStats] = useState(null);
@@ -79,12 +88,17 @@ export default function FeedPage() {
         if (reset) {
           setFeedLoading(true);
           setFeedError("");
+          setFeedItems([]);
+          feedCursorRef.current = null;
+          setFeedCursor(null);
+          setFeedHasMore(false);
         } else {
           setFeedLoadingMore(true);
         }
 
         const res = await feedApi.list({
           limit: 12,
+          mode: feedMode,
           ...(reset ? {} : { cursor: feedCursorRef.current }),
         });
         const nextItems = Array.isArray(res.data?.items) ? res.data.items : [];
@@ -108,12 +122,6 @@ export default function FeedPage() {
           error?.response?.data?.message || "Không tải được feed lúc này.",
         );
 
-        if (reset) {
-          setFeedItems([]);
-          feedCursorRef.current = null;
-          setFeedCursor(null);
-          setFeedHasMore(false);
-        }
       } finally {
         if (requestId === feedRequestIdRef.current) {
           if (reset) {
@@ -124,7 +132,7 @@ export default function FeedPage() {
         }
       }
     },
-    [],
+    [feedMode],
   );
 
   const loadPreviewStats = useCallback(async (ownerId) => {
@@ -173,7 +181,7 @@ export default function FeedPage() {
 
   useEffect(() => {
     loadFeed({ reset: true });
-  }, [loadFeed]);
+  }, [loadFeed, feedMode]);
 
   useEffect(() => {
     setPreviewUser((prev) => {
@@ -274,8 +282,13 @@ export default function FeedPage() {
     await loadFeed({ reset: false });
   }
 
+  function handleChangeFeedMode(nextMode) {
+    if (!nextMode || nextMode === feedMode) return;
+    setFeedMode(nextMode);
+  }
+
   return (
-    <div className="theme-page-shell relative min-h-screen bg-white md:bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] md:px-3 md:py-3 lg:px-4 lg:py-4">
+    <div className="theme-page-shell relative min-h-screen bg-white px-0 pt-0 pb-[calc(env(safe-area-inset-bottom,0px)+92px)] md:bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] md:px-3 md:pt-3 md:pb-3 lg:px-4 lg:pt-4 lg:pb-4">
       <div className="absolute inset-0 hidden pointer-events-none md:block">
         <FloatingShape
           className="left-[10%] top-[10%] h-20 w-20"
@@ -314,11 +327,16 @@ export default function FeedPage() {
       </div>
 
       <div className="theme-app-shell relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden bg-[#fafafb] md:rounded-[34px] md:border md:border-white/60 md:shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
-        <div className="grid min-h-screen grid-cols-1 md:min-h-[900px] lg:h-full lg:min-h-0 lg:grid-cols-[312px_minmax(0,1fr)_344px]">
+        <div className="grid min-h-screen grid-cols-1 md:min-h-[900px] lg:h-full lg:min-h-0 lg:grid-cols-[312px_minmax(0,1fr)] xl:grid-cols-[312px_minmax(0,1fr)_344px]">
           <LeftSidebar
             previewUser={previewUser}
             previewStats={previewStats}
             previewStatsLoading={previewStatsLoading}
+            onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
+            tabletSidebarOpen={tabletSidebarOpen}
+            onToggleTabletSidebar={() =>
+              setTabletSidebarOpen((prev) => !prev)
+            }
             onClearPreview={() => {
               previewRequestIdRef.current += 1;
               setPreviewUser(null);
@@ -329,11 +347,13 @@ export default function FeedPage() {
 
           <MainFeed
             onOpenComposer={() => setOpenComposer(true)}
+            feedMode={feedMode}
             feedItems={feedItems}
             feedLoading={feedLoading}
             feedLoadingMore={feedLoadingMore}
             feedError={feedError}
             feedHasMore={feedHasMore}
+            onChangeFeedMode={handleChangeFeedMode}
             onReloadFeed={() => loadFeed({ reset: true })}
             onLoadMoreFeed={handleLoadMoreFeed}
             onPreviewUser={handlePreviewUser}
@@ -342,7 +362,12 @@ export default function FeedPage() {
             onTripHidden={handleTripHidden}
           />
 
-          <RightSidebar />
+          <RightSidebar
+            mobileOpen={mobileSidebarOpen}
+            onCloseMobile={() => setMobileSidebarOpen(false)}
+            tabletOpen={tabletSidebarOpen}
+            onCloseTablet={() => setTabletSidebarOpen(false)}
+          />
         </div>
       </div>
 

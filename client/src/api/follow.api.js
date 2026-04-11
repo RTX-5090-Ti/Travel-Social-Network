@@ -9,6 +9,10 @@ export const followApi = {
     return api.get("/api/follow/mutuals", { params });
   },
 
+  listSuggestions(params = {}) {
+    return api.get("/api/follow/suggestions", { params });
+  },
+
   listMyFollowers(params = {}) {
     return api.get("/api/follow/followers", { params });
   },

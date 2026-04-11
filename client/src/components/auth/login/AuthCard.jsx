@@ -32,10 +32,10 @@ function RememberCheckbox({ checked, onChange }) {
       />
 
       <div
-        className={`relative flex h-5 w-5 items-center justify-center overflow-hidden rounded-md border-2 bg-white/90 transition-all duration-500 hover:shadow-[0_0_10px_rgba(99,102,241,0.2)] ${
+        className={`relative flex h-5 w-5 items-center justify-center overflow-hidden rounded-md border-2 bg-white/90 transition-all duration-500 hover:shadow-[0_0_10px_rgba(99,102,241,0.2)] dark:bg-white/10 ${
           checked
             ? "rotate-[360deg] scale-110 border-transparent shadow-[0_0_12px_rgba(99,102,241,0.35)]"
-            : "border-slate-300"
+            : "border-slate-300 dark:border-white/15"
         }`}
       >
         <div
@@ -50,7 +50,7 @@ function RememberCheckbox({ checked, onChange }) {
         />
       </div>
 
-      <span className="text-sm transition-colors duration-300 text-slate-600 group-hover:text-indigo-500">
+      <span className="text-sm text-slate-600 transition-colors duration-300 group-hover:text-indigo-500 dark:text-slate-300 dark:group-hover:text-violet-300">
         Remember me
       </span>
     </label>
@@ -61,17 +61,17 @@ function SocialLoginSection({ loading, onSocialLogin }) {
   return (
     <>
       <div className="my-6 flex items-center gap-3 sm:my-8 sm:gap-4">
-        <div className="relative flex-1 h-px overflow-hidden bg-slate-300/70">
+        <div className="relative flex-1 h-px overflow-hidden bg-slate-300/70 dark:bg-white/10">
           <motion.div
             animate={{ x: ["-100%", "100%"] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
             className="absolute inset-y-0 w-full bg-gradient-to-r from-transparent via-indigo-500 to-transparent"
           />
         </div>
-        <span className="text-[10px] font-semibold tracking-[0.16em] text-slate-400 sm:text-xs sm:tracking-[0.18em]">
+        <span className="text-[10px] font-semibold tracking-[0.16em] text-slate-400 dark:text-slate-500 sm:text-xs sm:tracking-[0.18em]">
           OR CONTINUE WITH
         </span>
-        <div className="relative flex-1 h-px overflow-hidden bg-slate-300/70">
+        <div className="relative flex-1 h-px overflow-hidden bg-slate-300/70 dark:bg-white/10">
           <motion.div
             animate={{ x: ["-100%", "100%"] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
@@ -85,7 +85,7 @@ function SocialLoginSection({ loading, onSocialLogin }) {
           type="button"
           onClick={() => onSocialLogin("Facebook")}
           disabled={loading}
-          className="group relative flex items-center justify-center gap-3 overflow-hidden rounded-2xl border border-white/40 bg-white/80 px-4 py-3 text-[14px] text-slate-700 transition hover:-translate-y-0.5 hover:scale-[1.05] hover:bg-white hover:shadow-lg disabled:pointer-events-none disabled:opacity-60 cursor-pointer"
+          className="group relative flex items-center justify-center gap-3 overflow-hidden rounded-2xl border border-white/40 bg-white/80 px-4 py-3 text-[14px] text-slate-700 transition hover:-translate-y-0.5 hover:scale-[1.05] hover:bg-white hover:shadow-lg disabled:pointer-events-none disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:shadow-[0_12px_28px_rgba(2,6,23,0.32)] cursor-pointer"
         >
           <span className="absolute inset-0 left-[-100%] bg-[linear-gradient(135deg,currentColor,transparent)] opacity-10 transition-all duration-500 group-hover:left-0" />
           <div className="relative z-10 flex h-10 w-10 items-center justify-center rounded-xl bg-[#1877f2]/10 text-[#1877f2]">
@@ -98,7 +98,7 @@ function SocialLoginSection({ loading, onSocialLogin }) {
           type="button"
           onClick={() => onSocialLogin("Google")}
           disabled={loading}
-          className="group relative flex items-center justify-center gap-3 overflow-hidden rounded-2xl border border-white/40 bg-white/80 px-4 py-3 text-[14px] text-slate-700 transition hover:-translate-y-0.5 hover:scale-[1.05] hover:bg-white hover:shadow-lg disabled:pointer-events-none disabled:opacity-60 cursor-pointer"
+          className="group relative flex items-center justify-center gap-3 overflow-hidden rounded-2xl border border-white/40 bg-white/80 px-4 py-3 text-[14px] text-slate-700 transition hover:-translate-y-0.5 hover:scale-[1.05] hover:bg-white hover:shadow-lg disabled:pointer-events-none disabled:opacity-60 dark:border-white/10 dark:bg-white/5 dark:text-slate-200 dark:hover:bg-white/10 dark:hover:shadow-[0_12px_28px_rgba(2,6,23,0.32)] cursor-pointer"
         >
           <span className="absolute inset-0 left-[-100%] bg-[linear-gradient(135deg,currentColor,transparent)] opacity-10 transition-all duration-500 group-hover:left-0" />
           <div className="relative z-10 flex items-center justify-center w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500">
@@ -151,16 +151,16 @@ export default function AuthCard({
             stiffness: 200,
             damping: 12,
           }}
-          className="flex items-center justify-center w-16 h-16 bg-white rounded-full text-emerald-500"
+          className="flex items-center justify-center w-16 h-16 rounded-full bg-white text-emerald-500 dark:bg-white/10 dark:text-emerald-300"
         >
           <Check className="w-8 h-8" />
         </motion.div>
       </div>
 
-      <h3 className="mb-2 text-2xl font-bold text-slate-800">
+      <h3 className="mb-2 text-2xl font-bold text-slate-800 dark:text-slate-100">
         {mode === "login" ? "Welcome, Creator!" : "Account created!"}
       </h3>
-      <p className="text-slate-500">
+      <p className="text-slate-500 dark:text-slate-400">
         {mode === "login"
           ? "Entering your creative dimension..."
           : "Your account is ready. Let's start the journey!"}
@@ -200,7 +200,7 @@ export default function AuthCard({
         <h2 className="mb-2 bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] bg-clip-text text-[1.9rem] font-bold text-transparent sm:text-[2.25rem]">
           {mode === "login" ? "Welcome" : "Create account"}
         </h2>
-        <p className="text-[14px] italic leading-6 text-slate-500 sm:text-base">
+        <p className="text-[14px] italic leading-6 text-slate-500 dark:text-slate-400 sm:text-base">
           {mode === "login"
             ? "Sign in to continue your journey"
             : "Create your account to start your journey"}
@@ -308,14 +308,14 @@ export default function AuthCard({
         <SocialLoginSection loading={loading} onSocialLogin={onSocialLogin} />
       )}
 
-      <div className="mt-6 text-center text-[13px] text-slate-500 sm:mt-8 sm:text-sm">
+      <div className="mt-6 text-center text-[13px] text-slate-500 dark:text-slate-400 sm:mt-8 sm:text-sm">
         {mode === "login" ? (
           <p>
             New to our platform?{" "}
             <button
               type="button"
               onClick={() => setMode("register")}
-              className="font-semibold text-indigo-500 transition cursor-pointer group hover:text-violet-600"
+              className="font-semibold text-indigo-500 transition cursor-pointer group hover:text-violet-600 dark:text-violet-300 dark:hover:text-violet-200"
             >
               Create account
               <span className="ml-1 inline-block translate-x-[-10px] opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100">
@@ -329,7 +329,7 @@ export default function AuthCard({
             <button
               type="button"
               onClick={() => setMode("login")}
-              className="font-semibold text-indigo-500 transition cursor-pointer group hover:text-violet-600"
+              className="font-semibold text-indigo-500 transition cursor-pointer group hover:text-violet-600 dark:text-violet-300 dark:hover:text-violet-200"
             >
               Quay về đăng nhập
               <span className="ml-1 inline-block translate-x-[-10px] opacity-0 transition-all duration-300 group-hover:translate-x-1 group-hover:opacity-100"></span>

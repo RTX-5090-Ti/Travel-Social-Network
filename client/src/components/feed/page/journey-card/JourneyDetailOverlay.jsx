@@ -59,7 +59,7 @@ function CommentMediaDraftPreview({
           <button
             type="button"
             onClick={onOpen}
-            className="cursor-pointer transition hover:opacity-95"
+            className="transition cursor-pointer hover:opacity-95"
           >
             <img
               src={previewUrl}
@@ -90,7 +90,13 @@ function CommentMediaDraftPreview({
             uploading ? "cursor-not-allowed opacity-60" : "cursor-pointer"
           }`}
         >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className="h-3.5 w-3.5">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            className="h-3.5 w-3.5"
+          >
             <path d="M18 6 6 18M6 6l12 12" />
           </svg>
         </button>
@@ -398,7 +404,9 @@ export default function JourneyDetailOverlay({
       commentSelectionRef.current.start ??
       currentValue.length;
     const selectionEnd =
-      textarea?.selectionEnd ?? commentSelectionRef.current.end ?? selectionStart;
+      textarea?.selectionEnd ??
+      commentSelectionRef.current.end ??
+      selectionStart;
     const nextValue =
       currentValue.slice(0, selectionStart) +
       emoji +
@@ -501,7 +509,8 @@ export default function JourneyDetailOverlay({
       gifUrl,
       previewUrl,
       width:
-        Number(gif.images.original?.width || gif.images.fixed_width?.width) || null,
+        Number(gif.images.original?.width || gif.images.fixed_width?.width) ||
+        null,
       height:
         Number(gif.images.original?.height || gif.images.fixed_width?.height) ||
         null,
@@ -527,7 +536,8 @@ export default function JourneyDetailOverlay({
       gifUrl,
       previewUrl,
       width:
-        Number(gif.images.original?.width || gif.images.fixed_width?.width) || null,
+        Number(gif.images.original?.width || gif.images.fixed_width?.width) ||
+        null,
       height:
         Number(gif.images.original?.height || gif.images.fixed_width?.height) ||
         null,
@@ -1929,7 +1939,7 @@ export default function JourneyDetailOverlay({
                 </section>
               ) : null}
 
-              <section>
+              <section className="-mx-4 sm:mx-0">
                 <JourneySectionTitle
                   eyebrow=""
                   title="Journey timeline"
@@ -1941,17 +1951,17 @@ export default function JourneyDetailOverlay({
                     {detail.milestones.map((milestone, index) => (
                       <div
                         key={getSafeListKey(milestone, index, "milestone")}
-                        className="relative pl-14"
+                        className="relative pl-0 md:pl-14"
                       >
                         {index !== detail.milestones.length - 1 ? (
-                          <span className="absolute bottom-[-22px] left-[22px] top-12 w-[2px] rounded-full bg-gradient-to-b from-[#667eea] via-[#8b5cf6] to-transparent" />
+                          <span className="absolute bottom-[-22px] left-[22px] top-12 hidden w-[2px] rounded-full bg-gradient-to-b from-[#667eea] via-[#8b5cf6] to-transparent md:block" />
                         ) : null}
 
-                        <div className="absolute left-0 top-1 flex h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-sm font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.26)]">
+                        <div className="absolute left-0 top-1 hidden h-11 w-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-sm font-semibold text-white shadow-[0_12px_24px_rgba(102,126,234,0.26)] md:flex">
                           {index + 1}
                         </div>
 
-                        <div className="rounded-[26px] border border-zinc-200 bg-[linear-gradient(180deg,#ffffff,#fafafb)] p-5 shadow-[0_10px_26px_rgba(15,23,42,0.04)]">
+                        <div className="rounded-none border-y border-x-0 border-zinc-200 bg-[linear-gradient(180deg,#ffffff,#fafafb)] p-5 shadow-[0_10px_26px_rgba(15,23,42,0.04)] sm:rounded-[26px] sm:border sm:border-zinc-200">
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                             <div className="min-w-0">
                               <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 px-3 py-1 text-[12px] font-semibold text-[#4f7cff]">
@@ -1967,11 +1977,6 @@ export default function JourneyDetailOverlay({
                                   {formatMilestoneTime(milestone.time)}
                                 </p>
                               ) : null}
-                            </div>
-
-                            <div className="px-3 py-1 text-xs font-semibold rounded-full bg-zinc-100 text-zinc-500">
-                              {milestone.items?.length || 0} item
-                              {(milestone.items?.length || 0) > 1 ? "s" : ""}
                             </div>
                           </div>
 
@@ -2033,7 +2038,7 @@ export default function JourneyDetailOverlay({
                 </div>
 
                 <section
-                  className={`${detail?.milestones?.length > 0 ? "pl-14" : ""}`}
+                  className={`${detail?.milestones?.length > 0 ? "pl-0 md:pl-14" : ""}`}
                 >
                   {commentsHasMore ? (
                     <div className="mb-3">
@@ -2120,7 +2125,9 @@ export default function JourneyDetailOverlay({
                           onReplyImageChange={handleReplyImageChange}
                           onReplyImageRemove={clearReplyImageDraft}
                           onReplyGifRemove={clearReplyGifDraft}
-                          onReplyToggleEmojiPicker={handleToggleReplyEmojiPicker}
+                          onReplyToggleEmojiPicker={
+                            handleToggleReplyEmojiPicker
+                          }
                           onReplyEmojiSelect={handleReplyEmojiSelect}
                           onReplyToggleGifPicker={handleToggleReplyGifPicker}
                           onReplyGifQueryChange={setReplyGifQuery}
@@ -2169,7 +2176,7 @@ export default function JourneyDetailOverlay({
               name={currentUserName}
             />
 
-            <div className="theme-card min-w-0 flex-1 rounded-[30px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.95),rgba(250,247,255,0.96))] px-4 py-3 shadow-[0_14px_34px_rgba(99,102,241,0.10)] ring-1 ring-zinc-200/70 backdrop-blur transition-[box-shadow,border-color,background,transform] duration-200 focus-within:border-[rgba(167,139,250,0.55)] focus-within:bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(242,245,255,0.98),rgba(248,243,255,0.98))] focus-within:shadow-[0_18px_40px_rgba(124,58,237,0.16),0_0_0_4px_rgba(167,139,250,0.10)] focus-within:ring-[rgba(167,139,250,0.30)]">
+            <div className="theme-card min-w-0 flex-1 rounded-[24px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,247,255,0.95),rgba(250,247,255,0.96))] px-3 py-2.5 shadow-[0_14px_34px_rgba(99,102,241,0.10)] ring-1 ring-zinc-200/70 backdrop-blur transition-[box-shadow,border-color,background,transform] duration-200 focus-within:border-[rgba(167,139,250,0.55)] focus-within:bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(242,245,255,0.98),rgba(248,243,255,0.98))] focus-within:shadow-[0_18px_40px_rgba(124,58,237,0.16),0_0_0_4px_rgba(167,139,250,0.10)] focus-within:ring-[rgba(167,139,250,0.30)] sm:rounded-[30px] sm:px-3 sm:py-4">
               <textarea
                 ref={commentTextareaRef}
                 value={commentText}
@@ -2186,8 +2193,8 @@ export default function JourneyDetailOverlay({
                 }}
                 rows={1}
                 placeholder="Write a comment..."
-                className="max-h-[200px] min-h-[40px] w-full resize-none overflow-y-hidden border-0 bg-transparent text-[15px] leading-6 text-zinc-700 outline-none transition-[height] duration-150 ease-out placeholder:text-zinc-400/90 [scrollbar-width:thin]"
-                style={{ height: "40px" }}
+                className="max-h-[180px] min-h-[32px] w-full resize-none overflow-y-hidden border-0 bg-transparent text-[14px] leading-5 text-zinc-700 outline-none transition-[height] duration-150 ease-out placeholder:text-zinc-400/90 [scrollbar-width:thin] sm:max-h-[200px] sm:min-h-[40px] sm:text-[15px] sm:leading-6"
+                style={{ height: "32px" }}
               />
 
               {commentImageDraft?.previewUrl ? (
@@ -2196,7 +2203,10 @@ export default function JourneyDetailOverlay({
                   uploading={commentSubmitting}
                   onRemove={clearCommentImageDraft}
                   onOpen={() =>
-                    openLightbox([{ type: "image", url: commentImageDraft.previewUrl }], 0)
+                    openLightbox(
+                      [{ type: "image", url: commentImageDraft.previewUrl }],
+                      0,
+                    )
                   }
                 />
               ) : null}
@@ -2210,7 +2220,7 @@ export default function JourneyDetailOverlay({
                 />
               ) : null}
 
-              <div className="flex items-center justify-between gap-3 mt-1">
+              <div className="flex items-center justify-between gap-2 mt-1">
                 <div className="flex flex-wrap items-center gap-1.5">
                   <div className="relative">
                     <CommentComposerActionButton
@@ -2222,7 +2232,7 @@ export default function JourneyDetailOverlay({
                           : ""
                       }
                     >
-                    <CommentSmileIcon className="h-[22px] w-[22px]" />
+                      <CommentSmileIcon className="h-[22px] w-[22px]" />
                     </CommentComposerActionButton>
 
                     <AnimatePresence>
@@ -2232,8 +2242,11 @@ export default function JourneyDetailOverlay({
                           initial={{ opacity: 0, y: 8, scale: 0.98 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                          transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                          className="absolute bottom-[calc(100%+8px)] left-0 z-20 overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80"
+                          transition={{
+                            duration: 0.16,
+                            ease: [0.22, 1, 0.36, 1],
+                          }}
+                          className="absolute bottom-[calc(100%+8px)] right-0 translate-x-[80%] z-20 w-[min(76vw,286px)] overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80 sm:left-0 sm:right-auto sm:w-auto"
                         >
                           <LazyEmojiPicker
                             onEmojiClick={handleCommentEmojiSelect}
@@ -2241,17 +2254,20 @@ export default function JourneyDetailOverlay({
                             previewConfig={{ showPreview: false }}
                             searchDisabled={false}
                             skinTonesDisabled
-                            width={320}
-                            height={380}
-                            fallbackWidth={320}
-                            fallbackHeight={380}
+                            width={286}
+                            height={320}
+                            fallbackWidth={286}
+                            fallbackHeight={320}
                           />
                         </motion.div>
                       ) : null}
                     </AnimatePresence>
                   </div>
 
-                  <CommentComposerActionButton ariaLabel="Camera" onClick={handlePickCommentImage}>
+                  <CommentComposerActionButton
+                    ariaLabel="Camera"
+                    onClick={handlePickCommentImage}
+                  >
                     <CommentCameraIcon className="h-[22px] w-[22px]" />
                   </CommentComposerActionButton>
 
@@ -2265,9 +2281,9 @@ export default function JourneyDetailOverlay({
                           : ""
                       }
                     >
-                    <span className="text-[13px] font-bold tracking-[0.08em]">
-                      GIF
-                    </span>
+                      <span className="text-[13px] font-bold tracking-[0.08em]">
+                        GIF
+                      </span>
                     </CommentComposerActionButton>
 
                     <AnimatePresence>
@@ -2277,33 +2293,40 @@ export default function JourneyDetailOverlay({
                           initial={{ opacity: 0, y: 8, scale: 0.98 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                          transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                          className="absolute bottom-[calc(100%+8px)] left-0 z-20 overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80"
+                          transition={{
+                            duration: 0.16,
+                            ease: [0.22, 1, 0.36, 1],
+                          }}
+                          className="absolute bottom-[calc(100%+8px)] right-0 translate-x-1/2 z-20 w-[min(80vw,286px)] overflow-hidden rounded-[22px] border border-white/80 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.18)] ring-1 ring-zinc-200/80 sm:left-0 sm:right-auto sm:w-auto"
                         >
-                          <div className="border-b border-zinc-200/70 px-3 py-3">
+                          <div className="px-3 py-3 border-b border-zinc-200/70">
                             <input
                               type="text"
                               value={commentGifQuery}
-                              onChange={(event) => setCommentGifQuery(event.target.value)}
+                              onChange={(event) =>
+                                setCommentGifQuery(event.target.value)
+                              }
                               placeholder="Tìm GIF trên Giphy..."
                               className="w-full rounded-[14px] border border-zinc-200/80 bg-white px-3 py-2 text-[13px] text-zinc-700 outline-none placeholder:text-zinc-400"
                             />
                           </div>
-                          <div className="h-[320px] w-[320px] overflow-y-auto px-2 py-2">
+                          <div className="h-[260px] w-full overflow-y-auto px-2 py-2 sm:h-[320px] sm:w-[320px]">
                             <LazyGiphyGrid
-                              width={296}
+                              width={268}
                               columns={2}
                               gutter={8}
                               fetchGifs={fetchCommentGifs}
-                              key={commentGifQuery.trim() || "trending-comments"}
+                              key={
+                                commentGifQuery.trim() || "trending-comments"
+                              }
                               onGifClick={(gif, event) => {
                                 event.preventDefault();
                                 handleSelectCommentGif(gif);
                               }}
                               hideAttribution
                               noLink
-                              fallbackWidth={296}
-                              fallbackHeight={320}
+                              fallbackWidth={268}
+                              fallbackHeight={260}
                             />
                           </div>
                         </motion.div>

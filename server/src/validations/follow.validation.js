@@ -23,6 +23,14 @@ export const listMutualFollowsSchema = Joi.object({
   params: Joi.object(),
 });
 
+export const listSuggestedFollowsSchema = Joi.object({
+  body: Joi.object(),
+  query: Joi.object({
+    limit: Joi.number().integer().min(1).max(20).optional(),
+  }),
+  params: Joi.object(),
+});
+
 export const listOwnFollowUsersSchema = Joi.object({
   body: Joi.object(),
   query: paginationQuerySchema,

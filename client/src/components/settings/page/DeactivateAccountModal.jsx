@@ -30,7 +30,7 @@ export default function DeactivateAccountModal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 16, scale: 0.985 }}
             transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
-            className="relative z-[1] w-full max-w-[460px] overflow-hidden rounded-[28px] border border-white/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,247,235,0.96),rgba(255,255,255,0.98))] p-6 shadow-[0_26px_60px_rgba(15,23,42,0.18)] ring-1 ring-white/70"
+            className="relative z-[1] w-full max-w-[460px] overflow-hidden rounded-[28px] border border-white/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,247,235,0.96),rgba(255,255,255,0.98))] p-6 shadow-[0_26px_60px_rgba(15,23,42,0.18)] ring-1 ring-white/70 dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.98),rgba(30,27,75,0.96))] dark:shadow-[0_26px_60px_rgba(2,6,23,0.5)] dark:ring-white/10"
           >
             <AnimatePresence mode="wait" initial={false}>
               {success ? (
@@ -46,11 +46,11 @@ export default function DeactivateAccountModal({
                     <Check className="h-10 w-10 stroke-[3.2] text-white" />
                   </div>
 
-                  <h3 className="mt-5 text-[24px] font-semibold tracking-tight text-zinc-900">
+                  <h3 className="mt-5 text-[24px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
                     Account deactivated successfully
                   </h3>
 
-                  <p className="mt-3 whitespace-nowrap text-[14px] font-medium text-zinc-500">
+                  <p className="mt-3 whitespace-nowrap text-[14px] font-medium text-zinc-500 dark:text-zinc-400">
                     You will be redirected to the login page in
                   </p>
 
@@ -70,11 +70,11 @@ export default function DeactivateAccountModal({
                     <UserX className="h-5 w-5" />
                   </div>
 
-                  <h3 className="mt-5 text-[24px] font-semibold tracking-tight text-zinc-900">
+                  <h3 className="mt-5 text-[24px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
                     Deactivate account?
                   </h3>
 
-                  <p className="mt-3 text-[14px] leading-7 text-zinc-500">
+                  <p className="mt-3 text-[14px] leading-7 text-zinc-500 dark:text-zinc-400">
                     Your account will be temporarily hidden. You can reactivate
                     your account when you log in.
                   </p>
@@ -83,7 +83,7 @@ export default function DeactivateAccountModal({
                     <button
                       type="button"
                       onClick={onClose}
-                      className="inline-flex h-10 cursor-pointer items-center justify-center rounded-2xl border border-zinc-200 bg-white px-5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50"
+                      className="inline-flex h-10 cursor-pointer items-center justify-center rounded-2xl border border-zinc-200 bg-white px-5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 dark:border-white/10 dark:bg-white/5 dark:text-zinc-200 dark:hover:bg-white/10"
                     >
                       Cancel
                     </button>

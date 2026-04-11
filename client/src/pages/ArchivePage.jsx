@@ -30,6 +30,8 @@ const ARCHIVE_TABS = [
 ];
 
 export default function ArchivePage() {
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [tabletSidebarOpen, setTabletSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -198,8 +200,8 @@ export default function ArchivePage() {
   }
 
   return (
-    <div className="theme-page-shell relative min-h-screen bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-4">
-      <div className="absolute inset-0 pointer-events-none">
+    <div className="theme-page-shell relative min-h-screen bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-0 pt-0 pb-[calc(env(safe-area-inset-bottom,0px)+92px)] md:px-3 md:pt-3 md:pb-3 lg:px-4 lg:pt-4 lg:pb-4">
+      <div className="absolute inset-0 hidden pointer-events-none md:block">
         <FloatingShape
           className="left-[8%] top-[10%] h-20 w-20"
           style={shapeStyles[0]}
@@ -229,9 +231,17 @@ export default function ArchivePage() {
         </FloatingShape>
       </div>
 
-      <div className="theme-app-shell relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden rounded-[34px] border border-white/60 bg-[#fafafb] shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
-        <div className="grid min-h-[900px] grid-cols-1 lg:h-full lg:min-h-0 lg:grid-cols-[320px_minmax(0,1fr)_320px]">
-          <ProfileLeftSidebar user={displayUser} stats={sidebarStats} />
+      <div className="theme-app-shell relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden bg-[#fafafb] md:rounded-[34px] md:border md:border-white/60 md:shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
+        <div className="grid min-h-screen grid-cols-1 md:min-h-[900px] lg:h-full lg:min-h-0 lg:grid-cols-[320px_minmax(0,1fr)] xl:grid-cols-[320px_minmax(0,1fr)_320px]">
+          <ProfileLeftSidebar
+            user={displayUser}
+            stats={sidebarStats}
+            onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
+            tabletSidebarOpen={tabletSidebarOpen}
+            onToggleTabletSidebar={() =>
+              setTabletSidebarOpen((prev) => !prev)
+            }
+          />
 
           <main className="theme-main-pane profile-main-scroll min-w-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,250,251,0.96))] px-5 py-6 sm:px-7 sm:py-8 lg:h-full lg:overflow-y-auto lg:overflow-x-hidden lg:border-r lg:px-9 xl:px-10 border-zinc-200/80">
             <div className="mx-auto w-full max-w-[920px]">
@@ -424,7 +434,12 @@ export default function ArchivePage() {
             </div>
           </main>
 
-          <ProfileRightSidebar />
+          <ProfileRightSidebar
+            mobileOpen={mobileSidebarOpen}
+            onCloseMobile={() => setMobileSidebarOpen(false)}
+            tabletOpen={tabletSidebarOpen}
+            onCloseTablet={() => setTabletSidebarOpen(false)}
+          />
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../../auth/useAuth";
 import { useToast } from "../../../toast/useToast";
@@ -50,10 +51,14 @@ export default function LeftSidebar({
   previewStats = null,
   previewStatsLoading = false,
   onClearPreview = () => {},
+  onOpenMobileSidebar = () => {},
+  tabletSidebarOpen = false,
+  onToggleTabletSidebar = () => {},
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
+  useAuth();
   const { showToast } = useToast();
 
   const displayUser = previewUser || null;
@@ -61,6 +66,14 @@ export default function LeftSidebar({
   const previewEmail = getPreviewEmail(displayUser);
 
   const previewUserId = displayUser?._id || displayUser?.id || "";
+  const labelMap = {
+    Feed: t("sidebar.feed"),
+    Home: t("sidebar.home"),
+    Archive: t("sidebar.archive"),
+    Direct: t("sidebar.direct"),
+    Settings: t("sidebar.settings"),
+    Menu: t("sidebar.menu"),
+  };
 
   const sidebarStats = previewStatsLoading
     ? [
@@ -113,7 +126,7 @@ export default function LeftSidebar({
 
   function handleSidebarNavigate(item) {
     if (item.label === "Direct") {
-      showToast("Tính năng Direct đang được phát triển.", "info");
+      showToast(t("sidebar.directInDevelopment"), "info");
       return;
     }
 
@@ -134,6 +147,11 @@ export default function LeftSidebar({
 
     if (item.label === "Settings") {
       navigate("/settings");
+      return;
+    }
+
+    if (item.label === "Menu") {
+      onOpenMobileSidebar();
     }
   }
 
@@ -148,15 +166,9 @@ export default function LeftSidebar({
     });
   }
 
-  async function handleLogout() {
-    await logout();
-    onClearPreview?.();
-    navigate("/login", { replace: true });
-  }
-
   return (
     <>
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200/80 bg-white/96 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] pt-2 shadow-[0_-14px_30px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200/80 bg-white/96 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] pt-2 shadow-[0_-14px_30px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
         <div className="mx-auto flex w-full max-w-[560px] items-center justify-between gap-1.5">
           {mobileNavItems.map((item) => {
             const Icon = item.icon;
@@ -165,6 +177,7 @@ export default function LeftSidebar({
               <button
                 key={item.id}
                 type="button"
+                onClick={() => handleSidebarNavigate(item)}
                 className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[18px] px-2 py-2.5 transition ${
                   item.active
                     ? "bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-white shadow-[0_10px_22px_rgba(102,126,234,0.22)]"
@@ -211,10 +224,10 @@ export default function LeftSidebar({
 
           <div className="flex flex-col justify-center text-center">
             <p className="text-[17px] font-semibold leading-tight tracking-tight text-zinc-900">
-              Travel Social
+              {t("sidebar.brand")}
             </p>
             <p className="text-[12px] leading-tight text-zinc-400">
-              Explore with stories
+              {t("sidebar.tagline")}
             </p>
           </div>
         </div>
@@ -356,7 +369,7 @@ export default function LeftSidebar({
                           {displayUser.name || "Traveler"}
                         </h2>
                         <p className="mt-1 break-all text-[14px] text-zinc-400">
-                          {previewEmail || "Email unavailable"}
+                          {previewEmail || t("sidebar.emailUnavailable")}
                         </p>
                       </motion.div>
                     </AnimatePresence>
@@ -406,7 +419,7 @@ export default function LeftSidebar({
                     <span className="absolute inset-y-0 left-[-120%] w-full bg-[linear-gradient(100deg,transparent,rgba(255,255,255,0.7),transparent)] transition-all duration-700 group-hover:left-[120%]" />
                     <span className="absolute inset-0 opacity-0 transition duration-500 group-hover:opacity-100 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.10),transparent_42%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.10),transparent_38%)]" />
                     <span className="relative z-10 inline-flex items-center gap-2">
-                      <span>View profile</span>
+                      <span>{t("sidebar.viewProfile")}</span>
                       <svg
                         viewBox="0 0 20 20"
                         fill="none"
@@ -451,35 +464,30 @@ export default function LeftSidebar({
                     }`}
                   >
                     <Icon className="w-5 h-5" />
-                    <span>{item.label}</span>
+                    <span>{labelMap[item.label] || item.label}</span>
                   </motion.button>
 
-                  {item.label === "Settings" ? (
-                    <motion.button
-                      layout="position"
-                      type="button"
-                      onClick={handleLogout}
-                      className="flex w-full cursor-pointer items-center gap-3 rounded-[18px] px-4 py-3 text-left text-[15px] font-medium text-rose-500 transition hover:bg-rose-50 hover:text-rose-600"
-                    >
-                      <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="1.9"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="h-5 w-5"
-                      >
-                        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                        <path d="M16 17l5-5-5-5" />
-                        <path d="M21 12H9" />
-                      </svg>
-                      <span>Log out</span>
-                    </motion.button>
-                  ) : null}
                 </div>
               );
             })}
+
+            <motion.button
+              layout="position"
+              type="button"
+              onClick={onToggleTabletSidebar}
+              className={`mt-2 hidden w-full items-center gap-3 rounded-[18px] px-4 py-3 text-left text-[15px] font-medium transition lg:flex xl:hidden ${
+                tabletSidebarOpen
+                  ? "bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-white shadow-[0_14px_30px_rgba(102,126,234,0.24)]"
+                  : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+              }`}
+            >
+              <MenuLinesIcon className="h-5 w-5" />
+              <span>
+                {tabletSidebarOpen
+                  ? t("sidebar.closeSidebar")
+                  : t("sidebar.openSidebar")}
+              </span>
+            </motion.button>
           </motion.nav>
 
           <motion.div layout>

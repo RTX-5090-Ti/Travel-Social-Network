@@ -76,7 +76,7 @@ function RadioIcon({ selected }) {
   return (
     <span
       className={`flex h-5.5 w-5.5 items-center justify-center rounded-full border transition ${
-        selected ? "border-[#5b6ee1] bg-[#eef2ff]" : "border-zinc-300 bg-white"
+        selected ? "border-[#5b6ee1] bg-[#eef2ff] dark:border-violet-400 dark:bg-violet-400/15" : "border-zinc-300 bg-white dark:border-white/15 dark:bg-white/5"
       }`}
     >
       <span
@@ -106,27 +106,27 @@ function AudienceOption({
       disabled={disabled}
       className={`flex w-full items-center gap-3 rounded-[20px] border px-3.5 py-3.5 text-left transition ${
         selected
-          ? "cursor-pointer border-violet-200/80 bg-[linear-gradient(135deg,rgba(238,242,255,0.96),rgba(245,240,255,0.98))] shadow-[0_14px_34px_rgba(91,110,225,0.10)]"
+          ? "cursor-pointer border-violet-200/80 bg-[linear-gradient(135deg,rgba(238,242,255,0.96),rgba(245,240,255,0.98))] shadow-[0_14px_34px_rgba(91,110,225,0.10)] dark:border-violet-400/25 dark:bg-[linear-gradient(135deg,rgba(30,41,59,0.96),rgba(30,27,75,0.94))] dark:shadow-[0_14px_34px_rgba(2,6,23,0.26)]"
           : disabled
-            ? "cursor-not-allowed border-transparent bg-white/55 opacity-70"
-            : "cursor-pointer border-transparent bg-white/70 hover:border-violet-100/80 hover:bg-[linear-gradient(135deg,rgba(250,251,255,0.98),rgba(248,245,255,0.98))]"
+            ? "cursor-not-allowed border-transparent bg-white/55 opacity-70 dark:bg-white/5"
+            : "cursor-pointer border-transparent bg-white/70 hover:border-violet-100/80 hover:bg-[linear-gradient(135deg,rgba(250,251,255,0.98),rgba(248,245,255,0.98))] dark:bg-white/5 dark:hover:border-violet-400/20 dark:hover:bg-[linear-gradient(135deg,rgba(30,41,59,0.96),rgba(30,27,75,0.92))]"
       }`}
     >
       <span
         className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full border shadow-sm ${
           selected
-            ? "border-violet-200/80 bg-[linear-gradient(135deg,rgba(234,239,255,0.98),rgba(245,239,255,0.98))] text-[#5b6ee1]"
-            : "border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,246,255,0.96))] text-zinc-500"
+            ? "border-violet-200/80 bg-[linear-gradient(135deg,rgba(234,239,255,0.98),rgba(245,239,255,0.98))] text-[#5b6ee1] dark:border-violet-400/25 dark:bg-[linear-gradient(135deg,rgba(49,46,129,0.35),rgba(91,33,182,0.22))] dark:text-violet-200"
+            : "border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.96),rgba(244,246,255,0.96))] text-zinc-500 dark:border-white/10 dark:bg-[linear-gradient(135deg,rgba(30,41,59,0.92),rgba(17,24,39,0.92))] dark:text-zinc-300"
         }`}
       >
         <Icon className="w-5 h-5" />
       </span>
 
       <span className="flex-1 min-w-0">
-        <span className="block text-[16px] font-semibold text-zinc-900">
+        <span className="block text-[16px] font-semibold text-zinc-900 dark:text-zinc-50">
           {title}
         </span>
-        <span className="mt-1 block text-[13px] leading-6 text-zinc-500">
+        <span className="mt-1 block text-[13px] leading-6 text-zinc-500 dark:text-zinc-400">
           {description}
         </span>
       </span>
@@ -170,7 +170,7 @@ export default function JourneyAudienceModal({
     <AnimatePresence>
       {open ? (
         <motion.div
-          className="fixed inset-0 z-[180] flex items-center justify-center bg-[linear-gradient(180deg,rgba(248,245,255,0.54),rgba(235,241,255,0.62))] p-3 backdrop-blur-md"
+          className="fixed inset-0 z-[180] flex items-center justify-center bg-[linear-gradient(180deg,rgba(248,245,255,0.54),rgba(235,241,255,0.62))] p-3 backdrop-blur-md dark:bg-[linear-gradient(180deg,rgba(2,6,23,0.78),rgba(15,23,42,0.82))]"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -188,10 +188,10 @@ export default function JourneyAudienceModal({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 12, scale: 0.985 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="relative z-[1] w-full max-w-[620px] overflow-hidden rounded-[26px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,248,255,0.98),rgba(250,246,255,0.98))] shadow-[0_26px_72px_rgba(76,81,191,0.18)] ring-1 ring-violet-200/40"
+            className="relative z-[1] w-full max-w-[620px] overflow-hidden rounded-[26px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(246,248,255,0.98),rgba(250,246,255,0.98))] shadow-[0_26px_72px_rgba(76,81,191,0.18)] ring-1 ring-violet-200/40 dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.98),rgba(30,27,75,0.96))] dark:shadow-[0_26px_72px_rgba(2,6,23,0.5)] dark:ring-white/10"
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-zinc-200/70 sm:px-6">
-              <h3 className="text-[24px] font-semibold tracking-tight text-zinc-900">
+            <div className="flex items-center justify-between border-b border-zinc-200/70 px-5 py-4 dark:border-white/10 sm:px-6">
+              <h3 className="text-[24px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
                 Chọn đối tượng
               </h3>
 
@@ -199,7 +199,7 @@ export default function JourneyAudienceModal({
                 type="button"
                 onClick={onClose}
                 disabled={isSaving}
-                className="inline-flex items-center justify-center w-10 h-10 transition rounded-full bg-zinc-100/90 text-zinc-500 hover:bg-zinc-200/80 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-60"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-zinc-100/90 text-zinc-500 transition hover:bg-zinc-200/80 hover:text-zinc-700 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white/10 dark:text-zinc-300 dark:hover:bg-white/15 dark:hover:text-white"
               >
                 <CloseIcon className="w-5 h-5" />
               </button>
@@ -207,10 +207,10 @@ export default function JourneyAudienceModal({
 
             <div className="max-h-[62vh] overflow-y-auto px-5 py-4 sm:px-6">
               <div className="mb-4">
-                <p className="text-[21px] font-semibold tracking-tight text-zinc-900">
+                <p className="text-[21px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
                   Ai có thể xem bài viết của bạn?
                 </p>
-                <p className="mt-1.5 max-w-xl text-[14px] leading-6 text-zinc-500">
+                <p className="mt-1.5 max-w-xl text-[14px] leading-6 text-zinc-500 dark:text-zinc-400">
                   Chọn đối tượng phù hợp cho journey này. Thiết lập này sẽ quyết
                   định ai được nhìn thấy bài viết trong feed và trang cá nhân
                   của bạn.
@@ -233,12 +233,12 @@ export default function JourneyAudienceModal({
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-2.5 border-t border-zinc-200/70 px-5 py-4 sm:px-6">
+            <div className="flex items-center justify-end gap-2.5 border-t border-zinc-200/70 px-5 py-4 dark:border-white/10 sm:px-6">
               <button
                 type="button"
                 onClick={onClose}
                 disabled={isSaving}
-                className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-[14px] font-semibold text-[#6b7df2] transition hover:bg-[#eef2ff] disabled:cursor-not-allowed disabled:opacity-60 cursor-pointer"
+                className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-[14px] font-semibold text-[#6b7df2] transition hover:bg-[#eef2ff] disabled:cursor-not-allowed disabled:opacity-60 dark:text-violet-200 dark:hover:bg-white/10 cursor-pointer"
               >
                 Hủy
               </button>

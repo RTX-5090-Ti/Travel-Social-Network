@@ -1,0 +1,85 @@
+{
+  "feed": {
+    "badge": "Travel Social Feed",
+    "heroTitle": "Capture memories, then share the journey beautifully.",
+    "shareJourney": "Share Journey",
+    "stories": "Stories",
+    "watchAll": "Watch all",
+    "communityTitle": "Journeys from the community",
+    "trending": "Trending",
+    "latest": "Latest",
+    "loadErrorTitle": "Unable to load feed",
+    "retry": "Retry",
+    "endOfFeed": "You have viewed all new journeys in your feed."
+  },
+  "sidebar": {
+    "brand": "Travel Social",
+    "tagline": "Explore with stories",
+    "feed": "Feed",
+    "home": "Home",
+    "archive": "Archive",
+    "direct": "Direct",
+    "settings": "Settings",
+    "menu": "Menu",
+    "openSidebar": "Open sidebar",
+    "closeSidebar": "Close sidebar",
+    "viewProfile": "View profile",
+    "emailUnavailable": "Email unavailable",
+    "directInDevelopment": "Direct is in development."
+  },
+  "suggested": {
+    "eyebrow": "Suggested",
+    "title": "People to follow",
+    "refresh": "Refresh",
+    "empty": "No suitable follow suggestions right now.",
+    "followed": "Followed {{name}}.",
+    "unfollowed": "Unfollowed {{name}}.",
+    "followError": "Unable to update follow status right now."
+  },
+  "mutual": {
+    "title": "Online now",
+    "subtitle": "Mutual follow",
+    "viewAll": "View all",
+    "empty": "No mutual follows yet."
+  },
+  "search": {
+    "placeholder": "Search destination, journey, creators...",
+    "loadingUsers": "Searching users...",
+    "emptyUsers": "No matching users found.",
+    "emailUnavailable": "Email unavailable"
+  },
+  "settings": {
+    "personalSettings": "Personal settings",
+    "title": "Settings",
+    "loadErrorTitle": "Unable to load settings",
+    "privacyTitle": "Privacy",
+    "privacyDescription": "Control who can message you.",
+    "messagePermissionTitle": "Who can message you",
+    "messagePermission": {
+      "everyone": "Everyone",
+      "followers": "Followers",
+      "nobody": "Nobody"
+    },
+    "notificationsTitle": "Notifications",
+    "notificationsDescription": "Turn notification delivery on or off.",
+    "languageTitle": "Language",
+    "languageDescription": "Choose the language you want to use in the app.",
+    "languagePreferenceTitle": "Language preference",
+    "languageOptions": {
+      "en": "English",
+      "vi": "Vietnamese"
+    },
+    "themeTitle": "Dark mode",
+    "themeDescription": "Choose how the app appearance should behave.",
+    "appearanceModeTitle": "Appearance mode",
+    "themeOptions": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "featureInDevelopment": "This feature is in development.",
+    "savedAppearance": "Appearance preferences saved.",
+    "logout": "Log out",
+    "save": "Save"
+  }
+}

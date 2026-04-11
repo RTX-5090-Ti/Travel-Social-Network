@@ -5,6 +5,7 @@ import {
   uploadAvatarController,
   uploadCoverController,
   getMyTripsController,
+  searchUsersController,
   getUserProfileMediaController,
   getUserProfileController,
   getUserSummaryController,
@@ -13,6 +14,7 @@ import {
 import { validate } from "../middlewares/validate.js";
 import {
   getMyTripsSchema,
+  searchUsersSchema,
   getUserProfileMediaSchema,
   getUserProfileSchema,
   getUserSummarySchema,
@@ -22,6 +24,7 @@ import {
 const router = Router();
 
 router.get("/me/trips", requireAuth, validate(getMyTripsSchema), getMyTripsController);
+router.get("/search", requireAuth, validate(searchUsersSchema), searchUsersController);
 
 router.get(
   "/:id/summary",

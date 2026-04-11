@@ -371,7 +371,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-white font-sans md:bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] md:px-5 md:py-6 lg:px-6 lg:py-8">
+    <div className="relative min-h-screen overflow-hidden bg-white font-sans dark:bg-[linear-gradient(180deg,rgba(2,6,23,0.98),rgba(15,23,42,0.98),rgba(30,27,75,0.96))] md:bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] md:px-5 md:py-6 dark:md:bg-[linear-gradient(135deg,#0f172a_0%,#111827_42%,#22143b_100%)] lg:px-6 lg:py-8">
       <div className="absolute inset-0 hidden pointer-events-none md:block">
         <FloatingShape
           className="left-[10%] top-[8%] h-16 w-16 sm:h-20 sm:w-20"
@@ -482,7 +482,7 @@ export default function LoginPage() {
                 scale: { duration: 0.25 },
               }}
               style={{ transformStyle: "preserve-3d" }}
-              className={`relative min-h-screen w-full max-w-none overflow-hidden border-0 bg-white p-5 transition-shadow duration-500 sm:p-8 md:min-h-0 md:max-w-[450px] md:rounded-[24px] md:border md:border-white/30 md:bg-white/95 md:p-10 md:backdrop-blur-[20px] ${
+              className={`relative min-h-screen w-full max-w-none overflow-hidden border-0 bg-white p-5 transition-shadow duration-500 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.98))] sm:p-8 md:min-h-0 md:max-w-[450px] md:rounded-[24px] md:border md:border-white/30 md:bg-white/95 md:p-10 md:backdrop-blur-[20px] dark:md:border-white/10 dark:md:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.98),rgba(30,27,75,0.96))] ${
                 shakeCard
                   ? "shadow-none md:shadow-[0_25px_50px_rgba(229,62,62,0.30),0_0_0_1px_rgba(229,62,62,0.2)]"
                   : cardHovered
@@ -566,7 +566,7 @@ export default function LoginPage() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 16, scale: 0.985 }}
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              className="relative z-[1] w-full max-w-[450px] overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(247,248,255,0.98),rgba(255,255,255,0.99))] p-6 shadow-[0_28px_64px_rgba(15,23,42,0.22)] ring-1 ring-white/70"
+              className="relative z-[1] w-full max-w-[450px] overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.97),rgba(247,248,255,0.98),rgba(255,255,255,0.99))] p-6 shadow-[0_28px_64px_rgba(15,23,42,0.22)] ring-1 ring-white/70 dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.98),rgba(30,27,75,0.96))] dark:shadow-[0_28px_64px_rgba(2,6,23,0.5)] dark:ring-white/10"
             >
               <div className="flex justify-center">
                 <div className="inline-flex h-12 w-12 items-center justify-center rounded-[18px] bg-violet-100/90 text-violet-600 shadow-[0_10px_24px_rgba(102,126,234,0.12)]">
@@ -574,20 +574,20 @@ export default function LoginPage() {
                 </div>
               </div>
 
-              <h3 className="mt-5 text-[24px] font-semibold tracking-tight text-zinc-900">
+              <h3 className="mt-5 text-[24px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
                 Tài khoản đang bị vô hiệu hoá
               </h3>
 
-              <p className="mt-3 text-[14px] leading-7 text-zinc-500">
+              <p className="mt-3 text-[14px] leading-7 text-zinc-500 dark:text-zinc-400">
                 Bạn có muốn mở lại tài khoản để tiếp tục đăng nhập không?
               </p>
 
               {reactivatePromptVariant === "pendingDeletion" ? (
                 <div className="mt-4 rounded-[18px] border border-rose-100/80 bg-rose-50/70 px-4 py-3 text-left">
-                  <p className="text-[13px] font-semibold text-zinc-800">
+                  <p className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">
                     Tài khoản đang chờ xoá vĩnh viễn
                   </p>
-                  <p className="mt-1 text-[13px] leading-6 text-zinc-500">
+                  <p className="mt-1 text-[13px] leading-6 text-zinc-500 dark:text-zinc-400">
                     {pendingDeletionLabel || "7 days remaining"}. Bạn có thể mở
                     lại tài khoản bằng cách đăng nhập ngay bây giờ.
                   </p>
@@ -599,7 +599,7 @@ export default function LoginPage() {
                   type="button"
                   onClick={handleCloseReactivatePrompt}
                   disabled={reactivateLoading}
-                  className="inline-flex items-center justify-center h-10 px-5 text-sm font-semibold transition bg-white border cursor-pointer rounded-2xl border-zinc-200 text-zinc-700 hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-70"
+                  className="inline-flex h-10 items-center justify-center rounded-2xl border border-zinc-200 bg-white px-5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-50 disabled:cursor-not-allowed disabled:opacity-70 dark:border-white/10 dark:bg-white/5 dark:text-zinc-100 dark:hover:bg-white/10 cursor-pointer"
                 >
                   Huỷ
                 </button>

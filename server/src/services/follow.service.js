@@ -14,6 +14,7 @@ function mapUserItem(user, extra = {}) {
   return {
     _id: user?._id,
     name: user?.name || "Traveler",
+    email: user?.email || "",
     avatarUrl: user?.avatarUrl || "",
     lastSeenAt: user?.lastSeenAt || null,
     ...extra,
@@ -76,7 +77,7 @@ async function listFollowUsers({
 
   const [docs, total] = await Promise.all([
     Follow.find(baseFilter)
-      .populate(populatePath, "_id name avatarUrl isActive")
+      .populate(populatePath, "_id name email avatarUrl isActive")
       .sort({ createdAt: -1, _id: -1 })
       .skip((page - 1) * limit)
       .limit(limit)
@@ -242,6 +243,58 @@ export async function listMutualFollows({ userId, limit = 10 }) {
     items,
     meta: {
       limit,
+      total: items.length,
+    },
+  };
+}
+
+export async function listSuggestedFollows({ userId, limit = 5 }) {
+  const cappedLimit = Math.min(Math.max(Number(limit) || 5, 1), 20);
+
+  const followingDocs = await Follow.find({ followerId: userId })
+    .select("followingId")
+    .lean();
+
+  const followingIds = followingDocs
+    .map((item) => item?.followingId?.toString?.())
+    .filter(Boolean);
+
+  const excludedIds = [
+    userId,
+    ...followingIds,
+  ];
+
+  const items = await User.aggregate([
+    {
+      $match: {
+        isActive: { $ne: false },
+        _id: {
+          $nin: excludedIds.map((id) => new mongoose.Types.ObjectId(id)),
+        },
+      },
+    },
+    { $sample: { size: cappedLimit } },
+    {
+      $project: {
+        _id: 1,
+        name: 1,
+        email: 1,
+        avatarUrl: 1,
+      },
+    },
+  ]).then((users) =>
+    users.map((item) =>
+      mapUserItem(item, {
+        id: item?._id,
+        followedByMe: false,
+      }),
+    ),
+  );
+
+  return {
+    items,
+    meta: {
+      limit: cappedLimit,
       total: items.length,
     },
   };

@@ -12,7 +12,7 @@ export default function ProfileRecentCapturesCard({
 
   if (loading) {
     return (
-      <div className="theme-card overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.90),rgba(246,247,255,0.92),rgba(243,239,255,0.90))] p-5 shadow-[0_12px_28px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
+      <div className="theme-card overflow-hidden rounded-none border-y border-x-0 border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.90),rgba(246,247,255,0.92),rgba(243,239,255,0.90))] p-4 shadow-[0_12px_28px_rgba(15,23,42,0.05)] ring-0 backdrop-blur sm:rounded-[28px] sm:border sm:p-5 sm:ring-1 sm:ring-zinc-200/60">
         <div className="animate-pulse">
           <div className="flex items-start justify-between gap-3">
             <div className="flex-1 min-w-0">

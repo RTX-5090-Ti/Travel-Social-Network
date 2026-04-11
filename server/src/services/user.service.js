@@ -38,6 +38,10 @@ function normalizeProfileValue(value = "") {
   return typeof value === "string" ? value.trim() : "";
 }
 
+function escapeRegex(value = "") {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function buildUserPayload(
   user,
   { includeEmail = false, includeRole = false } = {},
@@ -350,6 +354,41 @@ export async function getMyTrips({ userId, limit = 50 }) {
     meta: {
       total,
       limit,
+    },
+  };
+}
+
+export async function searchUsers({ viewerId, query, limit = 6 }) {
+  const trimmedQuery = normalizeProfileValue(query);
+
+  if (!trimmedQuery) {
+    return {
+      items: [],
+      meta: {
+        limit,
+        total: 0,
+      },
+    };
+  }
+
+  const regex = new RegExp(escapeRegex(trimmedQuery), "i");
+  const cappedLimit = Math.min(Math.max(Number(limit) || 6, 1), 10);
+
+  const users = await User.find({
+    _id: { $ne: viewerId },
+    isActive: { $ne: false },
+    $or: [{ name: regex }, { email: regex }],
+  })
+    .select("_id name email avatarUrl")
+    .sort({ name: 1, email: 1, _id: 1 })
+    .limit(cappedLimit)
+    .lean();
+
+  return {
+    items: users.map((item) => buildUserPayload(item, { includeEmail: true })),
+    meta: {
+      limit: cappedLimit,
+      total: users.length,
     },
   };
 }

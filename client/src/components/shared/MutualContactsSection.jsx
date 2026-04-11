@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ChevronRight, Send, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { followApi } from "../../api/follow.api";
 import { useChat } from "../../chat/useChat";
@@ -45,6 +46,7 @@ function ContactCardSkeleton({ compact = false }) {
 }
 
 function ContactRow({ person, compact = false }) {
+  const { t } = useTranslation();
   const { openConversationWithUser, onlineUserIds, presenceByUserId } = useChat();
   const avatarUrl = getAvatarUrl(person);
   const userId = getUserId(person);
@@ -86,7 +88,7 @@ function ContactRow({ person, compact = false }) {
             {person?.name || "Traveler"}
           </p>
           <p className="truncate text-[12px] text-zinc-400">
-            {person?.email || "Email unavailable"}
+            {person?.email || t("sidebar.emailUnavailable")}
           </p>
         </div>
       </div>
@@ -103,18 +105,21 @@ function ContactRow({ person, compact = false }) {
 }
 
 function EmptyState({ boxed = false }) {
+  const { t } = useTranslation();
+
   return (
     <div
       className={`theme-card rounded-[18px] bg-white px-4 py-5 text-center text-[13px] text-zinc-400 shadow-[0_8px_20px_rgba(15,23,42,0.03)] ring-1 ring-zinc-200/60 ${
         boxed ? "border border-white/70" : ""
       }`}
     >
-      Chưa có kết nối theo dõi hai chiều nào.
+      {t("mutual.empty")}
     </div>
   );
 }
 
 export default function MutualContactsSection() {
+  const { t } = useTranslation();
   const { onlineUserIds, presenceByUserId } = useChat();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -217,10 +222,10 @@ export default function MutualContactsSection() {
             <div className="flex items-center justify-between border-b border-zinc-200/70 px-5 py-4">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
-                  Online now
+                  {t("mutual.title")}
                 </p>
                 <h4 className="mt-1 text-[20px] font-semibold text-zinc-900">
-                  Mutual follow
+                  {t("mutual.subtitle")}
                 </h4>
               </div>
 
@@ -263,7 +268,10 @@ export default function MutualContactsSection() {
                       <motion.div
                         key={`all-${person?._id || person?.id}`}
                         layout
-                        transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+                        transition={{
+                          duration: 0.24,
+                          ease: [0.22, 1, 0.36, 1],
+                        }}
                       >
                         <ContactRow person={person} compact />
                       </motion.div>
@@ -285,7 +293,7 @@ export default function MutualContactsSection() {
       <div>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-[15px] font-semibold text-zinc-900">
-            Online now
+            {t("mutual.title")}
           </h3>
           <motion.button
             type="button"
@@ -294,7 +302,7 @@ export default function MutualContactsSection() {
             whileTap={{ scale: 0.97 }}
             className="theme-secondary-button group inline-flex cursor-pointer items-center gap-1.5 rounded-full px-2 py-1 text-[13px] font-medium text-[#4f7cff] transition-colors hover:bg-blue-50/80 hover:text-[#3f6fff]"
           >
-            <span>View all</span>
+            <span>{t("mutual.viewAll")}</span>
             <ChevronRight className="h-3.5 w-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
           </motion.button>
         </div>

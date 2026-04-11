@@ -1,6 +1,10 @@
 import { api } from "./axios";
 
 export const userApi = {
+  search(params = {}) {
+    return api.get("/api/users/search", { params });
+  },
+
   listMyTrips(params = {}) {
     return api.get("/api/users/me/trips", { params });
   },

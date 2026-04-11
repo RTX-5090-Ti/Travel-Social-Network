@@ -47,6 +47,24 @@ export async function getMyTripsController(req, res, next) {
   }
 }
 
+export async function searchUsersController(req, res, next) {
+  try {
+    const payload = await userService.searchUsers({
+      viewerId: req.user?.userId,
+      query: req.validated?.query?.q ?? req.query.q ?? "",
+      limit: req.validated?.query?.limit ?? 6,
+    });
+
+    res.json(payload);
+  } catch (err) {
+    try {
+      handleServiceError(res, err);
+    } catch (error) {
+      next(error);
+    }
+  }
+}
+
 export async function getUserProfileController(req, res, next) {
   try {
     const limitRaw = Number(req.validated?.query?.limit ?? req.query.limit ?? 50);

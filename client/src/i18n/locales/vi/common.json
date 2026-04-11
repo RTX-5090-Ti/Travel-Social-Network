@@ -1,0 +1,85 @@
+{
+  "feed": {
+    "badge": "Bảng tin du lịch",
+    "heroTitle": "Lưu lại khoảnh khắc, rồi chia sẻ hành trình thật đẹp.",
+    "shareJourney": "Chia sẻ hành trình",
+    "stories": "Stories",
+    "watchAll": "Xem tất cả",
+    "communityTitle": "Hành trình từ cộng đồng",
+    "trending": "Thịnh hành",
+    "latest": "Mới nhất",
+    "loadErrorTitle": "Không tải được feed",
+    "retry": "Thử lại",
+    "endOfFeed": "Bạn đã xem hết journey mới trong feed rồi."
+  },
+  "sidebar": {
+    "brand": "Travel Social",
+    "tagline": "Khám phá qua từng câu chuyện",
+    "feed": "Feed",
+    "home": "Home",
+    "archive": "Lưu trữ",
+    "direct": "Direct",
+    "settings": "Cài đặt",
+    "menu": "Menu",
+    "openSidebar": "Mở sidebar",
+    "closeSidebar": "Đóng sidebar",
+    "viewProfile": "Xem hồ sơ",
+    "emailUnavailable": "Chưa có email",
+    "directInDevelopment": "Tính năng Direct đang được phát triển."
+  },
+  "suggested": {
+    "eyebrow": "Gợi ý",
+    "title": "Người nên follow",
+    "refresh": "Làm mới",
+    "empty": "Chưa có gợi ý follow phù hợp lúc này.",
+    "followed": "Đã follow {{name}}.",
+    "unfollowed": "Đã huỷ follow {{name}}.",
+    "followError": "Không cập nhật follow được lúc này."
+  },
+  "mutual": {
+    "title": "Đang online",
+    "subtitle": "Theo dõi lẫn nhau",
+    "viewAll": "Xem tất cả",
+    "empty": "Chưa có kết nối theo dõi hai chiều nào."
+  },
+  "search": {
+    "placeholder": "Tìm điểm đến, hành trình, người dùng...",
+    "loadingUsers": "Đang tìm người dùng...",
+    "emptyUsers": "Không tìm thấy người dùng phù hợp.",
+    "emailUnavailable": "Chưa có email"
+  },
+  "settings": {
+    "personalSettings": "Thiết lập cá nhân",
+    "title": "Cài đặt",
+    "loadErrorTitle": "Không tải được giao diện cài đặt",
+    "privacyTitle": "Quyền riêng tư",
+    "privacyDescription": "Kiểm soát ai có thể nhắn tin cho bạn.",
+    "messagePermissionTitle": "Ai có thể nhắn tin cho bạn",
+    "messagePermission": {
+      "everyone": "Mọi người",
+      "followers": "Người theo dõi",
+      "nobody": "Không ai"
+    },
+    "notificationsTitle": "Thông báo",
+    "notificationsDescription": "Bật hoặc tắt việc nhận thông báo.",
+    "languageTitle": "Ngôn ngữ",
+    "languageDescription": "Chọn ngôn ngữ bạn muốn dùng trong ứng dụng.",
+    "languagePreferenceTitle": "Tuỳ chọn ngôn ngữ",
+    "languageOptions": {
+      "en": "English",
+      "vi": "Tiếng Việt"
+    },
+    "themeTitle": "Chế độ tối",
+    "themeDescription": "Chọn cách giao diện của ứng dụng hoạt động.",
+    "appearanceModeTitle": "Chế độ hiển thị",
+    "themeOptions": {
+      "light": "Sáng",
+      "dark": "Tối",
+      "system": "Theo hệ thống"
+    },
+    "featureInDevelopment": "Tính năng này đang được phát triển.",
+    "savedAppearance": "Đã lưu tùy chọn giao diện.",
+    "logout": "Đăng xuất",
+    "save": "Lưu"
+  }
+}

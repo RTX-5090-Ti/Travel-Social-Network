@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { useLocation, useNavigate } from "react-router-dom";
 
 import { useAuth } from "../../../auth/useAuth";
@@ -6,20 +7,49 @@ import { useToast } from "../../../toast/useToast";
 import { navItems } from "../../feed/page/feed.constants";
 import ProfileDivider from "./ProfileDivider";
 
+function MenuLinesIcon({ className = "h-5 w-5" }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <path
+        d="M4 7h16"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4 12h16"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+      />
+      <path
+        d="M4 17h16"
+        stroke="currentColor"
+        strokeWidth="1.9"
+        strokeLinecap="round"
+      />
+    </svg>
+  );
+}
+
 export default function ProfileLeftSidebar({
   user: profileUser = null,
   stats = null,
   onOpenConnections = () => {},
+  onOpenMobileSidebar = () => {},
+  tabletSidebarOpen = false,
+  onToggleTabletSidebar = () => {},
 }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user } = useAuth();
   const { showToast } = useToast();
   const displayUser = profileUser || user;
 
   const fallbackProfile = {
     name: "Traveler",
-    email: "Email unavailable",
+    email: t("sidebar.emailUnavailable"),
     avatar: "",
     stats: [
       { label: "Posts", value: "0" },
@@ -46,8 +76,20 @@ export default function ProfileLeftSidebar({
   const sidebarInitial = (sidebarProfile.name || "Traveler")
     .charAt(0)
     .toUpperCase();
+  const labelMap = {
+    Feed: t("sidebar.feed"),
+    Home: t("sidebar.home"),
+    Archive: t("sidebar.archive"),
+    Direct: t("sidebar.direct"),
+    Settings: t("sidebar.settings"),
+    Menu: t("sidebar.menu"),
+  };
 
   const sidebarNavItems = navItems.map((item) => {
+    if (item.label === "Feed") {
+      return { ...item, active: location.pathname === "/" };
+    }
+
     if (item.label === "Home") {
       return { ...item, active: location.pathname === "/profile" };
     }
@@ -63,9 +105,21 @@ export default function ProfileLeftSidebar({
     return { ...item, active: false };
   });
 
+  const mobileNavItems = [
+    ...sidebarNavItems.filter((item) =>
+      ["Feed", "Home", "Archive", "Settings"].includes(item.label),
+    ),
+    {
+      id: "sidebar-menu",
+      label: "Menu",
+      active: false,
+      icon: MenuLinesIcon,
+    },
+  ];
+
   function handleSidebarNavigate(item) {
     if (item.label === "Direct") {
-      showToast("Tính năng Direct đang được phát triển.", "info");
+      showToast(t("sidebar.directInDevelopment"), "info");
       return;
     }
 
@@ -86,16 +140,40 @@ export default function ProfileLeftSidebar({
 
     if (item.label === "Settings") {
       navigate("/settings");
+      return;
+    }
+
+    if (item.label === "Menu") {
+      onOpenMobileSidebar();
     }
   }
 
-  async function handleLogout() {
-    await logout();
-    navigate("/login", { replace: true });
-  }
-
   return (
-    <aside className="theme-sidebar hidden border-r border-zinc-200/80 bg-white/80 px-6 py-7 backdrop-blur lg:block lg:self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:rounded-l-[34px] feed-side-scroll">
+    <>
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200/80 bg-white/96 px-3 pb-[calc(env(safe-area-inset-bottom,0px)+10px)] pt-2 shadow-[0_-14px_30px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden">
+        <div className="mx-auto flex w-full max-w-[560px] items-center justify-between gap-1.5">
+          {mobileNavItems.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => handleSidebarNavigate(item)}
+                className={`flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-[18px] px-2 py-2.5 transition ${
+                  item.active
+                    ? "bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-white shadow-[0_10px_22px_rgba(102,126,234,0.22)]"
+                    : "text-zinc-500"
+                }`}
+              >
+                <Icon className="h-[20px] w-[20px]" />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <aside className="theme-sidebar hidden border-r border-zinc-200/80 bg-white/80 px-6 py-7 backdrop-blur lg:block lg:self-start lg:sticky lg:top-4 lg:max-h-[calc(100vh-2rem)] lg:overflow-y-auto lg:overflow-x-hidden lg:rounded-l-[34px] feed-side-scroll">
       <div>
         <div className="flex items-center justify-center gap-3">
           <div className="relative flex items-center justify-center w-16 h-16 shrink-0">
@@ -128,10 +206,10 @@ export default function ProfileLeftSidebar({
 
           <div className="flex flex-col justify-center text-center">
             <p className="text-[17px] font-semibold leading-tight tracking-tight text-zinc-900">
-              Travel Social
+              {t("sidebar.brand")}
             </p>
             <p className="text-[12px] leading-tight text-zinc-400">
-              Explore with stories
+              {t("sidebar.tagline")}
             </p>
           </div>
         </div>
@@ -219,38 +297,34 @@ export default function ProfileLeftSidebar({
                   }`}
                 >
                   <Icon className="w-5 h-5" />
-                  <span>{item.label}</span>
+                  <span>{labelMap[item.label] || item.label}</span>
                 </button>
 
-                {item.label === "Settings" ? (
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="flex w-full cursor-pointer items-center gap-3 rounded-[18px] px-4 py-3 text-left text-[15px] font-medium text-rose-500 transition hover:bg-rose-50 hover:text-rose-600"
-                  >
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.9"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className="w-5 h-5"
-                    >
-                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                      <path d="M16 17l5-5-5-5" />
-                      <path d="M21 12H9" />
-                    </svg>
-                    <span>Log out</span>
-                  </button>
-                ) : null}
               </div>
             );
           })}
+
+          <button
+            type="button"
+            onClick={onToggleTabletSidebar}
+            className={`mt-2 hidden w-full items-center gap-3 rounded-[18px] px-4 py-3 text-left text-[15px] font-medium transition lg:flex xl:hidden ${
+              tabletSidebarOpen
+                ? "bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-white shadow-[0_14px_30px_rgba(102,126,234,0.24)]"
+                : "text-zinc-500 hover:bg-zinc-50 hover:text-zinc-900"
+            }`}
+          >
+            <MenuLinesIcon className="h-5 w-5" />
+            <span>
+              {tabletSidebarOpen
+                ? t("sidebar.closeSidebar")
+                : t("sidebar.openSidebar")}
+            </span>
+          </button>
         </nav>
 
         <ProfileDivider />
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

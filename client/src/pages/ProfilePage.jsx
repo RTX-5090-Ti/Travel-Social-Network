@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ImageIcon, Sparkles, Camera, PenSquare } from "lucide-react";
+import { Camera, ImageIcon, PenSquare, Sparkles } from "lucide-react";
 
 import { useAuth } from "../auth/useAuth";
 import { useToast } from "../toast/useToast";
@@ -39,6 +39,8 @@ import { useProfileData } from "../components/profile/page/useProfileData";
 import { useProfileConnections } from "../components/profile/page/useProfileConnections";
 
 export default function ProfilePage() {
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [tabletSidebarOpen, setTabletSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { userId } = useParams();
@@ -242,8 +244,8 @@ export default function ProfilePage() {
     mediaLightboxIndex < mediaItems.length;
 
   return (
-    <div className="theme-page-shell relative min-h-screen bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] px-2 py-2 sm:px-3 sm:py-3 lg:px-4 lg:py-4">
-      <div className="absolute inset-0 pointer-events-none">
+    <div className="theme-page-shell relative min-h-screen bg-white px-0 pt-0 pb-[calc(env(safe-area-inset-bottom,0px)+92px)] md:bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] md:px-3 md:pt-3 md:pb-3 lg:px-4 lg:pt-4 lg:pb-4">
+      <div className="pointer-events-none absolute inset-0 hidden md:block">
         <FloatingShape
           className="left-[8%] top-[10%] h-20 w-20"
           style={shapeStyles[0]}
@@ -273,16 +275,21 @@ export default function ProfilePage() {
         </FloatingShape>
       </div>
 
-      <div className="theme-app-shell relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden rounded-[34px] border border-white/60 bg-[#fafafb] shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
-        <div className="grid min-h-[900px] grid-cols-1 lg:h-full lg:min-h-0 lg:grid-cols-[312px_minmax(0,1fr)_344px]">
+      <div className="theme-app-shell relative z-10 mx-auto w-full max-w-[1680px] overflow-hidden bg-[#fafafb] md:rounded-[34px] md:border md:border-white/60 md:shadow-[0_25px_80px_rgba(30,41,59,0.08)] lg:h-[calc(100vh-2rem)]">
+        <div className="grid min-h-screen grid-cols-1 md:min-h-[900px] lg:h-full lg:min-h-0 lg:grid-cols-[312px_minmax(0,1fr)] xl:grid-cols-[312px_minmax(0,1fr)_344px]">
           <ProfileLeftSidebar
             user={displayUser}
             stats={sidebarStats}
             onOpenConnections={handleOpenConnections}
+            onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
+            tabletSidebarOpen={tabletSidebarOpen}
+            onToggleTabletSidebar={() =>
+              setTabletSidebarOpen((prev) => !prev)
+            }
           />
 
           <main className="theme-main-pane profile-main-scroll min-w-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(250,250,251,0.96))] px-5 py-6 sm:px-7 sm:py-8 lg:h-full lg:overflow-y-auto lg:overflow-x-hidden lg:border-r lg:px-9 xl:px-10 border-zinc-200/80">
-            <div className="mx-auto w-full max-w-[920px]">
+            <div className="mx-auto w-full max-w-full lg:max-w-[920px]">
               <ProfileHero
                 user={displayUser}
                 avatar={avatar}
@@ -299,8 +306,8 @@ export default function ProfilePage() {
                 onToggleFollow={handleToggleFollow}
               />
 
-              <section className="mt-8 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-                <div className="theme-card rounded-[30px] border border-white/70 bg-white/80 p-4 shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur sm:p-5">
+              <section className="-mx-5 mt-8 grid gap-4 lg:mx-0 lg:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="theme-card rounded-none border-y border-x-0 border-white/70 bg-white/80 p-4 shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-0 backdrop-blur sm:rounded-[30px] sm:border sm:ring-1 sm:ring-zinc-200/60 sm:p-5">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-zinc-400">
@@ -315,7 +322,7 @@ export default function ProfilePage() {
                   {loading ? (
                     <ProfileHighlightSkeletonGrid />
                   ) : highlightTrips.length ? (
-                    <div className="grid grid-cols-2 gap-4 mt-5">
+                    <div className="mt-5 grid grid-cols-2 gap-3 px-0 sm:gap-4">
                       {highlightTrips.map((trip, index) => {
                         const tripId = getTripId(trip);
 
@@ -359,8 +366,8 @@ export default function ProfilePage() {
               </section>
 
               {!isVisitorProfile ? (
-                <div className="theme-card mt-6 overflow-hidden rounded-[28px] border border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.74),rgba(244,247,255,0.90),rgba(243,238,255,0.88))] shadow-[0_18px_42px_rgba(15,23,42,0.06)] ring-1 ring-zinc-200/60 backdrop-blur">
-                  <div className="relative px-4 py-4 overflow-hidden sm:px-5 sm:py-5">
+                <div className="-mx-5 mt-6 overflow-hidden rounded-none border-y border-x-0 border-white/70 bg-[linear-gradient(135deg,rgba(255,255,255,0.74),rgba(244,247,255,0.90),rgba(243,238,255,0.88))] shadow-[0_18px_42px_rgba(15,23,42,0.06)] ring-0 backdrop-blur sm:mx-0 sm:rounded-[28px] sm:border sm:ring-1 sm:ring-zinc-200/60">
+                  <div className="relative overflow-hidden px-4 py-4 sm:px-5 sm:py-5">
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.10),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.10),transparent_30%)]" />
                     <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.95),transparent)]" />
 
@@ -368,7 +375,7 @@ export default function ProfilePage() {
                       <button
                         type="button"
                         onClick={handleOpenShareJourney}
-                        className="group relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden rounded-[24px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(246,248,255,0.98),rgba(243,238,255,0.96))] p-3 shadow-[0_16px_34px_rgba(15,23,42,0.06)] ring-1 ring-zinc-200/60 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_42px_rgba(15,23,42,0.10)] cursor-pointer"
+                        className="group relative flex min-w-0 flex-1 items-center gap-3 overflow-hidden rounded-[20px] border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.98),rgba(246,248,255,0.98),rgba(243,238,255,0.96))] p-3 shadow-[0_16px_34px_rgba(15,23,42,0.06)] ring-1 ring-zinc-200/60 transition duration-300 hover:-translate-y-0.5 hover:shadow-[0_22px_42px_rgba(15,23,42,0.10)] cursor-pointer sm:rounded-[24px]"
                       >
                         <span className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(139,92,246,0.08),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(96,165,250,0.08),transparent_30%)] opacity-80" />
                         <span className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.95),transparent)]" />
@@ -388,22 +395,40 @@ export default function ProfilePage() {
                           )}
                         </span>
 
-                        <span className="relative z-10 flex-1 min-w-0">
-                          <span className="theme-secondary-button flex h-[48px] items-center rounded-full border border-white/70 bg-[linear-gradient(180deg,rgba(241,243,248,0.98),rgba(235,238,244,1))] px-5 text-left text-[15px] font-medium text-zinc-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition duration-300 group-hover:bg-[linear-gradient(180deg,rgba(237,240,247,1),rgba(232,236,243,1))]">
+                        <span className="relative z-10 min-w-0 flex-1">
+                          <span className="theme-secondary-button flex h-[46px] items-center rounded-full border border-white/70 bg-[linear-gradient(180deg,rgba(241,243,248,0.98),rgba(235,238,244,1))] px-4 text-left text-[14px] font-medium text-zinc-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.92)] transition duration-300 group-hover:bg-[linear-gradient(180deg,rgba(237,240,247,1),rgba(232,236,243,1))] sm:h-[48px] sm:px-5 sm:text-[15px]">
                             Share your next journey...
                           </span>
                         </span>
 
-                        <span className="relative z-10 flex items-center gap-2 pl-1 shrink-0">
-                          <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-rose-100 bg-[linear-gradient(180deg,#fff1f2,#ffe4e6)] text-rose-500 shadow-[0_8px_18px_rgba(244,63,94,0.12)] transition duration-300 group-hover:scale-105 group-hover:shadow-[0_10px_22px_rgba(244,63,94,0.16)]">
-                            <Camera className="w-4 h-4" />
-                          </span>
-                          <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-emerald-100 bg-[linear-gradient(180deg,#ecfdf5,#d1fae5)] text-emerald-500 shadow-[0_8px_18px_rgba(16,185,129,0.12)] transition duration-300 group-hover:scale-105 group-hover:shadow-[0_10px_22px_rgba(16,185,129,0.16)]">
-                            <ImageIcon className="w-4 h-4" />
-                          </span>
-                          <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-amber-100 bg-[linear-gradient(180deg,#fffbeb,#fef3c7)] text-amber-500 shadow-[0_8px_18px_rgba(245,158,11,0.12)] transition duration-300 group-hover:scale-105 group-hover:shadow-[0_10px_22px_rgba(245,158,11,0.16)]">
-                            <Sparkles className="w-4 h-4" />
-                          </span>
+                        <span className="relative z-10 hidden shrink-0 items-center gap-2 md:flex">
+                          {[
+                            {
+                              icon: Camera,
+                              label: "Camera",
+                              wrapperClass:
+                                "bg-[linear-gradient(135deg,rgba(253,164,175,0.28),rgba(251,113,133,0.18))] text-rose-500 shadow-[0_8px_18px_rgba(244,63,94,0.14)]",
+                            },
+                            {
+                              icon: ImageIcon,
+                              label: "Media",
+                              wrapperClass:
+                                "bg-[linear-gradient(135deg,rgba(125,211,252,0.28),rgba(96,165,250,0.18))] text-sky-500 shadow-[0_8px_18px_rgba(59,130,246,0.14)]",
+                            },
+                            {
+                              icon: Sparkles,
+                              label: "Ideas",
+                              wrapperClass:
+                                "bg-[linear-gradient(135deg,rgba(196,181,253,0.28),rgba(167,139,250,0.18))] text-violet-500 shadow-[0_8px_18px_rgba(139,92,246,0.14)]",
+                            },
+                          ].map(({ icon: Icon, label, wrapperClass }) => (
+                            <span
+                              key={label}
+                              className={`inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/80 ${wrapperClass}`}
+                            >
+                              <Icon className="h-4 w-4" />
+                            </span>
+                          ))}
                         </span>
                       </button>
 
@@ -424,20 +449,20 @@ export default function ProfilePage() {
                 </div>
               ) : null}
 
-              <section className="mt-8">
+              <section className="-mx-5 mt-8 sm:mx-0">
                 <div className="flex items-center justify-between gap-5">
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
                         {isVisitorProfile ? "Traveler space" : "Personal space"}
                       </p>
-                      <h3 className="mt-2 text-[26px] font-semibold tracking-tight text-zinc-900">
+                      <h3 className="mt-2 text-[22px] font-semibold tracking-tight text-zinc-900 sm:text-[24px]">
                         {isVisitorProfile ? "Journey collection" : "My content"}
                       </h3>
                     </div>
                   </div>
 
-                  <div className="theme-card inline-flex w-fit rounded-[18px] border border-white/70 bg-white/85 p-1.5 shadow-[0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
+                  <div className="theme-card inline-flex w-fit rounded-[16px] border border-white/70 bg-white/85 p-1 shadow-[0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur sm:rounded-[18px] sm:p-1.5">
                     {PROFILE_TABS.map((tab) => (
                       <ProfileTabButton
                         key={tab.key}
@@ -493,7 +518,7 @@ export default function ProfilePage() {
                         </div>
                       ) : activeTab === "posts" ? (
                         profileTrips.length ? (
-                          <div className="space-y-7">
+                          <div className="space-y-7 px-2 sm:px-0">
                             {profileTrips.map((trip, index) => (
                               <JourneyFeedCard
                                 key={
@@ -563,7 +588,12 @@ export default function ProfilePage() {
             </AnimatePresence>
           </main>
 
-          <ProfileRightSidebar />
+          <ProfileRightSidebar
+            mobileOpen={mobileSidebarOpen}
+            onCloseMobile={() => setMobileSidebarOpen(false)}
+            tabletOpen={tabletSidebarOpen}
+            onCloseTablet={() => setTabletSidebarOpen(false)}
+          />
         </div>
       </div>
 

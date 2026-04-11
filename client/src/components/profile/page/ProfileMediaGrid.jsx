@@ -4,14 +4,14 @@ import { formatFeedTime } from "../../feed/page/feed.utils";
 export default function ProfileMediaGrid({ mediaItems, onOpenLightbox }) {
   if (!mediaItems.length) {
     return (
-      <div className="rounded-[30px] border border-dashed border-zinc-200 bg-[linear-gradient(180deg,#ffffff,#fbfbff)] px-5 py-12 text-center shadow-[0_16px_34px_rgba(15,23,42,0.04)]">
+      <div className="rounded-[30px] border border-dashed border-zinc-200 bg-[linear-gradient(180deg,#ffffff,#fbfbff)] px-5 py-12 text-center shadow-[0_16px_34px_rgba(15,23,42,0.04)] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.98))] dark:shadow-[0_16px_34px_rgba(2,6,23,0.24)]">
         <div className="mx-auto inline-flex h-16 w-16 items-center justify-center rounded-[22px] bg-[linear-gradient(135deg,rgba(102,126,234,0.12),rgba(118,75,162,0.16))] text-violet-600">
           <ImageIcon className="h-7 w-7" />
         </div>
-        <h4 className="mt-5 text-[22px] font-semibold tracking-tight text-zinc-900">
+        <h4 className="mt-5 text-[22px] font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
           Chưa có media nào
         </h4>
-        <p className="mx-auto mt-3 max-w-[560px] text-[15px] leading-7 text-zinc-500">
+        <p className="mx-auto mt-3 max-w-[560px] text-[15px] leading-7 text-zinc-500 dark:text-zinc-400">
           Tab này lấy ảnh và video thật từ các journey của bạn. Khi bạn đăng
           thêm bài, chỗ này sẽ thành một gallery rất đẹp.
         </p>
@@ -26,7 +26,7 @@ export default function ProfileMediaGrid({ mediaItems, onOpenLightbox }) {
           key={media.id}
           type="button"
           onClick={() => onOpenLightbox?.(index)}
-          className="group overflow-hidden rounded-[28px] border border-white/70 bg-white text-left shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_44px_rgba(15,23,42,0.08)] cursor-pointer"
+          className="group overflow-hidden rounded-[28px] border border-white/70 bg-white text-left shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 transition duration-300 hover:-translate-y-1 hover:shadow-[0_24px_44px_rgba(15,23,42,0.08)] dark:border-white/10 dark:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.98))] dark:shadow-[0_16px_34px_rgba(2,6,23,0.24)] dark:ring-white/10 dark:hover:shadow-[0_24px_44px_rgba(2,6,23,0.34)] cursor-pointer"
         >
           <div className="relative aspect-[4/5] overflow-hidden bg-[linear-gradient(135deg,rgba(102,126,234,0.14),rgba(118,75,162,0.12),rgba(255,255,255,0.50))]">
             {media.type === "video" ? (
@@ -45,7 +45,7 @@ export default function ProfileMediaGrid({ mediaItems, onOpenLightbox }) {
               />
             )}
 
-            <div className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-1 text-[11px] font-semibold text-zinc-700 backdrop-blur">
+            <div className="absolute left-3 top-3 inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/80 px-3 py-1 text-[11px] font-semibold text-zinc-700 backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-zinc-100">
               {media.type === "video" ? (
                 <Play className="h-3.5 w-3.5" />
               ) : (
@@ -54,7 +54,7 @@ export default function ProfileMediaGrid({ mediaItems, onOpenLightbox }) {
               {media.type === "video" ? "Video" : "Photo"}
             </div>
 
-            <div className="absolute right-3 top-3 rounded-full border border-white/70 bg-white/80 px-3 py-1 text-[11px] font-semibold capitalize text-zinc-700 backdrop-blur">
+            <div className="absolute right-3 top-3 rounded-full border border-white/70 bg-white/80 px-3 py-1 text-[11px] font-semibold capitalize text-zinc-700 backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-zinc-100">
               {media.privacy}
             </div>
 
@@ -77,7 +77,7 @@ export default function ProfileMediaGrid({ mediaItems, onOpenLightbox }) {
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.02),rgba(15,23,42,0.08))] opacity-0 transition duration-300 group-hover:opacity-100" />
 
             <div className="absolute inset-0 flex items-center justify-center transition duration-300 opacity-0 pointer-events-none group-hover:opacity-100">
-              <div className="rounded-full border border-white/80 bg-white/84 px-4 py-2 text-[12px] font-semibold text-zinc-800 shadow-[0_14px_30px_rgba(15,23,42,0.16)] backdrop-blur">
+              <div className="rounded-full border border-white/80 bg-white/84 px-4 py-2 text-[12px] font-semibold text-zinc-800 shadow-[0_14px_30px_rgba(15,23,42,0.16)] backdrop-blur dark:border-white/10 dark:bg-white/10 dark:text-zinc-100 dark:shadow-[0_14px_30px_rgba(2,6,23,0.32)]">
                 Tap to view
               </div>
             </div>
