@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
 import { authApi } from "../api/auth.api";
 import { AuthContext } from "./auth-context";
 
@@ -47,7 +47,7 @@ export function AuthProvider({ children }) {
     try {
       await authApi.logout();
     } catch {
-      // bỏ qua lỗi logout phía server
+      // Bo qua loi logout phia server.
     } finally {
       setUser(null);
     }

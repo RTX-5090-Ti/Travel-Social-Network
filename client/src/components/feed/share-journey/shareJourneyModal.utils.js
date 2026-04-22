@@ -206,19 +206,19 @@ export const privacyOptions = [
   {
     value: "public",
     label: "Public",
-    description: "Hiá»ƒn thá»‹ cÃ´ng khai cho má»i ngÆ°á»i.",
+    description: "Hiển thị công khai cho mọi người.",
     tone: "border-emerald-200/80 bg-emerald-50/80 text-emerald-700",
   },
   {
     value: "followers",
     label: "Followers",
-    description: "Chá»‰ ngÆ°á»i theo dÃµi má»›i cÃ³ thá»ƒ xem.",
+    description: "Chỉ người theo dõi mới có thể xem.",
     tone: "border-sky-200/80 bg-sky-50/80 text-sky-700",
   },
   {
     value: "private",
     label: "Private",
-    description: "Chá»‰ mÃ¬nh báº¡n cÃ³ thá»ƒ xem ná»™i dung nÃ y.",
+    description: "Chỉ mình bạn có thể xem nội dung này.",
     tone: "border-amber-200/80 bg-amber-50/80 text-amber-700",
   },
 ];

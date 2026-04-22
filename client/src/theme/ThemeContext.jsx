@@ -29,19 +29,16 @@ function getInitialThemeMode() {
 
 export function ThemeProvider({ children }) {
   const [themeMode, setThemeMode] = useState(getInitialThemeMode);
-  const [resolvedTheme, setResolvedTheme] = useState(() =>
-    getInitialThemeMode() === "system" ? getSystemTheme() : getInitialThemeMode(),
-  );
+  const [systemTheme, setSystemTheme] = useState(getSystemTheme);
 
   useEffect(() => {
-    if (themeMode !== "system") {
-      setResolvedTheme(themeMode);
+    if (themeMode !== "system" || typeof window === "undefined") {
       return undefined;
     }
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const syncTheme = () => {
-      setResolvedTheme(mediaQuery.matches ? "dark" : "light");
+      setSystemTheme(mediaQuery.matches ? "dark" : "light");
     };
 
     syncTheme();
@@ -49,6 +46,11 @@ export function ThemeProvider({ children }) {
 
     return () => mediaQuery.removeEventListener("change", syncTheme);
   }, [themeMode]);
+
+  const resolvedTheme = useMemo(
+    () => (themeMode === "system" ? systemTheme : themeMode),
+    [systemTheme, themeMode],
+  );
 
   useEffect(() => {
     const root = document.documentElement;

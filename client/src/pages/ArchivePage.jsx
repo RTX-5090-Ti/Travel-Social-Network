@@ -1,6 +1,7 @@
 ﻿import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Archive, Bookmark, RotateCcw, Trash2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../auth/useAuth";
@@ -24,12 +25,8 @@ import {
 import { getInitials } from "../components/feed/page/feed.utils";
 import { useProfileData } from "../components/profile/page/useProfileData";
 
-const ARCHIVE_TABS = [
-  { key: "saved", label: "Archive", icon: Bookmark },
-  { key: "trash", label: "Trash", icon: Trash2 },
-];
-
 export default function ArchivePage() {
+  const { t } = useTranslation();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [tabletSidebarOpen, setTabletSidebarOpen] = useState(false);
   const navigate = useNavigate();
@@ -58,12 +55,16 @@ export default function ArchivePage() {
     });
 
   const initials = getInitials(displayUser?.name || "Traveler");
-  const activeTabIndex = ARCHIVE_TABS.findIndex((tab) => tab.key === activeTab);
+  const archiveTabs = [
+    { key: "saved", label: t("archive.tabArchive"), icon: Bookmark },
+    { key: "trash", label: t("archive.tabTrash"), icon: Trash2 },
+  ];
+  const activeTabIndex = archiveTabs.findIndex((tab) => tab.key === activeTab);
 
   function handleChangeTab(nextTab) {
     if (nextTab === activeTab) return;
 
-    const nextIndex = ARCHIVE_TABS.findIndex((tab) => tab.key === nextTab);
+    const nextIndex = archiveTabs.findIndex((tab) => tab.key === nextTab);
     setTabDirection(nextIndex > activeTabIndex ? 1 : -1);
     setActiveTab(nextTab);
   }
@@ -88,14 +89,13 @@ export default function ArchivePage() {
       setSavedItems(Array.isArray(res.data?.items) ? res.data.items : []);
     } catch (error) {
       setSavedError(
-        error?.response?.data?.message ||
-          "Không tải được danh sách đã lưu lúc này.",
+        error?.response?.data?.message || t("archive.savedLoadErrorTitle"),
       );
       setSavedItems([]);
     } finally {
       setSavedLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const loadTrash = useCallback(async () => {
     try {
@@ -106,14 +106,13 @@ export default function ArchivePage() {
       setTrashItems(Array.isArray(res.data?.items) ? res.data.items : []);
     } catch (error) {
       setTrashError(
-        error?.response?.data?.message ||
-          "Không tải được danh sách thùng rác lúc này.",
+        error?.response?.data?.message || t("archive.trashLoadErrorTitle"),
       );
       setTrashItems([]);
     } finally {
       setTrashLoading(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     if (activeTab === "saved") {
@@ -162,11 +161,10 @@ export default function ArchivePage() {
       setRemovingSavedTripId(tripId);
       await tripApi.unsaveTrip(tripId);
       removeSavedTripLocally(tripId);
-      showToast("Đã gỡ journey khỏi danh sách đã lưu.", "success");
+      showToast(t("archive.savedRemoved"), "success");
     } catch (error) {
       showToast(
-        error?.response?.data?.message ||
-          "Không gỡ journey khỏi danh sách đã lưu được.",
+        error?.response?.data?.message || t("archive.savedRemoveError"),
         "error",
       );
     } finally {
@@ -188,10 +186,10 @@ export default function ArchivePage() {
         }),
       );
 
-      showToast("Đã khôi phục Journey.", "success");
+      showToast(t("archive.restoreSuccess"), "success");
     } catch (error) {
       showToast(
-        error?.response?.data?.message || "Khôi phục Journey không thành công",
+        error?.response?.data?.message || t("archive.restoreError"),
         "error",
       );
     } finally {
@@ -261,16 +259,16 @@ export default function ArchivePage() {
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                     <div>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-400">
-                        Personal archive
+                        {t("archive.personalArchive")}
                       </p>
                       <h3 className="mt-2 text-[26px] font-semibold tracking-tight text-zinc-900">
-                        Archive
+                        {t("archive.title")}
                       </h3>
                     </div>
                   </div>
 
                   <div className="theme-card inline-flex w-fit rounded-[18px] border border-white/70 bg-white/85 p-1.5 shadow-[0_10px_24px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
-                    {ARCHIVE_TABS.map((tab) => (
+                    {archiveTabs.map((tab) => (
                       <ProfileTabButton
                         key={tab.key}
                         active={activeTab === tab.key}
@@ -285,7 +283,7 @@ export default function ArchivePage() {
                 {error ? (
                   <div className="mt-5 rounded-[24px] border border-red-200 bg-red-50/90 px-4 py-4 text-sm text-red-600">
                     <p className="font-semibold">
-                      Không tải được giao diện lưu trữ
+                      {t("archive.loadErrorTitle")}
                     </p>
                     <p className="mt-1 text-red-500/90">{error}</p>
                   </div>
@@ -334,7 +332,7 @@ export default function ArchivePage() {
                         ) : savedError ? (
                           <div className="rounded-[24px] border border-red-200 bg-red-50/90 px-4 py-4 text-sm text-red-600">
                             <p className="font-semibold">
-                              Không tải được danh sách đã lưu
+                              {t("archive.savedLoadErrorTitle")}
                             </p>
                             <p className="mt-1 text-red-500/90">{savedError}</p>
                           </div>
@@ -385,7 +383,7 @@ export default function ArchivePage() {
                         ) : (
                           <ArchiveEmptyPanel
                             icon={Archive}
-                            title="Chưa có bài viết nào được lưu trữ"
+                            title={t("archive.savedEmptyTitle")}
                             description=""
                             tone="violet"
                           />
@@ -397,7 +395,7 @@ export default function ArchivePage() {
                       ) : trashError ? (
                         <div className="rounded-[24px] border border-red-200 bg-red-50/90 px-4 py-4 text-sm text-red-600">
                           <p className="font-semibold">
-                            Không tải được danh sách thùng rác
+                            {t("archive.trashLoadErrorTitle")}
                           </p>
                           <p className="mt-1 text-red-500/90">{trashError}</p>
                         </div>
@@ -422,8 +420,8 @@ export default function ArchivePage() {
                       ) : (
                         <ArchiveEmptyPanel
                           icon={Trash2}
-                          title="Chưa có bài viết nào được chuyển vào thùng rác"
-                          description="Bài viết sẽ tự  động  xoá sau 7  ngày"
+                          title={t("archive.trashEmptyTitle")}
+                          description={t("archive.trashEmptyDescription")}
                           tone="rose"
                         />
                       )}
@@ -447,7 +445,8 @@ export default function ArchivePage() {
 }
 
 function TrashTripCard({ trip, restoring = false, onRestore }) {
-  const title = trip?.title || "Untitled journey";
+  const { t } = useTranslation();
+  const title = trip?.title || t("journey.untitled");
   const caption = typeof trip?.caption === "string" ? trip.caption.trim() : "";
   const previewCaption =
     caption.length > 160 ? `${caption.slice(0, 160).trim()}...` : caption;
@@ -466,7 +465,7 @@ function TrashTripCard({ trip, restoring = false, onRestore }) {
           </h4>
 
           <p className="mt-3 text-[14px] leading-7 text-zinc-500 whitespace-pre-line">
-            {previewCaption || "Trip này chưa có phần intro."}
+            {previewCaption || t("archive.introFallback")}
           </p>
         </div>
 
@@ -481,7 +480,7 @@ function TrashTripCard({ trip, restoring = false, onRestore }) {
           }`}
         >
           <RotateCcw className="w-4 h-4" />
-          <span>{restoring ? "Đang khôi phục..." : "Khôi phục"}</span>
+          <span>{restoring ? t("archive.restoring") : t("archive.restore")}</span>
         </button>
       </div>
     </article>
@@ -494,22 +493,22 @@ function UnavailableSavedTripCard({
   onOpen,
   onRemove,
 }) {
+  const { t } = useTranslation();
   return (
     <article className="theme-card rounded-[26px] border border-white/70 bg-white/88 px-5 py-5 shadow-[0_16px_34px_rgba(15,23,42,0.05)] ring-1 ring-zinc-200/60 backdrop-blur">
       <div className="flex flex-col gap-4">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-amber-100 bg-amber-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-amber-500">
             <Bookmark className="h-3.5 w-3.5" />
-            Saved
+            {t("archive.trashBadge")}
           </div>
 
           <h4 className="mt-4 text-[22px] font-semibold tracking-tight text-zinc-900">
-            Journey đã lưu không còn khả dụng
+            {t("archive.unavailableTitle")}
           </h4>
 
           <p className="mt-3 text-[14px] leading-7 text-zinc-500">
-            Bài viết này có thể đã đổi quyền riêng tư, bị chuyển vào thùng rác,
-            hoặc không còn tồn tại.
+            {t("archive.unavailableDescription")}
           </p>
         </div>
 
@@ -524,7 +523,7 @@ function UnavailableSavedTripCard({
                 : "cursor-pointer bg-[linear-gradient(135deg,#667eea_0%,#764ba2_100%)] text-white shadow-[0_12px_24px_rgba(102,126,234,0.24)] hover:-translate-y-0.5"
             }`}
           >
-            {loadingView ? "Đang kiểm tra..." : "Show journey"}
+            {loadingView ? t("archive.checking") : t("archive.showJourney")}
           </button>
 
           <button
@@ -537,7 +536,7 @@ function UnavailableSavedTripCard({
                 : "cursor-pointer border border-zinc-200 bg-white text-zinc-700 hover:bg-zinc-50"
             }`}
           >
-            {loadingRemove ? "Đang gỡ..." : "Bỏ lưu"}
+            {loadingRemove ? t("archive.removing") : t("archive.unsave")}
           </button>
         </div>
       </div>

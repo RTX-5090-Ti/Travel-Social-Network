@@ -69,7 +69,7 @@
       "en": "English",
       "vi": "Tiếng Việt"
     },
-    "themeTitle": "Chế độ tối",
+    "themeTitle": "Dark mode",
     "themeDescription": "Chọn cách giao diện của ứng dụng hoạt động.",
     "appearanceModeTitle": "Chế độ hiển thị",
     "themeOptions": {
@@ -78,8 +78,41 @@
       "system": "Theo hệ thống"
     },
     "featureInDevelopment": "Tính năng này đang được phát triển.",
-    "savedAppearance": "Đã lưu tùy chọn giao diện.",
+    "savedAppearance": "Đã lưu tuỳ chọn giao diện.",
     "logout": "Đăng xuất",
-    "save": "Lưu"
+    "save": "Lưu",
+    "passwordChanged": "Đổi mật khẩu thành công",
+    "passwordChangeError": "Không đổi mật khẩu được lúc này.",
+    "deactivateError": "Không vô hiệu hóa được tài khoản lúc này.",
+    "deleteRequestError": "Không thể yêu cầu xoá tài khoản lúc này."
+  },
+  "archive": {
+    "personalArchive": "Lưu trữ cá nhân",
+    "title": "Lưu trữ",
+    "tabArchive": "Lưu trữ",
+    "tabTrash": "Thùng rác",
+    "loadErrorTitle": "Không tải được giao diện lưu trữ",
+    "savedLoadErrorTitle": "Không tải được danh sách đã lưu",
+    "trashLoadErrorTitle": "Không tải được danh sách thùng rác",
+    "savedEmptyTitle": "Chưa có bài viết nào được lưu trữ",
+    "trashEmptyTitle": "Chưa có bài viết nào được chuyển vào thùng rác",
+    "trashEmptyDescription": "Bài viết sẽ tự động xoá sau 7 ngày",
+    "savedRemoved": "Đã gỡ journey khỏi danh sách đã lưu.",
+    "savedRemoveError": "Không gỡ journey khỏi danh sách đã lưu được.",
+    "restoreSuccess": "Đã khôi phục journey.",
+    "restoreError": "Khôi phục journey không thành công.",
+    "trashBadge": "Đã lưu",
+    "unavailableTitle": "Journey đã lưu không còn khả dụng",
+    "unavailableDescription": "Bài viết này có thể đã đổi quyền riêng tư, bị chuyển vào thùng rác, hoặc không còn tồn tại.",
+    "checking": "Đang kiểm tra...",
+    "showJourney": "Show journey",
+    "unsave": "Bỏ lưu",
+    "removing": "Đang gỡ...",
+    "restoring": "Đang khôi phục...",
+    "restore": "Khôi phục",
+    "introFallback": "Trip này chưa có phần intro."
+  },
+  "journey": {
+    "untitled": "Hành trình chưa có tiêu đề"
   }
 }

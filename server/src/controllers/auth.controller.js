@@ -400,3 +400,10 @@ export async function reactivateAccount(req, res, next) {
     next(e);
   }
 }
+
+export const __testables = {
+  sha256,
+  normalizeEmail,
+  buildAuthUserPayload,
+  formatDeletionRemainingLabel,
+};

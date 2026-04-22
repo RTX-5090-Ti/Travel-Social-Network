@@ -1,5 +1,12 @@
-import { useEffect, useState } from "react";
-import { BellOff, Languages, LogOut, MoonStar, ShieldCheck } from "lucide-react";
+﻿import { useEffect, useState } from "react";
+import {
+  BellOff,
+  Languages,
+  LayoutDashboard,
+  LogOut,
+  MoonStar,
+  ShieldCheck,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 
@@ -256,11 +263,11 @@ export default function SettingsPage() {
         confirmPassword: passwordForm.confirmPassword,
       });
 
-      showToast("Đổi mật khẩu thành công", "success");
+      showToast(t("settings.passwordChanged"), "success");
       handleCancelPasswordForm();
     } catch (error) {
       const message =
-        error?.response?.data?.message || "Không đổi mật khẩu được lúc này.";
+        error?.response?.data?.message || t("settings.passwordChangeError");
 
       if (
         message === "Current password is incorrect." ||
@@ -306,8 +313,7 @@ export default function SettingsPage() {
       setDeactivateCountdown(4);
     } catch (error) {
       const message =
-        error?.response?.data?.message ||
-        "Không vô hiệu hóa được tài khoản lúc này.";
+        error?.response?.data?.message || t("settings.deactivateError");
       showToast(message, "error");
       setIsDeactivateSubmitting(false);
     }
@@ -321,8 +327,7 @@ export default function SettingsPage() {
       setDeleteCountdown(4);
     } catch (error) {
       const message =
-        error?.response?.data?.message ||
-        "Không thể yêu cầu xoá tài khoản lúc này.";
+        error?.response?.data?.message || t("settings.deleteRequestError");
       showToast(message, "error");
       setIsDeleteSubmitting(false);
     }
@@ -412,9 +417,7 @@ export default function SettingsPage() {
 
                 {error ? (
                   <div className="mt-5 rounded-[24px] border border-red-200 bg-red-50/90 px-4 py-4 text-sm text-red-600">
-                    <p className="font-semibold">
-                      Không tải được giao diện cài đặt
-                    </p>
+                    <p className="font-semibold">{t("settings.loadErrorTitle")}</p>
                     <p className="mt-1 text-red-500/90">{error}</p>
                   </div>
                 ) : null}
@@ -502,10 +505,7 @@ export default function SettingsPage() {
                         icon={BellOff}
                         open={false}
                         onToggle={() =>
-                          showToast(
-                            "Tính năng này đang được phát triển",
-                            "info",
-                          )
+                          showToast(t("settings.featureInDevelopment"), "info")
                         }
                       />
 
@@ -555,14 +555,27 @@ export default function SettingsPage() {
                       </SettingsAccordion>
 
                       <div className="flex items-center justify-between gap-3 pt-2">
-                        <button
-                          type="button"
-                          onClick={handleLogout}
-                          className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-8 py-6 text-l font-semibold text-rose-600 shadow-[0_8px_18px_rgba(244,63,94,0.10)] transition hover:-translate-y-0.5 hover:bg-rose-100 cursor-pointer"
-                        >
-                          <LogOut className="h-4.5 w-4.5" />
-                          {t("settings.logout")}
-                        </button>
+                        <div className="flex items-center gap-3">
+                          {user?.role === "admin" ? (
+                            <button
+                              type="button"
+                              onClick={() => navigate("/admin/dashboard")}
+                              className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-zinc-200 bg-white px-6 py-6 text-l font-semibold text-zinc-700 shadow-[0_8px_18px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5 hover:bg-zinc-50 cursor-pointer"
+                            >
+                              <LayoutDashboard className="h-4.5 w-4.5" />
+                              Admin
+                            </button>
+                          ) : null}
+
+                          <button
+                            type="button"
+                            onClick={handleLogout}
+                            className="inline-flex h-10 items-center justify-center gap-2 rounded-2xl border border-rose-200 bg-rose-50 px-8 py-6 text-l font-semibold text-rose-600 shadow-[0_8px_18px_rgba(244,63,94,0.10)] transition hover:-translate-y-0.5 hover:bg-rose-100 cursor-pointer"
+                          >
+                            <LogOut className="h-4.5 w-4.5" />
+                            {t("settings.logout")}
+                          </button>
+                        </div>
 
                         <button
                           type="button"
@@ -608,3 +621,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+

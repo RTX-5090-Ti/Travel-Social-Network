@@ -80,6 +80,39 @@
     "featureInDevelopment": "This feature is in development.",
     "savedAppearance": "Appearance preferences saved.",
     "logout": "Log out",
-    "save": "Save"
+    "save": "Save",
+    "passwordChanged": "Password changed successfully.",
+    "passwordChangeError": "Unable to change password right now.",
+    "deactivateError": "Unable to deactivate the account right now.",
+    "deleteRequestError": "Unable to request account deletion right now."
+  },
+  "archive": {
+    "personalArchive": "Personal archive",
+    "title": "Archive",
+    "tabArchive": "Archive",
+    "tabTrash": "Trash",
+    "loadErrorTitle": "Unable to load archive view",
+    "savedLoadErrorTitle": "Unable to load saved journeys",
+    "trashLoadErrorTitle": "Unable to load trash",
+    "savedEmptyTitle": "No saved journeys yet",
+    "trashEmptyTitle": "No journeys have been moved to trash yet",
+    "trashEmptyDescription": "Journeys will be permanently deleted after 7 days",
+    "savedRemoved": "Journey removed from saved list.",
+    "savedRemoveError": "Unable to remove journey from saved list.",
+    "restoreSuccess": "Journey restored successfully.",
+    "restoreError": "Unable to restore journey.",
+    "trashBadge": "Saved",
+    "unavailableTitle": "Saved journey is no longer available",
+    "unavailableDescription": "This post may have changed privacy, been moved to trash, or no longer exist.",
+    "checking": "Checking...",
+    "showJourney": "Show journey",
+    "unsave": "Unsave",
+    "removing": "Removing...",
+    "restoring": "Restoring...",
+    "restore": "Restore",
+    "introFallback": "This trip does not have an intro yet."
+  },
+  "journey": {
+    "untitled": "Untitled journey"
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 
 import { refreshAccessToken } from "../api/axios";
@@ -11,27 +11,27 @@ export function SocketProvider({ children }) {
   const { user, bootstrapping } = useAuth();
   const socketRef = useRef(null);
   const refreshAttemptRef = useRef(null);
-  const [socketInstance, setSocketInstance] = useState(null);
   const [isConnected, setIsConnected] = useState(false);
 
-  useEffect(() => {
+  const socketInstance = useMemo(() => {
     if (bootstrapping || !user?.id) {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
-      setSocketInstance(null);
-      setIsConnected(false);
-      return undefined;
+      return null;
     }
 
-    const socket = io(SOCKET_URL, {
+    return io(SOCKET_URL, {
       withCredentials: true,
       transports: ["websocket", "polling"],
     });
+  }, [bootstrapping, user?.id]);
 
+  useEffect(() => {
+    if (!socketInstance) {
+      socketRef.current = null;
+      return undefined;
+    }
+
+    const socket = socketInstance;
     socketRef.current = socket;
-    setSocketInstance(socket);
 
     const handleConnect = () => {
       setIsConnected(true);
@@ -59,7 +59,7 @@ export function SocketProvider({ children }) {
 
       try {
         await refreshAttemptRef.current;
-        //thử kết nối lại
+        // Thu ket noi lai sau khi refresh token thanh cong.
         if (socketRef.current === socket && !socket.connected) {
           socket.connect();
         }
@@ -87,15 +87,13 @@ export function SocketProvider({ children }) {
         socketRef.current = null;
       }
       refreshAttemptRef.current = null;
-      setSocketInstance(null);
-      setIsConnected(false);
     };
-  }, [bootstrapping, user?.id]);
+  }, [socketInstance]);
 
   const value = useMemo(
     () => ({
       socket: socketInstance,
-      isConnected,
+      isConnected: Boolean(socketInstance && isConnected),
     }),
     [isConnected, socketInstance],
   );

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { chatApi } from "../api/chat.api";
 import { useAuth } from "../auth/useAuth";
@@ -234,7 +234,7 @@ export function ChatProvider({ children }) {
 
       return items;
     } catch {
-      return [];
+        // De sau.
     } finally {
       setLoadingMessages(false);
     }
