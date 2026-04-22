@@ -59,7 +59,7 @@ export function SocketProvider({ children }) {
 
       try {
         await refreshAttemptRef.current;
-
+        //thử kết nối lại
         if (socketRef.current === socket && !socket.connected) {
           socket.connect();
         }

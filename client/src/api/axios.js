@@ -8,6 +8,7 @@ export const api = axios.create({
 });
 
 // axios riêng để gọi refresh, tránh đụng vòng lặp interceptor
+// tạo api instance
 const refreshClient = axios.create({
   baseURL,
   withCredentials: true,
@@ -40,7 +41,7 @@ api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
-    const status = error.response?.status;
+    const status = error.response?.status; //401, 404, 500
 
     // lỗi mạng hoặc không có response thì trả lỗi luôn
     if (!originalRequest || !status) {
@@ -54,8 +55,8 @@ api.interceptors.response.use(
     const isRegisterRequest = url.includes("/api/auth/register");
     const isLogoutRequest = url.includes("/api/auth/logout");
 
-    const skipAuthRefresh = originalRequest.skipAuthRefresh === true;
-    const skipSessionExpired = originalRequest.skipSessionExpired === true;
+    const skipAuthRefresh = originalRequest.skipAuthRefresh === true; //401 thì đừng auto refresh
+    const skipSessionExpired = originalRequest.skipSessionExpired === true; //fail thì đừng bắn event session expired
 
     // Chỉ xử lý auto refresh khi là 401
     if (status !== 401) {

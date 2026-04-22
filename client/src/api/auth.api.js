@@ -11,6 +11,7 @@ export const authApi = {
   deleteAccount: () => api.patch("/api/auth/delete-account"),
   changePassword: (payload) => api.patch("/api/auth/change-password", payload),
 
+  //thử khôi phục session đăng nhập của user.
   async bootstrapSession() {
     try {
       const res = await api.get("/api/auth/me", {

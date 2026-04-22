@@ -3,6 +3,7 @@ export default function SectionHeader({
   title,
   description,
   actionLabel,
+  onAction,
 }) {
   return (
     <div className="flex flex-col gap-2.5 sm:flex-row sm:items-end sm:justify-between sm:gap-3">
@@ -21,7 +22,11 @@ export default function SectionHeader({
       </div>
 
       {actionLabel ? (
-        <button className="inline-flex w-fit items-center rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[#4f7cff] shadow-sm transition hover:bg-blue-50 sm:px-4 sm:py-2 sm:text-[13px] cursor-pointer">
+        <button
+          type="button"
+          onClick={onAction}
+          className="inline-flex w-fit items-center rounded-full border border-zinc-200 bg-white px-3.5 py-1.5 text-[12px] font-semibold text-[#4f7cff] shadow-sm transition hover:bg-blue-50 sm:px-4 sm:py-2 sm:text-[13px] cursor-pointer"
+        >
           {actionLabel}
         </button>
       ) : null}

@@ -5,6 +5,7 @@ import { stories } from "../page/feed.constants";
 import { AddStory, StoryBubble } from "../page/StoriesSection";
 import { EmptyJourneyState, FeedCardSkeleton } from "../page/FeedStates";
 import JourneyFeedCard from "../page/JourneyFeedCard";
+import { useToast } from "../../../toast/useToast";
 import FeedHeroBar from "./FeedHeroBar";
 import SectionHeader from "./SectionHeader";
 
@@ -25,6 +26,7 @@ export default function MainFeed({
   onTripHidden,
 }) {
   const { t } = useTranslation();
+  const { showToast } = useToast();
   const loadMoreRef = useRef(null);
 
   useEffect(() => {
@@ -67,6 +69,9 @@ export default function MainFeed({
           <SectionHeader
             title={t("feed.stories")}
             actionLabel={t("feed.watchAll")}
+            onAction={() =>
+              showToast("Tính năng này đang được phát triển", "info")
+            }
           />
 
           <div className="theme-card mt-4 rounded-[24px] border border-white/70 bg-white/80 p-3 shadow-[0_12px_28px_rgba(15,23,42,0.045)] ring-1 ring-zinc-200/60 backdrop-blur sm:mt-5 sm:rounded-[28px] sm:p-4 sm:shadow-[0_16px_40px_rgba(15,23,42,0.05)]">

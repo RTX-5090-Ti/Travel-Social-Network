@@ -43,10 +43,11 @@ function buildAuthUserPayload(user) {
 function sendInactiveAccountResponse(res) {
   return res.status(403).json({
     code: "ACCOUNT_DEACTIVATED",
-    message: "Account is deactivated",
+    message: "Account is deactivated", // vô hiệu hoá
   });
 }
 
+// Tính còn bao lâu tk bị xoá
 function formatDeletionRemainingLabel(scheduledDeletionAt) {
   const remainingMs = Math.max(
     new Date(scheduledDeletionAt).getTime() - Date.now(),
@@ -62,6 +63,7 @@ function formatDeletionRemainingLabel(scheduledDeletionAt) {
   return `${days} day${days === 1 ? "" : "s"} remaining`;
 }
 
+// Trang thái chờ xoá
 function sendPendingDeletionResponse(res, user) {
   return res.status(403).json({
     code: "ACCOUNT_PENDING_DELETION",
@@ -77,6 +79,7 @@ function clearSessionCookies(res) {
   res.clearCookie("refreshToken", opts);
 }
 
+// Cấp  phiên đăng nhập mới
 async function issueSessionForUser(user, res) {
   const payload = { userId: user._id.toString(), role: user.role };
   const accessToken = signAccessToken(payload);
@@ -284,6 +287,7 @@ export async function changePassword(req, res, next) {
   }
 }
 
+// vô hiêu hoá tk tạm thời
 export async function deactivateAccount(req, res, next) {
   try {
     const user = await User.findById(req.user.userId);
@@ -312,6 +316,7 @@ export async function deactivateAccount(req, res, next) {
   }
 }
 
+// yêu cầu xoá tài khoản
 export async function requestAccountDeletion(req, res, next) {
   try {
     const user = await User.findById(req.user.userId);
@@ -353,6 +358,7 @@ export async function requestAccountDeletion(req, res, next) {
   }
 }
 
+// mở lại tài khoản
 export async function reactivateAccount(req, res, next) {
   try {
     const { email, password } = req.body;

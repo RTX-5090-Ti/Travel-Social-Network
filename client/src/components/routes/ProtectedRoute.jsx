@@ -5,6 +5,7 @@ import AuthLoadingScreen from "../auth/AuthLoadingScreen";
 export default function ProtectedRoute({ children }) {
   const { bootstrapping, isAuthenticated } = useAuth();
 
+  // còn đang kiểm tra
   if (bootstrapping) {
     return <AuthLoadingScreen />;
   }
